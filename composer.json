@@ -1,0 +1,85 @@
+{
+    "name": "afedukov/searchtweak",
+    "type": "project",
+    "description": "Optimize and Enhance Your Search Quality.",
+    "keywords": [
+      "search",
+      "search assessment",
+      "search optimization",
+      "search engine",
+      "machine learning",
+      "data labeling",
+      "analytics",
+      "relevance"
+    ],
+    "license": "FSL-1.1-Apache-2.0",
+    "require": {
+        "php": "^8.3",
+        "binarytorch/larecipe": "^2.7",
+        "guzzlehttp/guzzle": "^7.2",
+        "laravel/framework": "^11.0",
+        "laravel/horizon": "^5.24",
+        "laravel/jetstream": "^5.0",
+        "laravel/reverb": "@beta",
+        "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^2.8",
+        "league/flysystem-aws-s3-v3": "^3.0",
+        "livewire/livewire": "^3.0",
+        "masmerise/livewire-toaster": "^2.1",
+        "maxbanton/cwh": "^2.0",
+        "predis/predis": "^2.2",
+        "symfony/expression-language": "^7.0"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.9.1",
+        "laravel/pint": "^1.0",
+        "laravel/sail": "^1.18",
+        "mockery/mockery": "^1.4.4",
+        "nunomaduro/collision": "^8.1",
+        "phpunit/phpunit": "^10.1",
+        "spatie/laravel-ignition": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

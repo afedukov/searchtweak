@@ -1,0 +1,218 @@
+services:
+
+  traefik:
+    image: "traefik:v2.2.1"
+    container_name: traefik
+    hostname: traefik
+    command:
+      - --entrypoints.web.address=:80
+      - --providers.docker
+      - --providers.docker.exposedByDefault=false
+      - --api
+      - --providers.file.directory=/etc/traefik
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik:/etc/traefik
+    labels:
+      - traefik.enable=true
+      # Dashboard
+      - traefik.http.routers.traefik.rule=Host(`traefik.${PRIMARY_DOMAIN}`)
+      - traefik.http.routers.traefik.service=api@internal
+      - traefik.http.routers.traefik.entrypoints=web
+    restart: unless-stopped
+    networks:
+      - searchtweak-network
+
+  web:
+    container_name: searchtweak-nginx
+    image: nginx:latest
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nginx-http.rule=Host(`${PRIMARY_DOMAIN}`, `www.${PRIMARY_DOMAIN}`)
+      - traefik.http.routers.nginx-http.entrypoints=web
+      - traefik.http.routers.nginx-http.middlewares=redirect-to-non-www@file
+    volumes:
+      - ../:/var/www
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - app_db
+      - php-fpm
+      - redis
+    networks:
+      - searchtweak-network
+
+  php-fpm:
+    container_name: searchtweak-php-fpm
+    build:
+      context: image/php
+      args:
+        INSTALL_OPCACHE: ${INSTALL_OPCACHE}
+    restart: unless-stopped
+    volumes:
+      - ../:/var/www
+      - ./php-fpm/www.conf:/usr/local/etc/php-fpm.d/www.conf
+    working_dir: /var/www
+    networks:
+      - searchtweak-network
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  app_db:
+    container_name: searchtweak-db
+    image: mysql:${APP_DB_VERSION}
+    platform: ${APP_DB_PLATFORM}
+    restart: unless-stopped
+    environment:
+      MYSQL_TCP_PORT: ${APP_DB_PORT}
+      MYSQL_ROOT_PASSWORD: ${APP_DB_PASSWORD}
+      MYSQL_DATABASE: ${APP_DB_DATABASE}
+    volumes:
+      - database:/var/lib/mysql
+      - ./data:/var/data
+    ports:
+      - 3600:${APP_DB_PORT}
+    networks:
+      - searchtweak-network
+
+  phpmyadmin:
+    container_name: searchtweak-phpmyadmin
+    image: phpmyadmin
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.db-http.rule=Host(`db.${PRIMARY_DOMAIN}`)
+      - traefik.http.routers.db-http.entrypoints=web
+    ports:
+      - "8888:80"
+    environment:
+      - PMA_HOST=searchtweak-db
+      - PMA_PORT=3306
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    depends_on:
+      - app_db
+    networks:
+      - searchtweak-network
+
+  redis:
+    container_name: searchtweak-redis
+    image: redis:4.0.14-alpine
+    restart: unless-stopped
+    networks:
+      - searchtweak-network
+    ports:
+      - "6600:6379"
+
+  composer:
+    build:
+      context: image/php
+    container_name: composer
+    volumes:
+      - ../:/var/www
+    working_dir: /var/www
+    env_file:
+      - .env
+    profiles: [ "composer" ]
+    entrypoint: [ 'composer' ]
+    networks:
+      - searchtweak-network
+
+  artisan:
+    build:
+      context: image/php
+    container_name: artisan
+    volumes:
+      - ../:/var/www
+    working_dir: /var/www
+    env_file:
+      - .env
+    profiles: [ "artisan" ]
+    entrypoint: [ 'php', '/var/www/artisan' ]
+    networks:
+      - searchtweak-network
+
+  npm:
+    image: node:alpine
+    container_name: npm
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../:/var/www
+    working_dir: /var/www
+    profiles: [ "npm" ]
+    entrypoint: [ 'npm' ]
+    networks:
+      - searchtweak-network
+
+  crontab:
+    container_name: searchtweak-crontab
+    build:
+      context: image/php
+    restart: unless-stopped
+    depends_on:
+      - app_db
+      - redis
+    volumes:
+      - ../:/var/www
+      - ./supervisord/supervisord.crontab.conf:/etc/supervisor/conf.d/supervisord.conf
+    working_dir: /var/www
+    entrypoint: [ "/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf" ]
+    networks:
+      - searchtweak-network
+
+  queue:
+    container_name: searchtweak-queue
+    build:
+      context: image/php
+    restart: unless-stopped
+    depends_on:
+      - app_db
+      - redis
+    volumes:
+      - ../:/var/www
+      - ./supervisord/supervisord.queue.conf:/etc/supervisor/conf.d/supervisord.conf
+    working_dir: /var/www
+    entrypoint: [ "/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf" ]
+    networks:
+      - searchtweak-network
+
+  reverb:
+    container_name: searchtweak-reverb
+    build:
+      context: image/php
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - app_db
+      - redis
+    volumes:
+      - ../:/var/www
+      - ./supervisord/supervisord.reverb.conf:/etc/supervisor/conf.d/supervisord.conf
+    working_dir: /var/www
+    entrypoint: [ "/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf" ]
+    networks:
+      - searchtweak-network
+
+  mailhog:
+    container_name: searchtweak-mailhog
+    build:
+      context: mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+    networks:
+      - searchtweak-network
+
+volumes:
+  database:
+  postgres-database:
+networks:
+  default:
+    driver: bridge
+  searchtweak-network:
+    external: true
