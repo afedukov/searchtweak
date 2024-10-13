@@ -29,6 +29,19 @@ class GradedScale extends Scale
         ];
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public function getShortcuts(): array
+    {
+        return [
+            self::POOR => '1',
+            self::FAIR => '2',
+            self::GOOD => '3',
+            self::PERFECT => '4',
+        ];
+    }
+
     public function getValue(array $grades): ?float
     {
         if (empty($grades)) {

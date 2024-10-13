@@ -26,6 +26,17 @@ class BinaryScale extends Scale
     }
 
     /**
+     * @return array<int, string>
+     */
+    public function getShortcuts(): array
+    {
+        return [
+            self::IRRELEVANT => '1',
+            self::RELEVANT => '2',
+        ];
+    }
+
+    /**
      * Return prevailing value from the given grades. E.g. if there are more 'Relevant' grades than 'Irrelevant' grades,
      * the prevailing value is 'Relevant'. If there are equal number of 'Relevant' and 'Irrelevant' grades, return null.
      *

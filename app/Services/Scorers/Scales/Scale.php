@@ -16,6 +16,11 @@ abstract class Scale implements JsonSerializable
     abstract public function getValues(): array;
 
     /**
+     * @return array<int, string>
+     */
+    abstract public function getShortcuts(): array;
+
+    /**
      * Return prevailing value from the given grades. E.g. if there are more 'Relevant' grades than 'Irrelevant' grades,
      * the prevailing value is 'Relevant'. If there are equal number of 'Relevant' and 'Irrelevant' grades, return null.
      *
