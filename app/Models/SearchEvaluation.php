@@ -350,7 +350,7 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
      */
     public function isDeletable(): bool
     {
-        return $this->isFinished() || ($this->isPending() && !$this->hasStarted());
+        return $this->isFinished() || $this->isPending();
     }
 
     public function delete(): bool
