@@ -22,12 +22,8 @@ class GradeSearchEvaluation
             throw new \RuntimeException('Snapshot assigned to another user');
         }
 
-        if ($feedback->user_id === $user->id && $feedback->isAssignmentExpired()) {
+        if ($feedback->grade === null && $feedback->isAssignmentExpired()) {
             throw new \RuntimeException('Snapshot assignment expired');
-        }
-
-        if ($feedback->grade !== null) {
-            throw new \RuntimeException('Snapshot is already graded');
         }
 
         $feedback->grade = $grade;

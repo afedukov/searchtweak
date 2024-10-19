@@ -5,6 +5,7 @@ namespace App\Services\Evaluations;
 use App\Models\SearchEvaluation;
 use App\Models\User;
 use App\Models\UserFeedback;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -28,11 +29,7 @@ class UserFeedbackService
      */
     public function fetch(User $user, ?SearchEvaluation $evaluation): ?UserFeedback
     {
-        if ($evaluation === null) {
-            $pool = UserFeedback::globalPool($user);
-        } else {
-            $pool = UserFeedback::evaluationPool($evaluation->id);
-        }
+        $pool = $this->getPool($user, $evaluation);
 
         $assignedFeedback = $pool->clone()
             ->with('snapshot.keyword.evaluation.tags')
@@ -87,6 +84,34 @@ class UserFeedbackService
         return $feedback;
     }
 
+    /**
+     * Get previously graded feedback for the user.
+     *
+     * @param User $user
+     * @param SearchEvaluation|null $evaluation
+     *
+     * @return UserFeedback|null
+     */
+    public function previous(User $user, ?SearchEvaluation $evaluation): ?UserFeedback
+    {
+        return $this->getPool($user, $evaluation)
+            ->clone()
+            ->with('snapshot.keyword.evaluation.tags')
+            ->graded()
+            ->where(UserFeedback::FIELD_USER_ID, $user->id)
+            ->orderByDesc(UserFeedback::FIELD_UPDATED_AT)
+            ->first();
+    }
+
+    private function getPool(User $user, ?SearchEvaluation $evaluation): Builder|UserFeedback
+    {
+        if ($evaluation === null) {
+            return UserFeedback::globalPool($user);
+        }
+
+        return UserFeedback::evaluationPool($evaluation->id);
+    }
+
     private function getGlobalPoolSnapshotsCount(User $user): int
     {
         $count = 0;
@@ -129,7 +154,7 @@ class UserFeedbackService
         $tag = $this->getUngradedSnapshotsCountCacheTag($user->current_team_id);
         $key = $this->getUngradedSnapshotsCountCacheKey($user->id);
 
-        return Cache::tags($tag)->remember($key, 3600, fn () => $this->getGlobalPoolSnapshotsCount($user));
+        return Cache::tags($tag)->remember($key, 300, fn () => $this->getGlobalPoolSnapshotsCount($user));
     }
 
     public static function getUngradedSnapshotsCountCacheTag(int $teamId): string

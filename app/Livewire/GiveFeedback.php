@@ -18,6 +18,8 @@ class GiveFeedback extends Component
 
     public ?UserFeedback $feedback = null;
 
+    public ?UserFeedback $previous = null;
+
     public function mount(?int $evaluationId = null): void
     {
         if ($evaluationId === null) {
@@ -30,12 +32,18 @@ class GiveFeedback extends Component
 
         if ($this->evaluation === null || $this->evaluation->isActive()) {
             $this->fetchFeedback();
+            $this->previous = $this->getPreviousFeedback();
         }
     }
 
     private function fetchFeedback(): void
     {
         $this->feedback = app(UserFeedbackService::class)->fetch(Auth::user(), $this->evaluation);
+    }
+
+    private function getPreviousFeedback(): ?UserFeedback
+    {
+        return app(UserFeedbackService::class)->previous(Auth::user(), $this->evaluation);
     }
 
     public function render(): View
@@ -52,7 +60,17 @@ class GiveFeedback extends Component
             Toaster::error($e->getMessage());
         }
 
+        $this->previous = $feedback;
+
         $this->fetchFeedback();
+        $this->dispatch('$refresh');
+    }
+
+    public function goPrevious(): void
+    {
+        $this->feedback = $this->previous;
+        $this->previous = null;
+
         $this->dispatch('$refresh');
     }
 }

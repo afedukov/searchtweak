@@ -29,13 +29,27 @@
 						</p>
 					</div>
 				@else
-					<div class="mb-8 flex items-center gap-3">
-						<span class="font-medium text-lg text-gray-500 dark:text-gray-400">
-							Keyword
-						</span>
-						<x-block.bordered-label class="font-bold text-lg text-gray-900 dark:text-white">
-							{{ $feedback->snapshot->keyword->keyword }}
-						</x-block.bordered-label>
+					<div class="mb-8 flex items-center gap-3 justify-between">
+						<div>
+							<span class="font-medium text-lg text-gray-500 dark:text-gray-400">
+								Keyword
+							</span>
+							<x-block.bordered-label class="font-bold text-lg text-gray-900 dark:text-white">
+								{{ $feedback->snapshot->keyword->keyword }}
+							</x-block.bordered-label>
+						</div>
+						<div>
+							@if ($previous)
+								<button
+										class="btn gap-1 ml-2 px-3 py-1 font-medium rounded-lg text-xs text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700"
+										wire:click="goPrevious"
+										wire:loading.attr="disabled"
+								>
+									Previous
+									<x-dynamic-component :component="$previous->snapshot->keyword->evaluation->getScale()->getScaleBadgeComponent()" :grade="$previous->grade" size="sm" />
+								</button>
+							@endif
+						</div>
 					</div>
 
 					<div class="text-lg font-semibold text-gray-900 dark:text-white mb-8">
