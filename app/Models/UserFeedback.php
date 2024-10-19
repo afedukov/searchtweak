@@ -172,6 +172,7 @@ class UserFeedback extends Model
             return false;
         }
 
-        return $evaluationTags->intersect($userTags)->isNotEmpty();
+        // Check if user has all evaluation tags (AND logic)
+        return $evaluationTags->diff($userTags)->isEmpty();
     }
 }
