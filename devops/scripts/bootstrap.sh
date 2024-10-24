@@ -24,9 +24,6 @@ fi
 echo -e ${ACTION}Running migrations ...
 docker compose run --rm artisan migrate --force
 
-echo -e ${ACTION}Cleaning app cache ...
-docker compose run --rm artisan cache:clear
-
 echo -e ${ACTION}Cleaning route cache ...
 docker compose run --rm artisan route:clear
 
