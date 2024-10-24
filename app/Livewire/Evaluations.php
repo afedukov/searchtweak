@@ -2,10 +2,10 @@
 
 namespace App\Livewire;
 
-use App\Livewire\Evaluations\FilterStatus;
 use App\Livewire\Traits\Evaluations\DeleteEvaluationTrait;
 use App\Livewire\Traits\Evaluations\EditEvaluationModalTrait;
 use App\Livewire\Traits\Evaluations\ExportEvaluationTrait;
+use App\Livewire\Traits\Evaluations\FilterEvaluationsTrait;
 use App\Models\SearchEvaluation;
 use App\Models\SearchModel;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,12 +22,9 @@ class Evaluations extends Component
     use EditEvaluationModalTrait;
     use DeleteEvaluationTrait;
     use ExportEvaluationTrait;
+    use FilterEvaluationsTrait;
 
     public const int PER_PAGE = 10;
-
-    public array $filterStatus = FilterStatus::DEFAULT_FILTER_STATUS;
-
-    public int $filterTagId = 0;
 
     protected function getListeners(): array
     {
@@ -48,13 +45,9 @@ class Evaluations extends Component
             ->get();
 
         return view('livewire.pages.evaluations', [
-            'evaluations' => SearchEvaluation::query()
-                ->whereIn(SearchEvaluation::FIELD_STATUS, $this->filterStatus)
+            'evaluations' => $this->applyFilters(SearchEvaluation::query())
                 ->whereHas('model', fn (Builder $query) =>
                     $query->where(SearchModel::FIELD_TEAM_ID, Auth::user()->currentTeam->id)
-                )
-                ->when($this->filterTagId, fn (Builder $query) =>
-                    $query->whereHas('tags', fn (Builder $query) => $query->whereKey($this->filterTagId))
                 )
                 ->with('user', 'model.team', 'metrics', 'model.tags', 'tags')
                 ->withCount('keywords')
