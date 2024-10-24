@@ -14,6 +14,11 @@ trait FilterEvaluationsTrait
 
     public string $query = '';
 
+    /**
+     * @param Builder $query
+     *
+     * @return Builder
+     */
     protected function applyFilters(Builder $query): Builder
     {
         $query->whereIn(SearchEvaluation::FIELD_STATUS, $this->filterStatus)
