@@ -21,6 +21,9 @@ else
     docker compose run --rm artisan key:generate
 fi
 
+echo -e ${ACTION}Running migrations ...
+docker compose run --rm artisan migrate --force
+
 echo -e ${ACTION}Cleaning app cache ...
 docker compose run --rm artisan cache:clear
 
@@ -39,11 +42,8 @@ docker compose run --rm artisan config:cache
 echo -e ${ACTION}Caching views ...
 docker compose run --rm artisan view:cache
 
-echo -e ${ACTION}Optimizing ...
-docker compose run --rm artisan optimize
-
-echo -e ${ACTION}Running migrations ...
-docker compose run --rm artisan migrate --force
+echo -e ${ACTION}Publishing livewire assets ...
+docker compose run --rm artisan livewire:publish --assets
 
 echo -e ${ACTION}Terminating horizon ...
 docker compose run --rm artisan horizon:terminate
