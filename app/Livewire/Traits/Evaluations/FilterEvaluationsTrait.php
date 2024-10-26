@@ -10,6 +10,8 @@ trait FilterEvaluationsTrait
 {
     public array $filterStatus = FilterStatus::DEFAULT_FILTER_STATUS;
 
+    public string $filterArchived = 'current';
+
     public int $filterTagId = 0;
 
     public string $query = '';
@@ -26,6 +28,12 @@ trait FilterEvaluationsTrait
                 ->where(SearchEvaluation::FIELD_NAME, 'like', '%' . $this->query . '%')
                 ->orWhere(SearchEvaluation::FIELD_DESCRIPTION, 'like', '%' . $this->query . '%')
             );
+        }
+
+        if ($this->filterArchived === 'archived') {
+            $query->where(SearchEvaluation::FIELD_ARCHIVED, true);
+        } elseif ($this->filterArchived === 'current') {
+            $query->where(SearchEvaluation::FIELD_ARCHIVED, false);
         }
 
         return $query;

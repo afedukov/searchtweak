@@ -29,8 +29,7 @@ class SearchEvaluationPolicy
      */
     public function view(User $user, SearchEvaluation $searchEvaluation): bool
     {
-        return $user->current_team_id === $searchEvaluation->model->team_id &&
-            $user->hasTeamPermission($searchEvaluation->model->team, Permissions::PERMISSION_MANAGE_SEARCH_EVALUATIONS);
+        return $this->canManageEvaluation($user, $searchEvaluation);
     }
 
     /**
@@ -109,8 +108,7 @@ class SearchEvaluationPolicy
      */
     public function update(User $user, SearchEvaluation $searchEvaluation): bool
     {
-        return $user->current_team_id === $searchEvaluation->model->team_id &&
-            $user->hasTeamPermission($searchEvaluation->model->team, Permissions::PERMISSION_MANAGE_SEARCH_EVALUATIONS);
+        return $this->canManageEvaluation($user, $searchEvaluation);
     }
 
     /**
@@ -118,8 +116,7 @@ class SearchEvaluationPolicy
      */
     public function delete(User $user, SearchEvaluation $searchEvaluation): bool
     {
-        return $user->current_team_id === $searchEvaluation->model->team_id &&
-            $user->hasTeamPermission($searchEvaluation->model->team, Permissions::PERMISSION_MANAGE_SEARCH_EVALUATIONS);
+        return $this->canManageEvaluation($user, $searchEvaluation);
     }
 
     /**
@@ -127,8 +124,7 @@ class SearchEvaluationPolicy
      */
     public function start(User $user, SearchEvaluation $searchEvaluation): bool
     {
-        return $user->current_team_id === $searchEvaluation->model->team_id &&
-            $user->hasTeamPermission($searchEvaluation->model->team, Permissions::PERMISSION_MANAGE_SEARCH_EVALUATIONS);
+        return $this->canManageEvaluation($user, $searchEvaluation);
     }
 
     /**
@@ -136,8 +132,7 @@ class SearchEvaluationPolicy
      */
     public function pause(User $user, SearchEvaluation $searchEvaluation): bool
     {
-        return $user->current_team_id === $searchEvaluation->model->team_id &&
-            $user->hasTeamPermission($searchEvaluation->model->team, Permissions::PERMISSION_MANAGE_SEARCH_EVALUATIONS);
+        return $this->canManageEvaluation($user, $searchEvaluation);
     }
 
     /**
@@ -145,8 +140,7 @@ class SearchEvaluationPolicy
      */
     public function finish(User $user, SearchEvaluation $searchEvaluation): bool
     {
-        return $user->current_team_id === $searchEvaluation->model->team_id &&
-            $user->hasTeamPermission($searchEvaluation->model->team, Permissions::PERMISSION_MANAGE_SEARCH_EVALUATIONS);
+        return $this->canManageEvaluation($user, $searchEvaluation);
     }
 
     /**
@@ -154,7 +148,28 @@ class SearchEvaluationPolicy
      */
     public function export(User $user, SearchEvaluation $searchEvaluation): bool
     {
+        return $this->canManageEvaluation($user, $searchEvaluation);
+    }
+
+    private function canManageEvaluation(User $user, SearchEvaluation $searchEvaluation): bool
+    {
         return $user->current_team_id === $searchEvaluation->model->team_id &&
             $user->hasTeamPermission($searchEvaluation->model->team, Permissions::PERMISSION_MANAGE_SEARCH_EVALUATIONS);
+    }
+
+    /**
+     * Determine whether the user can archive/un-archive the search evaluation.
+     */
+    public function archive(User $user, SearchEvaluation $searchEvaluation): bool
+    {
+        return $this->canManageEvaluation($user, $searchEvaluation);
+    }
+
+    /**
+     * Determine whether the user can pin/un-pin the search evaluation.
+     */
+    public function pin(User $user, SearchEvaluation $searchEvaluation): bool
+    {
+        return $this->canManageEvaluation($user, $searchEvaluation);
     }
 }

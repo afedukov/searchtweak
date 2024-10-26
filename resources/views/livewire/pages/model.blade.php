@@ -96,12 +96,15 @@
 										<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
 									</svg>
 								</div>
-								<input wire:model.live.debounce.500ms="query" type="text" class="block pt-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg w-80 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search for evaluations" />
+								<input wire:model.live.debounce.500ms="query" type="text" class="block pt-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-md w-80 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search for evaluations" />
 							</div>
 						</div>
 
 						<!-- Right Column -->
 						<div class="flex flex-wrap gap-2">
+							<!-- Archived Filter -->
+							<livewire:evaluations.filter-archived wire:model.live="filterArchived" wire:key="{{ md5(mt_rand()) }}" />
+
 							<!-- Status Filter -->
 							<livewire:evaluations.filter-status wire:model="filterStatus" wire:key="{{ md5(mt_rand()) }}" />
 

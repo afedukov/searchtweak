@@ -35,6 +35,7 @@ class ModelMetricsBuilder
 
         return $model->evaluations()
             ->where(SearchEvaluation::FIELD_STATUS, SearchEvaluation::STATUS_FINISHED)
+            ->where(SearchEvaluation::FIELD_ARCHIVED, false)
             ->with('metrics.evaluation')
             ->get()
             ->flatMap(fn (SearchEvaluation $evaluation) => $evaluation->metrics)

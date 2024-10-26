@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\EvaluationArchivedChangedEvent;
 use App\Events\EvaluationProgressChangedEvent;
 use App\Events\EvaluationStatusChangedEvent;
 use App\Livewire\Widgets\EvaluationProgressWidget;
@@ -32,6 +33,8 @@ use Illuminate\Support\Facades\Cache;
  * @property int $max_num_results
  * @property int $successful_keywords
  * @property int $failed_keywords
+ * @property bool $archived
+ * @property bool $pinned
  * @property Carbon $finished_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -65,6 +68,8 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
     public const string FIELD_MAX_NUM_RESULTS = 'max_num_results';
     public const string FIELD_SUCCESSFUL_KEYWORDS = 'successful_keywords';
     public const string FIELD_FAILED_KEYWORDS = 'failed_keywords';
+    public const string FIELD_ARCHIVED = 'archived';
+    public const string FIELD_PINNED = 'pinned';
     public const string FIELD_FINISHED_AT = 'finished_at';
     public const string FIELD_CREATED_AT = 'created_at';
     public const string FIELD_UPDATED_AT = 'updated_at';
@@ -106,6 +111,8 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
         self::FIELD_MAX_NUM_RESULTS,
         self::FIELD_SUCCESSFUL_KEYWORDS,
         self::FIELD_FAILED_KEYWORDS,
+        self::FIELD_ARCHIVED,
+        self::FIELD_PINNED,
         self::FIELD_FINISHED_AT,
     ];
 
@@ -119,6 +126,8 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
         self::FIELD_FINISHED_AT => 'datetime',
         self::FIELD_SUCCESSFUL_KEYWORDS => 'int',
         self::FIELD_FAILED_KEYWORDS => 'int',
+        self::FIELD_ARCHIVED => 'bool',
+        self::FIELD_PINNED => 'bool',
     ];
 
     private ?Scale $scale = null;
@@ -140,6 +149,10 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
 
             if ($evaluation->isDirty(self::FIELD_PROGRESS)) {
                 EvaluationProgressChangedEvent::dispatch($evaluation);
+            }
+
+            if ($evaluation->isDirty(self::FIELD_ARCHIVED)) {
+                EvaluationArchivedChangedEvent::dispatch($evaluation);
             }
         });
     }
@@ -351,6 +364,26 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
     public function isDeletable(): bool
     {
         return $this->isFinished() || $this->isPending();
+    }
+
+    public function isArchivable(): bool
+    {
+        return !$this->archived;
+    }
+
+    public function isUnarchivable(): bool
+    {
+        return $this->archived;
+    }
+
+    public function isPinnable(): bool
+    {
+        return !$this->pinned;
+    }
+
+    public function isUnpinnable(): bool
+    {
+        return $this->pinned;
     }
 
     public function delete(): bool

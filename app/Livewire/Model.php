@@ -2,10 +2,12 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\Evaluations\ArchiveEvaluationTrait;
 use App\Livewire\Traits\Evaluations\DeleteEvaluationTrait;
 use App\Livewire\Traits\Evaluations\EditEvaluationModalTrait;
 use App\Livewire\Traits\Evaluations\ExportEvaluationTrait;
 use App\Livewire\Traits\Evaluations\FilterEvaluationsTrait;
+use App\Livewire\Traits\Evaluations\PinEvaluationTrait;
 use App\Livewire\Traits\Models\EditModelModalTrait;
 use App\Models\SearchEvaluation;
 use App\Models\SearchModel;
@@ -22,6 +24,8 @@ class Model extends Component
     use EditModelModalTrait;
     use ExportEvaluationTrait;
     use FilterEvaluationsTrait;
+    use ArchiveEvaluationTrait;
+    use PinEvaluationTrait;
 
     public const int PER_PAGE = 10;
 
@@ -52,14 +56,14 @@ class Model extends Component
             ->with('tags')
             ->get();
 
-        $query = $this->model
-            ->evaluations()
-            ->getQuery();
+        $query = SearchEvaluation::query()
+            ->where(SearchEvaluation::FIELD_MODEL_ID, $this->model->id);
 
         return view('livewire.pages.model', [
             'evaluations' => $this->applyFilters($query)
                 ->with('user', 'model.team', 'metrics', 'tags')
                 ->withCount('keywords')
+                ->orderByDesc(SearchEvaluation::FIELD_PINNED)
                 ->orderByDesc(SearchEvaluation::FIELD_ID)
                 ->paginate(self::PER_PAGE),
             'allModels' => $allModels,
