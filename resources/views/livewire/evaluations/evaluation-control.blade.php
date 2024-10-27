@@ -4,7 +4,28 @@
 	</svg>
 	<x-tooltip id="evaluation-created-{{ $evaluation->id }}" with-arrow>
 		<span class="whitespace-nowrap">
-			{{ $evaluation->created_at->toDateTimeString() }}
+			<ul>
+				<li>
+					<span class="font-bold">Created</span>
+					<svg class="w-3 h-3 text-green-500 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+						<path d="M10 0a10 10 0 1 0 10 10A10.011 10.011 0 0 0 10 0Zm3.982 13.982a1 1 0 0 1-1.414 0l-3.274-3.274A1.012 1.012 0 0 1 9 10V6a1 1 0 0 1 2 0v3.586l2.982 2.982a1 1 0 0 1 0 1.414Z"/>
+					</svg>
+					<span class="font-medium">
+						{{ $evaluation->created_at->toDateTimeString() }}
+					</span>
+				</li>
+				@if ($evaluation->finished_at)
+					<li>
+						<span class="font-bold">Finished</span>
+						<svg class="w-3 h-3 text-blue-500 inline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+							<path d="M10 0a10 10 0 1 0 10 10A10.011 10.011 0 0 0 10 0Zm3.982 13.982a1 1 0 0 1-1.414 0l-3.274-3.274A1.012 1.012 0 0 1 9 10V6a1 1 0 0 1 2 0v3.586l2.982 2.982a1 1 0 0 1 0 1.414Z"/>
+						</svg>
+						<span class="font-medium">
+							{{ $evaluation->finished_at->toDateTimeString() }}
+						</span>
+					</li>
+				@endif
+			</ul>
 		</span>
 	</x-tooltip>
 	<span class="font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
