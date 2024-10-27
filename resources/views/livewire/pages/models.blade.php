@@ -51,28 +51,26 @@
 						<table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
 							<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
 							<tr>
-								<th scope="col" class="px-5 py-3">
+								<th scope="col" class="px-4 py-3 min-w-64">
 									{{ __('Model') }}
 								</th>
-								<th scope="col" class="px-5 py-3 w-1/3 min-w-52">
+								<th scope="col" class="px-4 py-3 min-w-64">
 									{{ __('Endpoint') }}
 								</th>
-								<th scope="col" class="px-5 py-3">
-									{{ __('Tags') }}
+								<th scope="col" class="px-4 py-3 w-full align-baseline flex">
+									{{ __('Metrics') }}
+									<div class="inline-block ml-1">
+										<x-tooltip-info>
+											<div class="max-w-80 font-light normal-case">
+												Latest metrics of each scorer type for the model.
+											</div>
+										</x-tooltip-info>
+									</div>
 								</th>
-								<th scope="col" class="px-5 py-3 text-center">
-									{{ __('Query Parameters') }}
-								</th>
-								<th scope="col" class="px-5 py-3 text-center">
-									{{ __('Request Body') }}
-								</th>
-								<th scope="col" class="px-5 py-3 text-center">
-									{{ __('Custom Headers') }}
-								</th>
-								<th scope="col" class="px-5 py-3 text-center">
+								<th scope="col" class="px-4 py-3 text-center">
 									{{ __('Evaluation') }}
 								</th>
-								<th scope="col" class="px-5 py-3 text-right">
+								<th scope="col" class="px-4 py-3 text-right">
 									{{ __('Action') }}
 								</th>
 							</tr>
@@ -80,7 +78,7 @@
 							<tbody>
 							@forelse ($models as $model)
 								<tr wire:key="model-item-{{ $model->id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-									<th scope="row" class="px-5 py-4 font-medium text-gray-900 dark:text-white align-baseline">
+									<th scope="row" class="px-4 py-4 font-medium text-gray-900 dark:text-white align-baseline">
 										<div class="max-w-64 min-w-28">
 											<a href="{{ route('model', $model->id) }}">
 												<div>
@@ -91,35 +89,25 @@
 												</div>
 											</a>
 										</div>
+
+										<x-tags.tags-list :tags="$model->tags" empty-label="" class="mt-1" />
 									</th>
-									<td class="px-5 py-4 align-baseline">
+									<td class="px-4 py-4 align-baseline">
 										<x-endpoints.endpoint-badge :endpoint="$model->endpoint" />
 									</td>
-									<td class="px-5 py-4 align-baseline">
-										<x-tags.tags-list :tags="$model->tags" />
+									<td class="px-4 py-4 align-baseline">
+										<!-- Model Metrics -->
+										<div class="flex flex-wrap gap-3">
+											@forelse ($model->getMetrics() as $modelMetric)
+												<x-metrics.evaluation-metric :metric="$modelMetric->getLastMetric()" :keywords-count="$modelMetric->getKeywordsCount()" />
+											@empty
+												<span class="text-xs text-gray-400 dark:text-gray-500">
+													{{ __('No metrics') }}
+												</span>
+											@endforelse
+										</div>
 									</td>
-									<td class="px-5 py-4 text-center align-baseline">
-										@if ($model->params)
-											<x-typography.check-mark />
-										@else
-											<span class="font-mono text-xs">&mdash;</span>
-										@endif
-									</td>
-									<td class="px-5 py-4 text-center align-baseline">
-										@if ($model->body_type > 0 && $model->body)
-											<x-typography.check-mark />
-										@else
-											<span class="font-mono text-xs">&mdash;</span>
-										@endif
-									</td>
-									<td class="px-5 py-4 text-center align-baseline">
-										@if ($model->getHeaders())
-											<x-typography.check-mark />
-										@else
-											<span class="font-mono text-xs">&mdash;</span>
-										@endif
-									</td>
-									<td class="px-5 py-4 text-center align-baseline">
+									<td class="px-4 py-4 text-center align-baseline">
 										@if ($model->canCreateEvaluations() && Gate::check('create-evaluation', Auth::user()->currentTeam))
 											<x-typography.round-button-plus
 													size="small"
@@ -134,7 +122,7 @@
 											<span class="font-mono text-xs">&mdash;</span>
 										@endif
 									</td>
-									<td class="px-5 py-4 text-right align-baseline">
+									<td class="px-4 py-4 text-right align-baseline">
 										<!-- Context Menu -->
 										<x-block.context-menu id="context-{{ $model->id }}">
 											<!-- Edit Model -->

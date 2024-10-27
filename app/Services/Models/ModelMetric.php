@@ -19,6 +19,7 @@ class ModelMetric implements Wireable, \JsonSerializable
         private readonly string $description,
         private readonly string $scaleType,
         private readonly ?EvaluationMetric $lastMetric = null,
+        private readonly int $keywordsCount = 1,
     ) {
     }
 
@@ -79,6 +80,7 @@ class ModelMetric implements Wireable, \JsonSerializable
             'description' => $this->description,
             'dataset' => $this->dataset,
             'color' => $this->color,
+            'keywordsCount' => $this->keywordsCount,
         ];
     }
 
@@ -91,6 +93,7 @@ class ModelMetric implements Wireable, \JsonSerializable
                 briefDescription: $value['briefDescription'],
                 description: $value['description'],
                 scaleType: $value['scaleType'],
+                keywordsCount: $value['keywordsCount'] ?? 1,
             ))
             ->setDataset($value['dataset'])
             ->setColor($value['color']);
@@ -116,5 +119,10 @@ class ModelMetric implements Wireable, \JsonSerializable
         $this->color = $color;
 
         return $this;
+    }
+
+    public function getKeywordsCount(): int
+    {
+        return $this->keywordsCount;
     }
 }

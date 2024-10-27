@@ -56,6 +56,7 @@ class ModelMetricsBuilder
                         description: $scorer->getDescription(),
                         scaleType: $scorer->getScale()->getType(),
                         lastMetric: $lastMetric,
+                        keywordsCount: $keywordsCount,
                     ))
                     ->setDataset(
                         $metrics->map(fn (EvaluationMetric $metric) => [
