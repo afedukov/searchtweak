@@ -170,4 +170,9 @@ class SearchModel extends TeamBroadcastableModel implements TaggableInterface
     {
         return $this->settings[self::SETTING_KEYWORDS] ?? [];
     }
+
+    public function getKeywordsString(): string
+    {
+        return implode("\n", $this->getKeywords());
+    }
 }

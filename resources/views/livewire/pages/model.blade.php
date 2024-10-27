@@ -64,8 +64,8 @@
 										wire:click.prevent="$toggle('editEvaluationModal')"
 										@click="
 											$wire.set('evaluationForm.model_id', '{{ $model->id }}');
-											$wire.set('evaluationForm.keywords', JSON.parse('{{ json_encode($model->getKeywords()) }}').join('\n'));
-											$wire.set('evaluationForm.tags', JSON.parse('{{ json_encode($model->tags) }}'));
+											$wire.set('evaluationForm.keywords', {{ Js::from($model->getKeywordsString()) }});
+											$wire.set('evaluationForm.tags', {{ Js::from($model->tags) }});
 										"
 								>
 									<svg class="w-4 h-4 fill-current opacity-50 shrink-0" viewBox="0 0 16 16">

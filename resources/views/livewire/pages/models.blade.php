@@ -90,7 +90,7 @@
 											</a>
 										</div>
 
-										<x-tags.tags-list :tags="$model->tags" empty-label="" class="mt-1" />
+										<x-tags.tags-list :tags="$model->tags" empty-label="" class="mt-2" />
 									</th>
 									<td class="px-4 py-4 align-baseline">
 										<x-endpoints.endpoint-badge :endpoint="$model->endpoint" />
@@ -114,8 +114,8 @@
 													wire:click="$toggle('editEvaluationModal')"
 													@click="
 														$wire.set('evaluationForm.model_id', '{{ $model->id }}');
-														$wire.set('evaluationForm.keywords', JSON.parse('{{ json_encode($model->getKeywords()) }}').join('\n'));
-														$wire.set('evaluationForm.tags', JSON.parse('{{ json_encode($model->tags) }}'));
+														$wire.set('evaluationForm.keywords', {{ Js::from($model->getKeywordsString()) }});
+														$wire.set('evaluationForm.tags', {{ Js::from($model->tags) }});
 													"
 											/>
 										@else
