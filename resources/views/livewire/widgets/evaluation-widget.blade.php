@@ -29,7 +29,8 @@
 					/>
 				</div>
 
-				<div>
+				<div class="flex items-baseline gap-1">
+					<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
 					<livewire:evaluations.evaluation-status :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
 				</div>
 			</div>

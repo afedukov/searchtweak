@@ -115,7 +115,7 @@
 				<livewire:evaluations.evaluation-keywords-count :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
 			</td>
 			<td class="px-4 py-4 align-baseline">
-				<div class="flex gap-1">
+				<div class="flex items-baseline gap-1">
 					<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
 					<livewire:evaluations.evaluation-status :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
 				</div>

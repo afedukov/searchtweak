@@ -58,6 +58,9 @@
 								{{ $keywords->total() }} {{ Str::plural('keyword', $keywords->total()) }}
 							</span>
 
+							<!-- Archived Badge -->
+							<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+
 							<!-- Evaluation Status -->
 							<livewire:evaluations.evaluation-status :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
 

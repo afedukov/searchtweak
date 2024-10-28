@@ -34,7 +34,10 @@
 					</span>
 				</div>
 
-				<livewire:evaluations.evaluation-status :evaluation="$metric->evaluation" wire:key="{{ md5(mt_rand()) }}" />
+				<div class="flex items-baseline gap-1">
+					<livewire:evaluations.evaluation-archived-badge :evaluation="$metric->evaluation" wire:key="{{ md5(mt_rand()) }}" />
+					<livewire:evaluations.evaluation-status :evaluation="$metric->evaluation" wire:key="{{ md5(mt_rand()) }}" />
+				</div>
 			</div>
 		</div>
 		<div class="grow">
