@@ -42,6 +42,9 @@ class PrecisionScorer extends Scorer
         $relevanceValues = $this->getRelevanceValues($keyword, $limit);
 
         $graded = array_filter($relevanceValues, fn ($value) => $value !== null);
+        if (empty($graded)) {
+            return null;
+        }
 
         $relevantCount = array_sum($graded);
         $gradedCount = count($graded);

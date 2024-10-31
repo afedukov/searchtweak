@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Laravel\Jetstream\Events\TeamCreated;
 use Laravel\Jetstream\Events\TeamDeleted;
@@ -18,6 +19,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property int $user_id
  * @property string $name
  * @property bool $personal_team
+ * @property int $baseline_evaluation_id
  * @property Carbon $created_at
  * @property Carbon $updated_at
  *
@@ -27,6 +29,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Collection<SearchModel> $models
  * @property Collection<TeamInvitation> $teamInvitations
  * @property Collection<Tag> $tags
+ * @property SearchEvaluation $baseline
  */
 class Team extends JetstreamTeam
 {
@@ -36,6 +39,7 @@ class Team extends JetstreamTeam
     public const string FIELD_USER_ID = 'user_id';
     public const string FIELD_NAME = 'name';
     public const string FIELD_PERSONAL_TEAM = 'personal_team';
+    public const string FIELD_BASELINE_EVALUATION_ID = 'baseline_evaluation_id';
     public const string FIELD_CREATED_AT = 'created_at';
     public const string FIELD_UPDATED_AT = 'updated_at';
 
@@ -46,6 +50,7 @@ class Team extends JetstreamTeam
      */
     protected $casts = [
         self::FIELD_PERSONAL_TEAM => 'boolean',
+        self::FIELD_BASELINE_EVALUATION_ID => 'int',
     ];
 
     /**
@@ -56,6 +61,7 @@ class Team extends JetstreamTeam
     protected $fillable = [
         self::FIELD_NAME,
         self::FIELD_PERSONAL_TEAM,
+        self::FIELD_BASELINE_EVALUATION_ID,
     ];
 
     /**
@@ -91,5 +97,10 @@ class Team extends JetstreamTeam
     {
         return $this->hasMany(Tag::class)
             ->orderBy(Tag::FIELD_ID);
+    }
+
+    public function baseline(): HasOne
+    {
+        return $this->hasOne(SearchEvaluation::class, SearchEvaluation::FIELD_ID, self::FIELD_BASELINE_EVALUATION_ID);
     }
 }

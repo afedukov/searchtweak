@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Events\EvaluationArchivedChangedEvent;
 use App\Events\EvaluationProgressChangedEvent;
 use App\Events\EvaluationStatusChangedEvent;
+use App\Jobs\Evaluations\UpdatePreviousValuesJob;
 use App\Livewire\Widgets\EvaluationProgressWidget;
 use App\Livewire\Widgets\EvaluationWidget;
 use App\Services\Evaluations\UserFeedbackService;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -145,6 +147,10 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
                 UserFeedbackService::flushUngradedSnapshotsCountCache($evaluation->model->team_id);
 
                 EvaluationStatusChangedEvent::dispatch($evaluation);
+
+                if ($evaluation->status === self::STATUS_FINISHED) {
+                    UpdatePreviousValuesJob::dispatch($evaluation->model_id, $evaluation->id);
+                }
             }
 
             if ($evaluation->isDirty(self::FIELD_PROGRESS)) {
@@ -152,8 +158,13 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
             }
 
             if ($evaluation->isDirty(self::FIELD_ARCHIVED)) {
+                UpdatePreviousValuesJob::dispatch($evaluation->model_id, $evaluation->id);
                 EvaluationArchivedChangedEvent::dispatch($evaluation);
             }
+        });
+
+        static::deleted(function (self $evaluation) {
+            UpdatePreviousValuesJob::dispatch($evaluation->model_id, $evaluation->id);
         });
     }
 
@@ -384,6 +395,31 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
     public function isUnpinnable(): bool
     {
         return $this->pinned;
+    }
+
+    public function isBaselineable(): bool
+    {
+        return $this->isFinished() && !$this->isBaseline();
+    }
+
+    public function isUnbaselineable(): bool
+    {
+        return $this->isBaseline();
+    }
+
+    public function isBaseline(?Team $team = null): bool
+    {
+        $team = $team ?? Auth::user()->currentTeam;
+        if ($team === null) {
+            throw new \RuntimeException('Team is required to check if the evaluation is baseline');
+        }
+
+        return $team->baseline_evaluation_id === $this->id;
+    }
+
+    public function canGiveFeedback(): bool
+    {
+        return $this->isActive();
     }
 
     public function delete(): bool

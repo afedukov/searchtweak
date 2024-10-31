@@ -136,6 +136,8 @@ class EvaluationForm extends Form
                 unset($values['metrics'][$key][EvaluationMetric::FIELD_ID]);
                 unset($values['metrics'][$key][EvaluationMetric::FIELD_SEARCH_EVALUATION_ID]);
                 unset($values['metrics'][$key][EvaluationMetric::FIELD_VALUE]);
+                unset($values['metrics'][$key][EvaluationMetric::FIELD_PREVIOUS_VALUE]);
+                unset($values['metrics'][$key][EvaluationMetric::FIELD_FINISHED_AT]);
             }
 
             $this->evaluation = null;

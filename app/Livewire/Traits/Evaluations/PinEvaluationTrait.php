@@ -15,6 +15,8 @@ trait PinEvaluationTrait
             Gate::authorize('pin', $evaluation);
 
             $action->pin($evaluation, $pinned);
+
+            Toaster::success(sprintf('Evaluation %s.', $pinned ? 'pinned to top' : 'un-pinned'));
         } catch (\Exception $e) {
             Toaster::error($e->getMessage());
         }

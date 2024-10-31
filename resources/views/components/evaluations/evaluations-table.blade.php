@@ -89,6 +89,11 @@
 						<div class="text-sm text-gray-400 dark:text-gray-400">
 							{{ $evaluation->description }}
 						</div>
+						@if ($evaluation->isBaseline())
+							<div class="text-xs font-bold text-orange-500 dark:text-orange-400">
+								Baseline
+							</div>
+						@endif
 					</a>
 				</div>
 
@@ -104,7 +109,11 @@
 				<!-- Evaluation Metrics -->
 				<div class="flex flex-wrap gap-3">
 					@foreach ($evaluation->metrics as $metric)
-						<x-metrics.evaluation-metric :metric="$metric" :keywords-count="$evaluation->keywords_count" />
+						<x-metrics.evaluation-metric
+								:metric="$metric"
+								:keywords-count="$evaluation->keywords_count"
+								:change="$metric->getChange(Auth::user()->currentTeam->baseline)"
+						/>
 					@endforeach
 				</div>
 			</td>
@@ -142,9 +151,23 @@
 					@endif
 
 					<!-- Give Feedback -->
-					@if (Gate::check('giveFeedbackEvaluationPool', $evaluation))
+					@if ($evaluation->canGiveFeedback() && Gate::check('giveFeedbackEvaluationPool', $evaluation))
 						<x-block.context-menu-item href="{{ route('feedback', $evaluation->id) }}">
 							{{ __('Give Feedback') }}
+						</x-block.context-menu-item>
+					@endif
+
+					<!-- Set as Baseline -->
+					@if ($evaluation->isBaselineable() && Gate::check('baseline', $evaluation))
+						<x-block.context-menu-item wire:click="baseline('{{ $evaluation->id }}', true)">
+							{{ __('Set as Baseline') }}
+						</x-block.context-menu-item>
+					@endif
+
+					<!-- Unset as Baseline -->
+					@if ($evaluation->isUnbaselineable() && Gate::check('baseline', $evaluation))
+						<x-block.context-menu-item wire:click="baseline('{{ $evaluation->id }}', false)">
+							{{ __('Unset as Baseline') }}
 						</x-block.context-menu-item>
 					@endif
 

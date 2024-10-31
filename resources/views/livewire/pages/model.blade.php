@@ -117,6 +117,9 @@
 				</div>
 
 				<div class="p-3">
+					<!-- Baseline Evaluation -->
+					<livewire:evaluations.baseline-evaluation :evaluation="Auth::user()->currentTeam->baseline" wire:key="{{ md5(mt_rand()) }}" />
+
 					<!-- Table and Filters -->
 					<div class="sm:rounded-lg overflow-x-auto">
 						<x-evaluations.evaluations-table :evaluations="$evaluations" :evaluation-form="$evaluationForm" />

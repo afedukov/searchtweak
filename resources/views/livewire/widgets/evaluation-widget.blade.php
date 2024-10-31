@@ -42,7 +42,11 @@
 				<!-- Evaluation Metrics -->
 				<div class="flex flex-wrap gap-3">
 					@foreach ($evaluation->metrics as $metric)
-						<x-metrics.evaluation-metric :metric="$metric" :keywords-count="$evaluation->keywords()->count()" />
+						<x-metrics.evaluation-metric
+								:metric="$metric"
+								:keywords-count="$evaluation->keywords()->count()"
+								:change="$metric->getChange(Auth::user()->currentTeam->baseline)"
+						/>
 					@endforeach
 				</div>
 			</div>

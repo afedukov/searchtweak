@@ -40,6 +40,9 @@ class AveragePrecisionScorer extends Scorer
     public function calculate(EvaluationKeyword $keyword, int $limit): ?float
     {
         $relevanceValues = $this->getRelevanceValues($keyword, $limit);
+        if (empty(array_filter($relevanceValues, fn ($value) => $value !== null))) {
+            return null;
+        }
 
         $total = count($relevanceValues);
         $relevantCount = 0;

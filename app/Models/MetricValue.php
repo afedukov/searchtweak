@@ -57,14 +57,22 @@ class MetricValue extends Model
      * Get the data to broadcast for the model.
      *
      * @return array<string, mixed>
+     * @throws \Throwable
      */
     public function broadcastWith(string $event): array
     {
+        $change = $this->metric->getChange(
+            $this->metric->evaluation->model->team->baseline
+        );
+
         return match ($event) {
             'created' => [
                 'metric_id' => $this->metric->id,
                 'value' => $this->metric->value,
                 'values' => $this->metric->getLastValues(),
+                'previous_value' => $this->metric->previous_value,
+                'changeHTML' => view('components.metrics.metric-change', ['change' => $change])
+                    ->render(),
             ],
             default => [],
         };

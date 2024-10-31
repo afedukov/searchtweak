@@ -10,10 +10,6 @@ use App\Models\SearchEvaluation;
 
 readonly class RecalculateMetrics
 {
-    public function __construct(private FinishSearchEvaluation $finishSearchEvaluation)
-    {
-    }
-
     /**
      * @param EvaluationKeyword $keyword
      *

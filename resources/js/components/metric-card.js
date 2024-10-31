@@ -155,6 +155,11 @@ export const metricCard = (canvas) => {
                 if (metricValue) {
                     metricValue.innerText = formatNumber(e.value);
                 }
+
+                const metricChange = document.getElementById('metric-change-' + metricId);
+                if (metricChange) {
+                    metricChange.innerHTML = e.changeHTML || '';
+                }
             }
         });
 

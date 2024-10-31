@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Livewire\Traits\Evaluations\ArchiveEvaluationTrait;
+use App\Livewire\Traits\Evaluations\BaselineEvaluationTrait;
 use App\Livewire\Traits\Evaluations\DeleteEvaluationTrait;
 use App\Livewire\Traits\Evaluations\EditEvaluationModalTrait;
 use App\Livewire\Traits\Evaluations\ExportEvaluationTrait;
@@ -27,6 +28,7 @@ class Evaluations extends Component
     use FilterEvaluationsTrait;
     use ArchiveEvaluationTrait;
     use PinEvaluationTrait;
+    use BaselineEvaluationTrait;
 
     public const int PER_PAGE = 10;
 

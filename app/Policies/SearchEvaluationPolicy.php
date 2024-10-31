@@ -172,4 +172,12 @@ class SearchEvaluationPolicy
     {
         return $this->canManageEvaluation($user, $searchEvaluation);
     }
+
+    /**
+     * Determine whether the user can set the search evaluation as baseline.
+     */
+    public function baseline(User $user, SearchEvaluation $searchEvaluation): bool
+    {
+        return $this->canManageEvaluation($user, $searchEvaluation);
+    }
 }

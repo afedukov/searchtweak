@@ -2,6 +2,7 @@
 
 namespace App\Actions\Evaluations;
 
+use App\Models\EvaluationMetric;
 use App\Models\SearchEvaluation;
 use App\Models\User;
 use App\Notifications\EvaluationFinishNotification;
@@ -23,6 +24,7 @@ readonly class FinishSearchEvaluation
 
         $evaluation->status = SearchEvaluation::STATUS_FINISHED;
         $evaluation->finished_at = Carbon::now();
+        $evaluation->metrics->each(fn (EvaluationMetric $metric) => $metric->touchFinishedAt());
         $evaluation->save();
 
         $this->notify($evaluation);

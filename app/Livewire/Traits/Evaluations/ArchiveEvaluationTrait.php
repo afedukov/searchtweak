@@ -15,6 +15,8 @@ trait ArchiveEvaluationTrait
             Gate::authorize('archive', $evaluation);
 
             $action->archive($evaluation, $archived);
+
+            Toaster::success(sprintf('Evaluation %s.', $archived ? 'archived' : 'un-archived'));
         } catch (\Exception $e) {
             Toaster::error($e->getMessage());
         }
