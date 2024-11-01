@@ -9,7 +9,7 @@
 				<path class="fill-current text-indigo-500" d="M13 15.047V24l10.573-7.181A.999.999 0 0024 16V8l-11 7.047z" />
 			</svg>
 		</div>
-		<span class="font-semibold text-gray-500 dark:text-gray-300">
+		<span class="font-semibold text-gray-500 dark:text-gray-300 truncate max-w-[120px]">
 			{{ $model->name }}
 		</span>
 		@if ($model->description)

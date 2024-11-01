@@ -79,12 +79,12 @@
 							@forelse ($models as $model)
 								<tr wire:key="model-item-{{ $model->id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
 									<th scope="row" class="px-4 py-4 font-medium text-gray-900 dark:text-white align-baseline">
-										<div class="max-w-64 min-w-28">
+										<div class="w-44">
 											<a href="{{ route('model', $model->id) }}">
-												<div>
+												<div class="break-words whitespace-normal">
 													{{ $model->name }}
 												</div>
-												<div class="text-sm text-gray-400 dark:text-gray-400 align-baseline">
+												<div class="break-words whitespace-normal text-sm text-gray-400 dark:text-gray-400 align-baseline">
 													{{ $model->description }}
 												</div>
 											</a>

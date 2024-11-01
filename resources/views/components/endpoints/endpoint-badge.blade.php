@@ -13,7 +13,7 @@
 	<span class="text-sm font-medium px-2.5 py-0.5 rounded {{ $endpoint->getMethodBadgeClass() }}">
 		{{ $endpoint->method }}
 	</span>
-	<span class="font-semibold text-gray-500 dark:text-gray-300">
+	<span class="font-semibold text-gray-500 dark:text-gray-300 truncate max-w-[120px]">
 		{{ $endpoint->name }}
 	</span>
 	@if ($endpoint->description)

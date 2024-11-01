@@ -25,7 +25,7 @@
 			{{ __('Progress') }}
 		</th>
 		<th scope="col" class="px-4 py-3 text-center">
-			{{ __('Keywords') }}
+			#
 		</th>
 		<th scope="col" class="px-4 py-3">
 			{{ __('Status') }}
@@ -81,12 +81,12 @@
 			</td>
 
 			<th scope="row" class="px-4 py-4 font-medium text-gray-900 dark:text-white align-baseline">
-				<div class="max-w-64 min-w-28">
+				<div class="w-44">
 					<a href="{{ route('evaluation', $evaluation->id) }}">
-						<div>
+						<div class="break-words whitespace-normal">
 							{{ $evaluation->name }}
 						</div>
-						<div class="text-sm text-gray-400 dark:text-gray-400">
+						<div class="break-words whitespace-normal text-sm text-gray-400 dark:text-gray-400">
 							{{ $evaluation->description }}
 						</div>
 						@if ($evaluation->isBaseline())
