@@ -243,6 +243,11 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
         return $this->status === self::STATUS_FINISHED;
     }
 
+    public function isFailed(): bool
+    {
+        return $this->isActive() && $this->successful_keywords === 0;
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return self::STATUS_LABELS[$this->status] ?? 'Unknown';
@@ -387,7 +392,7 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
      */
     public function isDeletable(): bool
     {
-        return $this->isFinished() || $this->isPending();
+        return $this->isFinished() || $this->isPending() || $this->isFailed();
     }
 
     public function isArchivable(): bool

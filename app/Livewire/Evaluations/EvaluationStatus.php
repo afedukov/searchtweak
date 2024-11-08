@@ -27,7 +27,7 @@ class EvaluationStatus extends Component
 
     private function getColor(): string
     {
-        if ($this->isFailed()) {
+        if ($this->evaluation->isFailed()) {
             return 'red';
         }
 
@@ -41,15 +41,10 @@ class EvaluationStatus extends Component
 
     private function getLabel(): string
     {
-        if ($this->isFailed()) {
+        if ($this->evaluation->isFailed()) {
             return 'Failed';
         }
 
         return $this->evaluation->status_label;
-    }
-
-    private function isFailed(): bool
-    {
-        return $this->evaluation->isActive() && $this->evaluation->successful_keywords === 0;
     }
 }
