@@ -24,29 +24,60 @@ A detailed description of what the search evaluation does, including its intende
 The search model that is associated with this evaluation. This defines the configuration and parameters used for the search requests.
 
 #### Metrics
-A list of metrics to measure by this evaluation. All metrics must be of the same scale type (`Binary Scale` or `Graded Scale`). Metrics can include:
-- `P@10` (Precision at 10)
-- `AP@10` (Average Precision at 10)
-- `RR@10` (Reciprocal Rank at 10)
-- `CG@10` (Cumulative Gain at 10)
-- `DCG@10` (Discounted Cumulative Gain at 10)
-- `nDCG@10` (Normalized Discounted Cumulative Gain at 10)
-- ... or any other `@k`
+A list of metrics to measure by this evaluation. Metrics can now be of different scale types within the same evaluation. However, if metrics of different scales are added, you must define **Transformers** to convert grades from one scale to another.
 
-<img src="/images/docs/scorers.png" alt="Metrics" style="width: 100%; max-width: 403px; height: auto;">
+Available metrics include:
+
+- For **Binary Scale**:
+  - `P@k` (Precision at k)
+  - `AP@k` (Average Precision at k)
+  - `RR@k` (Reciprocal Rank at k)
+
+- For **Graded Scale**:
+  - `CG@k` (Cumulative Gain at k)
+  - `DCG@k` (Discounted Cumulative Gain at k)
+  - `nDCG@k` (Normalized Discounted Cumulative Gain at k)
+
+- For **Detail Scale**:
+  - `CG(d)@k` (Cumulative Gain at k)
+  - `DCG(d)@k` (Discounted Cumulative Gain at k)
+  - `nDCG(d)@k` (Normalized Discounted Cumulative Gain at k)
+
+<img src="/images/docs/scorers.png" alt="Metrics" style="width: 100%; max-width: 526px; height: auto;">
 
 If there are more than one keyword, the metrics will be calculated for each keyword separately and then averaged (Mean Average Precision, Mean Average Recall, etc.).
 
 Read more about [Evaluation Metrics](/{{route}}/{{version}}/evaluation-metrics).
 
+#### Scale
+Specify the scale type for the evaluation. The scale determines the grading system used for evaluating search results. Available options are:
+
+- **Binary**: Grades are either relevant (`1`) or not relevant (`0`).
+- **Graded**: Grades range from `0` to `3`.
+- **Detail**: Grades range from `1` to `10`.
+
+**Note**: The scale is set during the creation of the evaluation and cannot be changed after it starts.
+
+<img src="/images/docs/scale.png" alt="Metrics" style="width: 100%; max-width: 600px; height: auto;">
+
+#### Transformers
+If your evaluation includes metrics of different scale types, you need to define **Transformers** to convert grades between scales. This ensures that metrics can be accurately calculated even when using different grading scales.
+
+**Note**: Transformers are set during the creation of the evaluation and cannot be changed after it starts.
+
+<img src="/images/docs/transformers.png" alt="Metrics" style="width: 100%; max-width: 597px; height: auto;">
+
 #### Keywords List
 A list of keywords, one per line, used for the evaluation. If the associated search model has a predefined set of keywords, this list will initially be prefilled and shown with a closed lock icon <i class="fas fa-lock"></i>, indicating it is in a read-only state. However, you can still modify the keywords by clicking on the lock icon to unlock it for editing.
 
+<img src="/images/docs/keywords.png" alt="Keywords" style="width: 100%; max-width: 600px; height: auto;">
+
 #### Advanced Settings (Optional)
 Advanced settings for fine-tuning the evaluation process:
+
 - **Feedback Strategy**:
-    - **Single**: Only one feedback is needed for each query/document pair. Provides quick results but may sacrifice quality.
-    - **Multiple**: Allows for up to three feedbacks per query/document pair, resulting in higher quality assessments albeit requiring more effort.
+  - **Single**: Only one feedback is needed for each query/document pair. Provides quick results but may sacrifice quality.
+  - **Multiple**: Allows for up to three feedbacks per query/document pair, resulting in higher quality assessments albeit requiring more effort.
 
 <img src="/images/docs/feedback-strategy.png" alt="Feedback Strategy" style="width: 100%; max-width: 568px; height: auto; margin-left: 60px">
 
@@ -63,9 +94,9 @@ Advanced settings for fine-tuning the evaluation process:
 <img src="/images/docs/evaluation-tags.png" alt="Evaluation Tags" style="width: 100%; max-width: 567px; height: auto; margin-left: 60px">
 
 - **Re-use Grades Strategy**: Specify whether to re-use grades from previous evaluations. Options are:
-    - **No**: Do not re-use grades from previous evaluations.
-    - **Query/Doc**: Re-use the grade for the same query/document pair.
-    - **Query/Doc/Position**: Re-use the grade for the same query/document pair and position.
+  - **No**: Do not re-use grades from previous evaluations.
+  - **Query/Doc**: Re-use the grade for the same query/document pair.
+  - **Query/Doc/Position**: Re-use the grade for the same query/document pair and position.
 
 <img src="/images/docs/reuse-strategy.png" alt="Re-use Grades Strategy" style="width: 100%; max-width: 567px; height: auto; margin-left: 60px">
 
@@ -81,11 +112,16 @@ When an evaluation is started for the first time, requests to the search endpoin
 <a name="managing-search-evaluations"></a>
 ## Managing Search Evaluations
 
-<img src="/images/docs/evaluations.png" alt="Search Evaluation Interface" style="width: 100%; max-width: 1433px; height: auto;">
+<img src="/images/docs/evaluations.png" alt="Search Evaluation Interface" style="width: 100%; max-width: 1500px; height: auto;">
 
 The Search Evaluations interface provides the following functionalities:
 
 - **List Evaluations**: View all existing search evaluations.
+- **View Metric Changes with Baseline Comparison**: Metrics can now be viewed as percentage changes relative to previous metrics or a set Baseline evaluation, providing clearer insights into performance trends.
+- **Set as Baseline**: Define a search evaluation as the baseline for comparison with other evaluations.
+- **Archive Evaluations**: Archive evaluations to remove them from the main evaluations list and exclude them from the model metrics progress chart. Use the filtering panel to display all evaluations, only active ones, or only archived ones.
+- **Pin to Top Evaluations**: Pin any evaluation to appear at the beginning of the evaluations list for quick and easy access.
+- **Evaluation Timestamps**: View creation and finish timestamps for better tracking and historical reference.
 - **Create Evaluation**: Add a new search evaluation with the required configuration details.
 - **Edit Evaluation**: Modify the details of an existing search evaluation.
 - **Clone Evaluation**: Duplicate an existing search evaluation to create a new one with similar settings.
@@ -108,7 +144,9 @@ On the evaluation detailed view page, there are graphics for each of the metrics
 
 Additionally, all search snapshots for each keyword and all evaluators' assessments are available on this page. These snapshots and assessments can be observed and reset by an Admin user.
 
-<img src="/images/docs/evaluations2.png" alt="Search Evaluation Interface" style="width: 100%; max-width: 1415px; height: auto;">
+For each metric, the percentage change is displayed compared to the previous metric of the same type or to the metrics of the Baseline evaluation if one is set. This helps you quickly identify improvements or regressions in performance.
+
+<img src="/images/docs/evaluations2.png" alt="Search Evaluation Interface" style="width: 100%; max-width: 1500px; height: auto;">
 
 ---
 

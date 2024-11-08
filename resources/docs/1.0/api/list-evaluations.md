@@ -44,11 +44,44 @@ curl -X GET "https://searchtweak.com/api/v1/evaluations" \
     "progress": 10,
     "name": "Demo Graded 3",
     "description": "Demo evaluation with graded scale",
+    "settings": {
+      "reuse": 0,
+      "position": false,
+      "strategy": 1,
+      "auto_restart": false,
+      "transformers": {
+        "rules": {
+          "binary": [
+            0,
+            1,
+            1,
+            1
+          ],
+          "detail": [
+            1,
+            4,
+            7,
+            10
+          ]
+        },
+        "scale_type": "graded"
+      }
+    },
     "metrics": [
       {
-        "scorer_type": "ndcg",
+        "scorer_type": "precision",
         "num_results": 10,
         "value": 0.72
+      },
+      {
+        "scorer_type": "cg",
+        "num_results": 10,
+        "value": 12
+      },
+      {
+        "scorer_type": "cg_d",
+        "num_results": 10,
+        "value": 36
       }
     ],
     "tags": [
@@ -76,6 +109,16 @@ curl -X GET "https://searchtweak.com/api/v1/evaluations" \
     "progress": 100,
     "name": "Demo Binary 1",
     "description": "Demo evaluation with binary scale",
+    "settings": {
+      "reuse": 0,
+      "position": false,
+      "strategy": 1,
+      "auto_restart": false,
+      "transformers": {
+        "rules": [],
+        "scale_type": "binary"
+      }
+    },
     "metrics": [
       {
         "scorer_type": "precision",

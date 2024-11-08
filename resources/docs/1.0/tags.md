@@ -26,7 +26,7 @@ Tags can be assigned to the following entities:
 
 - **User**: Assigned tags determine which search evaluations a user can evaluate. Only evaluations with matching tags will be available for the user to assess.
 - **Search Model**: Assigned tags set the default tags for all search evaluations created under this model. This helps in maintaining consistency across evaluations derived from the same model.
-- **Search Evaluation**: Assigned tags specify which users are eligible to evaluate the search evaluation. Only users with matching tags will be able to assess the evaluation.
+- **Search Evaluation**: Assigned tags specify which users are eligible to evaluate the search evaluation. Only users with matching tags will be able to assess the evaluation. The tag matching logic is `AND`-based, meaning that a user must have all the tags assigned to the evaluation to be eligible to evaluate it.
 
 <a name="structure"></a>
 ## Tag Structure

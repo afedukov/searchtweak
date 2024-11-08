@@ -84,6 +84,7 @@ availability: in_stock
 JSON
 
 #### Test Model
+
 To test this model, replace `#query#` in the Query Parameters or Request Body with a search keyword like `laptop` to ensure that it retrieves at least one document.
 
 #### Custom Headers
@@ -94,6 +95,7 @@ Content-Type: application/json
 ```
 
 #### Advanced Settings
+
 Tags can be created and assigned to the model.
 
 <a name="managing-search-models"></a>
@@ -104,6 +106,7 @@ Tags can be created and assigned to the model.
 The Search Models interface provides the following functionalities:
 
 - **List Models**: View all existing search models.
+- **View Latest Metrics**: For each model, the latest completed metrics of each scorer type are displayed. This allows you to quickly assess the current performance of your search models and compare metrics across different models.
 - **Create Model**: Add a new search model with the required configuration details.
 - **Edit Model**: Modify the details of an existing search model.
 - **Clone Model**: Duplicate an existing search model to create a new one with similar settings.
@@ -140,7 +143,7 @@ The **Test Search Model** feature provides an easy way to verify and refine your
 
 The **Model Details** page provides a comprehensive view of each search model's performance and progress over time. On this page, you will find:
 
-- **List of All Model Evaluations**: A complete list of all evaluations conducted for the model, allowing you to track and review each assessment.
+- **List of All Model Evaluations**: A complete list of all evaluations conducted for the model, allowing you to track and review each assessment. For each metric, the percentage change is displayed compared to the previous metric of the same type or to the metrics of the Baseline evaluation if one is set. This helps you quickly identify improvements or regressions in performance.
 - **Model Graph**: This graph includes the metrics values from every finished evaluation, enabling you to observe the progress and performance of your search model over time.
 
 These tools help you to continuously monitor and improve your search models, ensuring they remain effective and relevant.

@@ -26,22 +26,62 @@ curl -X GET "https://searchtweak.com/api/v1/evaluations/139" \
 ```json
 {
   "id": 139,
-  "model_id": 42,
-  "scale_type": "binary",
-  "status": "finished",
-  "progress": 100,
-  "name": "Demo Binary 1",
-  "description": "Demo evaluation with binary scale",
+  "model_id": 1,
+  "scale_type": "detail",
+  "status": "pending",
+  "progress": 0,
+  "name": "Sample Evaluation",
+  "description": "This is a sample evaluation with detail scale.",
+  "settings": {
+    "reuse": 0,
+    "position": true,
+    "strategy": 1,
+    "auto_restart": false,
+    "transformers": {
+      "rules": {
+        "binary": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0,
+          "6": 1,
+          "7": 1,
+          "8": 1,
+          "9": 1,
+          "10": 1
+        },
+        "graded": {
+          "1": 0,
+          "2": 1,
+          "3": 1,
+          "4": 1,
+          "5": 2,
+          "6": 2,
+          "7": 2,
+          "8": 3,
+          "9": 3,
+          "10": 3
+        }
+      },
+      "scale_type": "detail"
+    }
+  },
   "metrics": [
     {
       "scorer_type": "precision",
       "num_results": 10,
-      "value": 0.35
+      "value": null
     },
     {
-      "scorer_type": "ap",
+      "scorer_type": "ndcg",
       "num_results": 10,
-      "value": 0.5
+      "value": null
+    },
+    {
+      "scorer_type": "ndcg_d",
+      "num_results": 5,
+      "value": null
     }
   ],
   "tags": [
@@ -58,7 +98,7 @@ curl -X GET "https://searchtweak.com/api/v1/evaluations/139" \
     "apple",
     "dyson"
   ],
-  "created_at": "2024-06-24T06:52:39+00:00",
-  "finished_at": "2024-06-24T06:57:03+00:00"
+  "created_at": "2024-11-03T07:50:54+00:00",
+  "finished_at": null
 }
 ```
