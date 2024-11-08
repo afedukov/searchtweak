@@ -6,6 +6,17 @@ class DetailScale extends Scale
 {
     public const string SCALE_TYPE = 'detail';
 
+    public const int V_1 = 1;
+    public const int V_2 = 2;
+    public const int V_3 = 3;
+    public const int V_4 = 4;
+    public const int V_5 = 5;
+    public const int V_6 = 6;
+    public const int V_7 = 7;
+    public const int V_8 = 8;
+    public const int V_9 = 9;
+    public const int V_10 = 10;
+
     public function getName(): string
     {
         return 'Detail Scale';
@@ -17,16 +28,16 @@ class DetailScale extends Scale
     public function getValues(): array
     {
         return [
-            1 => '1',
-            2 => '2',
-            3 => '3',
-            4 => '4',
-            5 => '5',
-            6 => '6',
-            7 => '7',
-            8 => '8',
-            9 => '9',
-            10 => '10',
+            self::V_1 => '1',
+            self::V_2 => '2',
+            self::V_3 => '3',
+            self::V_4 => '4',
+            self::V_5 => '5',
+            self::V_6 => '6',
+            self::V_7 => '7',
+            self::V_8 => '8',
+            self::V_9 => '9',
+            self::V_10 => '10',
         ];
     }
 
@@ -36,16 +47,16 @@ class DetailScale extends Scale
     public function getShortcuts(): array
     {
         return [
-            1 => '1',
-            2 => '2',
-            3 => '3',
-            4 => '4',
-            5 => '5',
-            6 => '6',
-            7 => '7',
-            8 => '8',
-            9 => '9',
-            10 => '0',
+            self::V_1 => '1',
+            self::V_2 => '2',
+            self::V_3 => '3',
+            self::V_4 => '4',
+            self::V_5 => '5',
+            self::V_6 => '6',
+            self::V_7 => '7',
+            self::V_8 => '8',
+            self::V_9 => '9',
+            self::V_10 => '0',
         ];
     }
 

@@ -8,6 +8,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class MetricResource extends JsonResource
 {
+    public bool $preserveKeys = true;
+
     /**
      * Transform the resource into an array.
      *

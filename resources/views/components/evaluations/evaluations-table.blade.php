@@ -83,18 +83,23 @@
 			<th scope="row" class="px-4 py-4 font-medium text-gray-900 dark:text-white align-baseline">
 				<div class="w-44">
 					<a href="{{ route('evaluation', $evaluation->id) }}">
+						@if ($evaluation->isBaseline())
+							<div class="text-xs font-bold text-orange-500 dark:text-orange-400">
+								Baseline
+							</div>
+						@endif
 						<div class="break-words whitespace-normal">
 							{{ $evaluation->name }}
 						</div>
 						<div class="break-words whitespace-normal text-sm text-gray-400 dark:text-gray-400">
 							{{ $evaluation->description }}
 						</div>
-						@if ($evaluation->isBaseline())
-							<div class="text-xs font-bold text-orange-500 dark:text-orange-400">
-								Baseline
-							</div>
-						@endif
 					</a>
+				</div>
+
+				<div class="mb-2">
+					<!-- Evaluation Scale Type -->
+					<livewire:evaluations.evaluation-scale-type :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
 				</div>
 
 				<x-tags.tags-list :tags="$evaluation->tags" empty-label="" class="mt-1" />

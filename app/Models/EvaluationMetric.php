@@ -107,7 +107,11 @@ class EvaluationMetric extends Model
             throw new \InvalidArgumentException('The metric and keyword must belong to the same evaluation.');
         }
 
-        return $this->getScorer()->calculate($keyword, $this->num_results);
+        $transformers = $keyword->evaluation->getTransformers();
+
+        return $this->getScorer()
+            ->setTransformers($transformers)
+            ->calculate($keyword, $this->num_results);
     }
 
     /**

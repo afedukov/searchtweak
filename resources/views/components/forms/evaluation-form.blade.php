@@ -1,12 +1,13 @@
 @props(['models', 'fixed' => false])
 @php
 	$scorers = \App\Services\Scorers\ScorerFactory::getScorers();
+    $scales = \App\Services\Scorers\Scales\ScaleFactory::getScales();
 @endphp
 
 <form wire:submit="saveEvaluation" id="evaluation-form">
 	<div
 			class="px-4 py-5 bg-white dark:bg-slate-800 sm:p-6"
-			x-data="{ models: {{ json_encode($models) }}, locked: $wire.evaluationForm.keywords.length > 0 }"
+			x-data="{ models: {{ Js::from($models) }}, locked: $wire.evaluationForm.keywords.length > 0 }"
 			x-init="
 				$watch('$wire.evaluationForm.model_id', value => {
 					const model = models.find(model => model.id == value);
@@ -54,7 +55,17 @@
 		</div>
 
 		<!-- Evaluation Metrics -->
-		<div class="mb-8 last:mb-0" x-data="{ scorers: @js($scorers), metrics: @entangle('evaluationForm.metrics'), showSettings: false, chooseScorer: false, current: null, num_results: 10 }">
+		<div
+				class="mb-8 last:mb-0"
+				x-data="{
+					scorers: @js($scorers),
+					metrics: @entangle('evaluationForm.metrics'),
+					showSettings: false,
+					chooseScorer: false,
+					current: null,
+					num_results: 10
+				}"
+		>
 			<x-form.label.label-required for="evaluationForm.metrics" value="Metrics" />
 
 			<div class="flex flex-wrap gap-2 p-4 rounded-lg bg-gray-100 dark:bg-gray-800">
@@ -70,13 +81,13 @@
 					</button>
 
 					<!-- Choose Scorer Modal -->
-					<x-modals.dialog-modal-alpine var="chooseScorer" max-width="md" x-cloak id="evaluationForm-choose-scorer">
+					<x-modals.dialog-modal-alpine var="chooseScorer" max-width="xl" x-cloak id="evaluationForm-choose-scorer">
 						<x-slot name="title">
 							{{ __('Choose Scorer') }}
 						</x-slot>
 
 						<x-slot name="content">
-							<ul class="p-2 grid w-full gap-4 md:grid-cols-2">
+							<ul class="p-2 grid w-full gap-4 md:grid-cols-3">
 								@foreach ($scorers as $scorer)
 									<label
 											@click="
@@ -88,19 +99,10 @@
 													chooseScorer = false;"
 											class="cursor-pointer text-sm inline-flex items-center justify-between w-full p-5 text-gray-500 bg-white border border-gray-200 rounded-lg dark:hover:text-gray-300 dark:peer-checked:text-blue-500 peer-checked:border-blue-600 peer-checked:text-blue-600 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-400 dark:bg-gray-700 dark:border-gray-600"
 									>
-										<div class="block">
+										<div>
 											<div class="w-full font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">{{ $scorer->getDisplayName() }}</div>
 											<div class="w-full text-xs text-gray-500 dark:text-gray-300">{{ $scorer->getBriefDescription() }}</div>
-											<div class="w-full">
-												<span @class([
-        											'text-xs font-medium me-2 px-2.5 py-0.5 rounded',
-        											'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' => $scorer->getScale()->getType() === \App\Services\Scorers\Scales\BinaryScale::SCALE_TYPE,
-        											'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' => $scorer->getScale()->getType() === \App\Services\Scorers\Scales\GradedScale::SCALE_TYPE,
-        											'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' => $scorer->getScale()->getType() === \App\Services\Scorers\Scales\DetailScale::SCALE_TYPE,
-												])>
-													{{ $scorer->getScale()->getName() }}
-												</span>
-											</div>
+											<x-metrics.scale-type :scaleType="$scorer->getScale()->getType()" :scaleName="$scorer->getScale()->getName()" />
 										</div>
 									</label>
 								@endforeach
@@ -208,6 +210,125 @@
 					</x-button>
 				</x-slot>
 			</x-modals.dialog-modal-alpine>
+		</div>
+
+		<!-- Evaluation Scale & Transformer -->
+		<div
+			class="mb-8 last:mb-0"
+			x-data="{
+				transformers: @entangle('evaluationForm.transformers'),
+				scaleType: @entangle('evaluationForm.scale_type'),
+				metrics: @entangle('evaluationForm.metrics'),
+				scorers: @js($scorers),
+				get requiredTransformers() {
+					const transformers = [];
+					this.metrics.forEach(metric => {
+						const metricScaleType = this.scorers[metric.scorer_type].scale.type || null;
+						if (this.scaleType && metricScaleType !== this.scaleType) {
+							const key = `${this.scaleType}_${metricScaleType}`;
+
+							if (!transformers.some(t => t.key === key)) {
+								transformers.push({
+									key: key,
+									from: {
+										type: this.scaleType,
+										label: document.getElementById('evaluation-scale-' + this.scaleType)?.innerHTML.trim(),
+									},
+									to: {
+										type: metricScaleType,
+										label: document.getElementById('evaluation-scale-' + metricScaleType)?.innerHTML.trim(),
+									},
+								});
+							};
+						}
+					});
+					return transformers;
+				},
+			}"
+			x-init="
+				$watch('metrics', value => {
+					let scaleType = null;
+
+					for (const metric of value) {
+						const metricScaleType = scorers[metric.scorer_type]?.scale?.type;
+
+						if (!metric.search_evaluation_id && metricScaleType) {
+							if (metricScaleType === 'detail') {
+								scaleType = 'detail';
+								break;
+							} else if (metricScaleType === 'graded' && scaleType !== 'detail') {
+								scaleType = 'graded';
+							} else if (metricScaleType === 'binary' && !scaleType) {
+								scaleType = 'binary';
+							}
+						}
+					}
+
+					if (scaleType) {
+						this.scaleType = scaleType;
+						$wire.evaluationForm.scale_type = scaleType;
+					}
+				});
+			"
+		>
+			<div class="mb-8 last:mb-0">
+				<x-form.label.label-required for="evaluationForm.scale_type" value="Scale" />
+
+				<x-form.radio.radio-cards cols="3" class="mb-2">
+					@foreach ($scales as $scale)
+						<x-form.radio.radio-cards-item
+								id="evaluationForm.scale-{{ $scale->getType() }}"
+								key="{{ $scale->getType() }}"
+								wire:model="evaluationForm.scale_type"
+						>
+							<div id="evaluation-scale-{{ $scale->getType() }}">
+								<x-metrics.scale-type :scaleType="$scale->getType()" :scaleName="$scale->getName()" />
+							</div>
+							<div class="ml-2">
+								@foreach ($scale->getGrades() as $grade)
+									<x-dynamic-component :component="$scale->getScaleBadgeComponent()" :grade="$grade" size="sm" class="opacity-50" />
+								@endforeach
+							</div>
+						</x-form.radio.radio-cards-item>
+					@endforeach
+
+				</x-form.radio.radio-cards>
+
+				<x-input-error for="evaluationForm.scale_type" />
+			</div>
+
+			<div class="mb-8 last:mb-0" x-show="requiredTransformers.length > 0" x-cloak>
+				<x-form.label.label-required for="evaluationForm.transformer" value="Transformers" />
+
+				<div class="grid grid-cols-2 gap-4">
+
+					<template x-for="transformer in requiredTransformers" :key="transformer.key">
+						<div class="gap-2 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm w-full text-gray-500 dark:text-gray-400">
+
+							<div class="flex flex-wrap items-center mb-3">
+								<!-- From scale type -->
+								<div x-html="transformer.from.label"></div>
+
+								<!-- Right Arrow -->
+								<i class="fa-solid fa-arrow-right mr-2"></i>
+
+								<!-- To scale type -->
+								<div x-html="transformer.to.label"></div>
+							</div>
+
+							<x-form.input.textarea
+									x-model="transformers[transformer.key]"
+									rows="4"
+									class="font-mono text-gray-400"
+									placeholder="Transformer code ..."
+							/>
+						</div>
+					</template>
+
+				</div>
+
+				<x-input-error for="evaluationForm.transformers" />
+			</div>
 		</div>
 
 		<!-- Evaluation Keywords -->
@@ -335,7 +456,6 @@
 
 		<!-- Other Form Errors -->
 		<x-input-error for="evaluationForm.status" />
-		<x-input-error for="evaluationForm.scale_type" />
 		<x-input-error for="evaluationForm.setting_feedback_strategy" />
 		<x-input-error for="evaluationForm.setting_show_position" />
 		<x-input-error for="evaluationForm.setting_auto_restart" />

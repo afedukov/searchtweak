@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Events\EvaluationArchivedChangedEvent;
 use App\Events\EvaluationProgressChangedEvent;
+use App\Events\EvaluationScaleTypeChangedEvent;
 use App\Events\EvaluationStatusChangedEvent;
 use App\Jobs\Evaluations\UpdatePreviousValuesJob;
 use App\Livewire\Widgets\EvaluationProgressWidget;
@@ -13,6 +14,8 @@ use App\Services\Scorers\Scales\BinaryScale;
 use App\Services\Scorers\Scales\DetailScale;
 use App\Services\Scorers\Scales\GradedScale;
 use App\Services\Scorers\Scales\Scale;
+use App\Services\Scorers\Scales\ScaleFactory;
+use App\Services\Transformers\Transformers;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -96,6 +99,7 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
     public const string SETTING_SHOW_POSITION = 'position';
     public const string SETTING_REUSE_STRATEGY = 'reuse';
     public const string SETTING_AUTO_RESTART = 'auto_restart';
+    public const string SETTING_TRANSFORMERS = 'transformers';
 
     public const int REUSE_STRATEGY_NONE = 0;
     public const int REUSE_STRATEGY_QUERY_DOC = 1;
@@ -151,6 +155,10 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
                 if ($evaluation->status === self::STATUS_FINISHED) {
                     UpdatePreviousValuesJob::dispatch($evaluation->model_id, $evaluation->id);
                 }
+            }
+
+            if ($evaluation->isDirty(self::FIELD_SCALE_TYPE)) {
+                EvaluationScaleTypeChangedEvent::dispatch($evaluation);
             }
 
             if ($evaluation->isDirty(self::FIELD_PROGRESS)) {
@@ -292,15 +300,20 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
         return $this->settings[self::SETTING_AUTO_RESTART] ?? false;
     }
 
+    public function getTransformers(): Transformers
+    {
+        $array = $this->settings[self::SETTING_TRANSFORMERS] ?? [
+            'scale_type' => $this->scale_type,
+            'rules' => [],
+        ];
+
+        return Transformers::fromArray($array);
+    }
+
     public function getScale(): Scale
     {
         if ($this->scale === null) {
-            $this->scale = match ($this->scale_type) {
-                BinaryScale::SCALE_TYPE => new BinaryScale(),
-                GradedScale::SCALE_TYPE => new GradedScale(),
-                DetailScale::SCALE_TYPE => new DetailScale(),
-                default => throw new \InvalidArgumentException('Invalid scale type'),
-            };
+            $this->scale = ScaleFactory::create($this->scale_type);
         }
 
         return $this->scale;

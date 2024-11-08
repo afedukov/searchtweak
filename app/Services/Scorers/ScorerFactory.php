@@ -11,6 +11,9 @@ class ScorerFactory
         'cg' => CumulativeGainScorer::class,
         'dcg' => DiscountedCumulativeGainScorer::class,
         'ndcg' => NormalizedDiscountedCumulativeGainScorer::class,
+        'cg_d' => CumulativeGainDetailScorer::class,
+        'dcg_d' => DiscountedCumulativeGainDetailScorer::class,
+        'ndcg_d' => NormalizedDiscountedCumulativeGainDetailScorer::class,
     ];
 
     public static function create(string $type): Scorer

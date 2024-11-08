@@ -9,19 +9,18 @@ use App\Http\Requests\StoreEvaluationRequest;
 use App\Http\Resources\EvaluationResource;
 use App\Jobs\Evaluations\PauseEvaluationJob;
 use App\Jobs\Evaluations\StartEvaluationJob;
-use App\Models\EvaluationMetric;
 use App\Models\SearchEvaluation;
 use App\Services\Evaluations\JudgementsService;
 use App\Services\Evaluations\SyncKeywordsService;
 use App\Services\Evaluations\SyncMetricsService;
-use App\Services\Scorers\ScorerFactory;
 use App\Services\SyncTagsService;
+use App\Services\Transformers\Transformers;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class EvaluationsController
 {
@@ -80,11 +79,11 @@ class EvaluationsController
         $evaluation = $this->getEvaluation($id);
 
         if ($evaluation->changes_blocked) {
-            throw new \RuntimeException('Evaluation changes are blocked');
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Evaluation changes are blocked');
         }
 
         if (!$evaluation->isPending()) {
-            throw new \RuntimeException('Evaluation is not pending');
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Evaluation is not pending');
         }
 
         $evaluation->blockChanges();
@@ -109,11 +108,11 @@ class EvaluationsController
         $evaluation = $this->getEvaluation($id);
 
         if ($evaluation->changes_blocked) {
-            throw new \RuntimeException('Evaluation changes are blocked');
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Evaluation changes are blocked');
         }
 
         if (!$evaluation->isActive()) {
-            throw new \RuntimeException('Evaluation is not active');
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Evaluation is not active');
         }
 
         $evaluation->blockChanges();
@@ -138,7 +137,11 @@ class EvaluationsController
     {
         $evaluation = $this->getEvaluation($id);
 
-        $action->finish($evaluation, false);
+        try {
+            $action->finish($evaluation, false);
+        } catch (\Exception $e) {
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'OK',
@@ -150,7 +153,11 @@ class EvaluationsController
     {
         $evaluation = $this->getEvaluation($id);
 
-        $action->delete($evaluation);
+        try {
+            $action->delete($evaluation);
+        } catch (\Exception $e) {
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, $e->getMessage());
+        }
 
         return response()->json([
             'status' => 'OK',
@@ -171,20 +178,24 @@ class EvaluationsController
         $evaluation = $this->getEvaluation($id)
             ->load('keywords.snapshots.feedbacks');
 
-        if (!$evaluation->isFinished()) {
-            throw new \RuntimeException('Evaluation is not finished');
+        try {
+            if (!$evaluation->isFinished()) {
+                throw new \RuntimeException('Evaluation is not finished');
+            }
+
+            $judgements = [];
+
+            $judgementsService->process($evaluation, function ($grade, $keyword, $doc, $position) use (&$judgements) {
+                $judgements[] = [
+                    'grade' => $grade,
+                    'keyword' => $keyword,
+                    'position' => $position,
+                    'doc' => $doc,
+                ];
+            });
+        } catch (\Exception $e) {
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, $e->getMessage());
         }
-
-        $judgements = [];
-
-        $judgementsService->process($evaluation, function ($grade, $keyword, $doc, $position) use (&$judgements) {
-            $judgements[] = [
-                'grade' => $grade,
-                'keyword' => $keyword,
-                'position' => $position,
-                'doc' => $doc,
-            ];
-        });
 
         return response()->json($judgements);
     }
@@ -203,12 +214,12 @@ class EvaluationsController
         $attributes = [
                 SearchEvaluation::FIELD_USER_ID => $team->user_id,
                 SearchEvaluation::FIELD_STATUS => SearchEvaluation::STATUS_PENDING,
-                SearchEvaluation::FIELD_SCALE_TYPE => ScorerFactory::create(Arr::first($request->get('metrics'))[EvaluationMetric::FIELD_SCORER_TYPE])->getScale()->getType(),
                 SearchEvaluation::FIELD_SETTINGS => [
                     SearchEvaluation::SETTING_FEEDBACK_STRATEGY => $request->get('setting_feedback_strategy'),
                     SearchEvaluation::SETTING_SHOW_POSITION => $request->get('setting_show_position'),
                     SearchEvaluation::SETTING_REUSE_STRATEGY => $request->get('setting_reuse_strategy'),
                     SearchEvaluation::SETTING_AUTO_RESTART => $request->get('setting_auto_restart'),
+                    SearchEvaluation::SETTING_TRANSFORMERS => Transformers::fromArray($request->get('transformers'))->toArray(),
                 ],
             ] + $request->validated() + [
                 SearchEvaluation::FIELD_DESCRIPTION => '',

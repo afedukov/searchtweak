@@ -120,6 +120,7 @@
 														$wire.set('evaluationForm.model_id', '{{ $model->id }}');
 														$wire.set('evaluationForm.keywords', {{ Js::from($model->getKeywordsString()) }});
 														$wire.set('evaluationForm.tags', {{ Js::from($model->tags) }});
+														$wire.set('evaluationForm.transformers', {{ Js::from(\App\Services\Transformers\Transformers::getDefaultFormTransformers()) }});
 													"
 											/>
 										@else

@@ -3,6 +3,11 @@
 		<h2 class="font-semibold text-xl text-gray-700 leading-tight dark:text-slate-300">
 			<div class="flex items-center gap-2">
 				User Feedback: <strong>{{ $evaluation->name }}</strong>
+
+				<div class="mb-1">
+					<!-- Evaluation Scale Type -->
+					<livewire:evaluations.evaluation-scale-type :evaluation="$evaluation" />
+				</div>
 			</div>
 		</h2>
 	</x-slot>

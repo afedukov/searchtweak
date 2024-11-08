@@ -6,6 +6,7 @@ use App\Actions\Evaluations\CreateSearchEvaluation;
 use App\Actions\Evaluations\UpdateSearchEvaluation;
 use App\Livewire\Forms\EvaluationForm;
 use App\Models\SearchEvaluation;
+use App\Services\Transformers\Transformers;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Masmerise\Toaster\Toaster;
@@ -21,6 +22,7 @@ trait EditEvaluationModalTrait
         $this->evaluationForm->reset();
         $this->evaluationForm->resetErrorBag();
         $this->evaluationForm->evaluation = null;
+        $this->evaluationForm->transformers = Transformers::getDefaultFormTransformers();
 
         $this->editEvaluationModal = true;
     }

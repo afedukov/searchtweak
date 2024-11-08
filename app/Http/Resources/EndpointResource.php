@@ -8,6 +8,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class EndpointResource extends JsonResource
 {
+    public bool $preserveKeys = true;
+
     /**
      * Transform the resource into an array.
      *

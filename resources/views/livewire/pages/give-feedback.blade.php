@@ -97,7 +97,7 @@
 					</div>
 
 					<!-- Scale Buttons -->
-					<div class="mt-8 flex justify-center gap-2">
+					<div class="mt-8 flex flex-wrap justify-center gap-2">
 						<x-scales.scale-button :feedback="$feedback" :scale="$feedback->snapshot->keyword->evaluation->getScale()" />
 					</div>
 				@endif

@@ -9,6 +9,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ModelResource extends JsonResource
 {
+    public bool $preserveKeys = true;
+
     /**
      * Transform the resource into an array.
      *

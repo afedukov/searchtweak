@@ -9,8 +9,13 @@ use App\Models\Team;
 use App\Rules\AutoRestartRule;
 use App\Rules\EvaluationKeywordsRule;
 use App\Rules\EvaluationMetricRule;
+use App\Rules\EvaluationScaleRule;
+use App\Rules\EvaluationTransformersRule;
 use App\Rules\FeedbackStrategyRule;
 use App\Rules\ReuseStrategyRule;
+use App\Services\Scorers\Scales\BinaryScale;
+use App\Services\Scorers\Scales\DetailScale;
+use App\Services\Scorers\Scales\GradedScale;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -35,6 +40,7 @@ class StoreEvaluationRequest extends FormRequest
         return self::getValidationRules() + [
             'keywords' => ['required', 'array', new EvaluationKeywordsRule()],
             'keywords.*' => ['nullable', 'string', 'max:255'],
+            'transformers' => ['required', 'array', new EvaluationTransformersRule(true)],
         ];
     }
 
@@ -57,6 +63,7 @@ class StoreEvaluationRequest extends FormRequest
             ]), new ReuseStrategyRule()],
             'tags' => ['nullable', 'array'],
             'tags.*.id' => ['integer', Rule::exists('tags', Tag::FIELD_ID)->where(Tag::FIELD_TEAM_ID, $teamId)],
+            'scale_type' => ['required', 'string', Rule::in([BinaryScale::SCALE_TYPE, GradedScale::SCALE_TYPE, DetailScale::SCALE_TYPE]), new EvaluationScaleRule()],
         ];
     }
 

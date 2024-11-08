@@ -9,6 +9,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class EvaluationResource extends JsonResource
 {
+    public bool $preserveKeys = true;
+
     /**
      * Transform the resource into an array.
      *
@@ -27,6 +29,7 @@ class EvaluationResource extends JsonResource
             'progress' => floatval(number_format($evaluation->progress, 2)),
             'name' => $evaluation->name,
             'description' => $evaluation->description,
+            'settings' => $evaluation->settings,
             'metrics' => MetricResource::collection($evaluation->metrics),
             'tags' => TagResource::collection($evaluation->tags),
             'keywords' => $evaluation->keywords->pluck(EvaluationKeyword::FIELD_KEYWORD)->all(),

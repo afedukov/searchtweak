@@ -9,11 +9,11 @@ use App\Models\EvaluationMetric;
 use App\Models\SearchEndpoint;
 use App\Models\SearchEvaluation;
 use App\Rules\EvaluationKeywordsRule;
+use App\Rules\EvaluationTransformersRule;
 use App\Services\Evaluations\SyncKeywordsService;
 use App\Services\Evaluations\SyncMetricsService;
-use App\Services\Scorers\ScorerFactory;
 use App\Services\SyncTagsService;
-use Illuminate\Support\Arr;
+use App\Services\Transformers\Transformers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -46,11 +46,16 @@ class EvaluationForm extends Form
 
     public array $tags = [];
 
+    public string $scale_type = '';
+
+    public array $transformers = [];
+
     public function rules(): array
     {
         return StoreEvaluationRequest::getValidationRules() + [
             'status' => ['required', 'integer', Rule::in([SearchEvaluation::STATUS_PENDING])],
             'keywords' => ['required', 'string', new EvaluationKeywordsRule()],
+            'transformers' => ['required', 'array', new EvaluationTransformersRule()],
         ];
     }
 
@@ -67,12 +72,12 @@ class EvaluationForm extends Form
             $this->except(['keywords', 'metrics', 'tags']) + [
                 SearchEndpoint::FIELD_USER_ID => Auth::user()->id,
                 SearchEvaluation::FIELD_STATUS => SearchEvaluation::STATUS_PENDING,
-                SearchEvaluation::FIELD_SCALE_TYPE => ScorerFactory::create(Arr::first($this->metrics)[EvaluationMetric::FIELD_SCORER_TYPE])->getScale()->getType(),
                 SearchEvaluation::FIELD_SETTINGS => [
                     SearchEvaluation::SETTING_FEEDBACK_STRATEGY => $this->setting_feedback_strategy,
                     SearchEvaluation::SETTING_SHOW_POSITION => $this->setting_show_position,
                     SearchEvaluation::SETTING_REUSE_STRATEGY => $this->setting_reuse_strategy,
                     SearchEvaluation::SETTING_AUTO_RESTART => $this->setting_auto_restart,
+                    SearchEvaluation::SETTING_TRANSFORMERS => Transformers::createFromForm($this)->toArray(),
                 ],
             ]
         );
@@ -95,6 +100,7 @@ class EvaluationForm extends Form
                     SearchEvaluation::SETTING_SHOW_POSITION => $this->setting_show_position,
                     SearchEvaluation::SETTING_REUSE_STRATEGY => $this->setting_reuse_strategy,
                     SearchEvaluation::SETTING_AUTO_RESTART => $this->setting_auto_restart,
+                    SearchEvaluation::SETTING_TRANSFORMERS => Transformers::createFromForm($this)->toArray(),
                 ],
             ]
         );
@@ -123,11 +129,11 @@ class EvaluationForm extends Form
                 'setting_show_position' => $evaluation->settings[SearchEvaluation::SETTING_SHOW_POSITION] ?? false,
                 'setting_reuse_strategy' => $evaluation->settings[SearchEvaluation::SETTING_REUSE_STRATEGY] ?? SearchEvaluation::REUSE_STRATEGY_NONE,
                 'setting_auto_restart' => $evaluation->settings[SearchEvaluation::SETTING_AUTO_RESTART] ?? false,
+                'transformers' => $evaluation->getTransformers()->toFormArray() + Transformers::getDefaultFormTransformers(),
             ] + $evaluation->toArray();
 
         if ($clone) {
             unset($values[SearchEvaluation::FIELD_ID]);
-            unset($values[SearchEvaluation::FIELD_SCALE_TYPE]);
 
             $values[SearchEvaluation::FIELD_NAME] .= ' clone';
             $values[SearchEvaluation::FIELD_STATUS] = SearchEvaluation::STATUS_PENDING;

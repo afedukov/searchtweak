@@ -7,11 +7,14 @@ use App\Models\SearchSnapshot;
 use App\Models\UserFeedback;
 use App\Services\Scorers\Scales\BinaryScale;
 use App\Services\Scorers\Scales\Scale;
+use App\Services\Transformers\Transformers;
 use JsonSerializable;
 
 abstract class Scorer implements JsonSerializable
 {
     protected ?Scale $scale = null;
+
+    protected Transformers $transformers;
 
     protected array $settings = [];
 
@@ -58,12 +61,23 @@ abstract class Scorer implements JsonSerializable
         ];
     }
 
+    public function setTransformers(Transformers $transformers): Scorer
+    {
+        $this->transformers = $transformers;
+
+        return $this;
+    }
+
     protected function getValue(SearchSnapshot $snapshot): ?float
     {
         $grades = $snapshot->feedbacks
             ->whereNotNull(UserFeedback::FIELD_GRADE)
             ->pluck(UserFeedback::FIELD_GRADE)
             ->all();
+
+        if ($this->transformers->isNotEmpty()) {
+            $grades = array_map(fn (int $grade) => $this->transformers->transform($this->getScale()->getType(), $grade), $grades);
+        }
 
         return $this->getScale()->getValue($grades);
     }

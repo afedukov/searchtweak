@@ -35,6 +35,14 @@ abstract class Scale implements JsonSerializable
         return static::SCALE_TYPE;
     }
 
+    /**
+     * @return array<int>
+     */
+    public function getGrades(): array
+    {
+        return array_keys($this->getValues());
+    }
+
     public function getScaleButtonComponent(): string
     {
         return sprintf('scales.%s.button', $this->getType());
