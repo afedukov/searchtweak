@@ -40,7 +40,7 @@
 				<div class="mb-2 font-bold text-xs uppercase text-gray-700 dark:text-gray-200">Metrics</div>
 
 				<!-- Evaluation Metrics -->
-				<div class="flex flex-wrap gap-3">
+				<div class="flex flex-wrap gap-3" x-data="{ compact: $persist(false).as('compact-evaluation-widget-@js($evaluation->id)') }">
 					@foreach ($evaluation->metrics as $metric)
 						<x-metrics.evaluation-metric
 								:metric="$metric"

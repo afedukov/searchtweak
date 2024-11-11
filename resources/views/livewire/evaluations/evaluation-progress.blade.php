@@ -2,7 +2,7 @@
 	<a href="{{ route('evaluation.feedback', $evaluation->id) }}" data-popover-target="evaluation-progress-{{ $evaluation->id }}" class="inline-block">
 @endif
 
-<div class="{{ $class }} min-w-36 inline-flex text-sm gap-2.5 items-center px-2.5 py-2 rounded-lg border border-gray-250 bg-white dark:bg-gray-700 dark:border-gray-600 @if($link) hover:shadow-md dark:hover:shadow-gray-900 transition-shadow ease-in-out @endif">
+<div class="{{ $class }} min-w-32 inline-flex text-sm gap-2.5 items-center px-2.5 py-2 rounded-lg border border-gray-250 bg-white dark:bg-gray-700 dark:border-gray-600 @if($link) hover:shadow-md dark:hover:shadow-gray-900 transition-shadow ease-in-out @endif">
 
 	@if ($total)
 		<div class="flex justify-end">

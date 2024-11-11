@@ -46,7 +46,7 @@
 				</header>
 				<div class="p-3">
 					<!-- Table and Filters -->
-					<div class="sm:rounded-lg overflow-x-auto" x-data="{ confirmingModelRemoval: @entangle('confirmingModelRemoval'), modelIdBeingRemoved: @entangle('modelIdBeingRemoved') }">
+					<div class="sm:rounded-lg overflow-x-auto" x-data="{ confirmingModelRemoval: @entangle('confirmingModelRemoval'), modelIdBeingRemoved: @entangle('modelIdBeingRemoved'), compact: $persist(true).as('compact') }">
 						<!-- Table -->
 						<table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
 							<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">

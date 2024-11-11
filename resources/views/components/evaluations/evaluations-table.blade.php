@@ -1,9 +1,15 @@
-@props(['evaluations', 'withModel' => false, 'evaluationForm'])
+@props(['evaluations', 'withModel' => false, 'evaluationForm', 'compact' => false])
 @php
     /** @var \Illuminate\Pagination\LengthAwarePaginator|\App\Models\SearchEvaluation[] $evaluations */
 @endphp
 
-<div x-data="{ confirmingEvaluationRemoval: @entangle('confirmingEvaluationRemoval'), evaluationIdBeingRemoved: @entangle('evaluationIdBeingRemoved') }">
+<div
+		x-data="{
+			confirmingEvaluationRemoval: @entangle('confirmingEvaluationRemoval'),
+			evaluationIdBeingRemoved: @entangle('evaluationIdBeingRemoved'),
+			compact: $persist(true).as('compact'),
+		}"
+>
 
 <!-- Table -->
 <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
