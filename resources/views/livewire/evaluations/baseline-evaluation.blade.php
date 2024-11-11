@@ -17,7 +17,7 @@
 
 		<div>
 			<!-- Evaluation Metrics -->
-			<div class="flex flex-wrap gap-3">
+			<div class="flex flex-wrap gap-3" x-data="{ compact: $persist(false).as('compact-evaluation-baseline') }">
 				@foreach ($evaluation->metrics as $metric)
 					<x-metrics.evaluation-metric :metric="$metric" :keywords-count="$evaluation->keywords_count" />
 				@endforeach
