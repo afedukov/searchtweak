@@ -77,10 +77,8 @@
 				</div>
 
 				<div class="p-3">
-					@if ($baseline)
-						<!-- Baseline Evaluation -->
-						<x-evaluations.baseline-evaluation :evaluation="$baseline" />
-					@endif
+					<!-- Baseline Evaluation -->
+					<livewire:evaluations.baseline-evaluation :baseline="$baseline" key="baseline-evaluation-{{ $baseline?->id }}" />
 
 					<!-- Table and Filters -->
 					<div class="sm:rounded-lg overflow-x-auto">
