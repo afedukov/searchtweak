@@ -43,6 +43,11 @@ class Evaluations extends Component
         ];
     }
 
+    public function mount(): void
+    {
+        $this->baseline = Auth::user()->currentTeam->baseline;
+    }
+
     public function render(): View
     {
         $allModels = Auth::user()->currentTeam

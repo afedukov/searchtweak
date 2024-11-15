@@ -13,7 +13,7 @@
 	<!-- Widget content -->
 	<div class="overflow-x-auto">
 		<div class="grow">
-			@php($id = md5(mt_rand()))
+			@php($id = unique_key())
 			<div class="h-[230px]">
 				<canvas
 						id="id-{{ $id }}"

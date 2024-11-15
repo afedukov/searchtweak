@@ -6,7 +6,7 @@
 
 				<div class="mb-1">
 					<!-- Evaluation Scale Type -->
-					<livewire:evaluations.evaluation-scale-type :evaluation="$evaluation" />
+					<livewire:evaluations.evaluation-scale-type :evaluation="$evaluation" key="evaluation-scale-type-{{ $evaluation->id }}" />
 				</div>
 			</div>
 		</h2>
@@ -45,7 +45,7 @@
 
 				<!-- Metrics -->
 				@foreach ($evaluation->metrics as $metric)
-					<livewire:evaluations.metric-card :metric="$metric" :keywords-count="$keywords->total()" wire:key="metric-card-{{ $metric->id }}" />
+					<livewire:evaluations.metric-card :metric="$metric" :keywords-count="$keywords->total()" key="metric-card-{{ $metric->id }}" />
 				@endforeach
 
 			</div>
@@ -64,10 +64,10 @@
 							</span>
 
 							<!-- Archived Badge -->
-							<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+							<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" key="evaluation-archived-badge-{{ $evaluation->id }}" />
 
 							<!-- Evaluation Status -->
-							<livewire:evaluations.evaluation-status :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+							<livewire:evaluations.evaluation-status :evaluation="$evaluation" key="evaluation-status-{{ $evaluation->id }}" />
 
 							<!-- Evaluation Add To Dashboard Button -->
 							<div class="relative inline">
@@ -172,10 +172,10 @@
 
 							<div class="flex gap-3">
 								<!-- Progress Badge -->
-								<livewire:evaluations.evaluation-progress total :evaluation="$evaluation" class="min-w-32 sm:min-w-44" wire:key="{{ md5(mt_rand()) }}" />
+								<livewire:evaluations.evaluation-progress total :evaluation="$evaluation" class="min-w-32 sm:min-w-44" key="evaluation-progress-{{ $evaluation->id }}" />
 
 								<!-- Control Evaluation -->
-								<livewire:evaluations.evaluation-control :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+								<livewire:evaluations.evaluation-control :evaluation="$evaluation" key="evaluation-control-{{ $evaluation->id }}" />
 							</div>
 						</div>
 
@@ -203,7 +203,7 @@
 
 						<!-- Right Column -->
 
-						<livewire:evaluations.evaluation-keywords-count :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+						<livewire:evaluations.evaluation-keywords-count :evaluation="$evaluation" key="evaluation-keywords-count-{{ $evaluation->id }}" />
 
 					</div>
 
@@ -230,7 +230,7 @@
 							@forelse ($keywords as $keyword)
 								<tr
 										id="keyword-item-{{ $keyword->id }}"
-										wire:key="{{ md5(mt_rand()) }}"
+										wire:key="keyword-item-{{ $keyword->id }}"
 										:class="expand ? 'bg-gray-50 dark:bg-gray-700' : 'bg-white dark:bg-gray-800'"
 										class="cursor-pointer border-b last:border-0 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
 										x-data="{ expand: $persist(false).as('keyword-expanded-@js($keyword->id)') }"
@@ -254,7 +254,7 @@
 										<div class="relative inline-flex">
 											{{ $keyword->keyword }}
 											<!-- Non-graded Snapshots Count Badge -->
-											<livewire:evaluations.evaluation-keyword-count-badge :keyword="$keyword" wire:key="{{ md5(mt_rand()) }}" />
+											<livewire:evaluations.evaluation-keyword-count-badge :keyword="$keyword" key="evaluation-keyword-count-badge-{{ $keyword->id }}" />
 
 											@if ($keyword->isFailed())
 												<!-- Failed Keyword Badge -->
@@ -268,7 +268,7 @@
 										<!-- Keyword Metrics -->
 										<div class="flex flex-wrap gap-3">
 											@foreach ($evaluation->metrics as $metric)
-												<livewire:evaluations.evaluation-keyword-metric :keyword="$keyword" :metric="$metric" wire:key="{{ md5(mt_rand()) }}" />
+												<livewire:evaluations.evaluation-keyword-metric :keyword="$keyword" :metric="$metric" key="evaluation-keyword-metric-{{ $keyword->id }}-{{ $metric->id }}" />
 											@endforeach
 										</div>
 									</td>

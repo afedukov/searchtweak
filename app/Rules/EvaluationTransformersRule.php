@@ -35,8 +35,14 @@ class EvaluationTransformersRule implements DataAwareRule, ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $scaleType = $this->data['scale_type'];
-        $metrics = $this->data['metrics'];
+        $scaleType = $this->data['scale_type'] ?? '';
+        $metrics = $this->data['metrics'] ?? [];
+
+        if (empty($scaleType)) {
+            $fail('Evaluation scale type is required.');
+
+            return;
+        }
 
         if ($this->isApi) {
             if (!isset($value['scale_type']) || !in_array($value['scale_type'], [BinaryScale::SCALE_TYPE, DetailScale::SCALE_TYPE, GradedScale::SCALE_TYPE])) {

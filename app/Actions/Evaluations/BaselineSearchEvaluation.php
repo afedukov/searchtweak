@@ -11,9 +11,9 @@ class BaselineSearchEvaluation
      * @param SearchEvaluation $evaluation
      * @param bool $baseline
      *
-     * @return void
+     * @return SearchEvaluation|null
      */
-    public function baseline(SearchEvaluation $evaluation, bool $baseline): void
+    public function baseline(SearchEvaluation $evaluation, bool $baseline): ?SearchEvaluation
     {
         if ($baseline === true && !$evaluation->isBaselineable()) {
             throw new \RuntimeException('Failed to set evaluation as baseline');
@@ -25,5 +25,7 @@ class BaselineSearchEvaluation
 
         Auth::user()->currentTeam->baseline_evaluation_id = $baseline ? $evaluation->id : null;
         Auth::user()->currentTeam->save();
+
+        return $baseline ? $evaluation : null;
     }
 }

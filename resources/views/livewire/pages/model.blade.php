@@ -25,7 +25,7 @@
 
 			<!-- Model Widgets -->
 			<div class="grid grid-cols-12 gap-6 mb-8">
-				<livewire:models.model-metrics-card :model="$model" wire:key="{{ md5(mt_rand()) }}" />
+				<livewire:models.model-metrics-card :model="$model" key="model-metrics-card-{{ $model->id }}" />
 			</div>
 
 			<div class="col-span-full xl:col-span-8 bg-white dark:bg-slate-800 shadow-lg rounded-sm border border-slate-200 dark:border-slate-700">
@@ -104,13 +104,13 @@
 						<!-- Right Column -->
 						<div class="flex flex-wrap gap-2">
 							<!-- Archived Filter -->
-							<livewire:evaluations.filter-archived wire:model.live="filterArchived" wire:key="{{ md5(mt_rand()) }}" />
+							<livewire:evaluations.filter-archived wire:model.live="filterArchived" key="evaluations-filter-archived" />
 
 							<!-- Status Filter -->
-							<livewire:evaluations.filter-status wire:model="filterStatus" wire:key="{{ md5(mt_rand()) }}" />
+							<livewire:evaluations.filter-status wire:model="filterStatus" key="evaluations-filter-status" />
 
 							<!-- Tags Filter -->
-							<livewire:tags.filter-tags :tags="Auth::user()->currentTeam->tags" wire:model.live="filterTagId" wire:key="{{ md5(mt_rand()) }}" />
+							<livewire:tags.filter-tags :tags="Auth::user()->currentTeam->tags" wire:model.live="filterTagId" key="evaluations-filter-tags" />
 						</div>
 
 					</div>
@@ -118,8 +118,10 @@
 				</div>
 
 				<div class="p-3">
-					<!-- Baseline Evaluation -->
-					<livewire:evaluations.baseline-evaluation :evaluation="Auth::user()->currentTeam->baseline" wire:key="{{ md5(mt_rand()) }}" />
+					@if ($baseline)
+						<!-- Baseline Evaluation -->
+						<x-evaluations.baseline-evaluation :evaluation="$baseline" />
+					@endif
 
 					<!-- Table and Filters -->
 					<div class="sm:rounded-lg overflow-x-auto">

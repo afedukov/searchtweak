@@ -7,6 +7,7 @@
 @endphp
 
 <x-metrics.metric
+		{{ $attributes }}
 		:value="$metric->value"
 		:displayName="$scorer->getDisplayName($metric->num_results, $keywordsCount)"
 		:briefDescription="$scorer->getBriefDescription($keywordsCount)"

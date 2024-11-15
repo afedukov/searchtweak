@@ -47,6 +47,7 @@ class Model extends Component
     public function mount(SearchModel $model): void
     {
         $this->model = $model->load('user', 'team', 'endpoint', 'tags');
+        $this->baseline = Auth::user()->currentTeam->baseline;
 
         $this->initializeEditModel();
     }

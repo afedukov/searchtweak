@@ -56,7 +56,7 @@
 		</div>
 
 		<!-- Custom Headers -->
-		<div class="mb-4 last:mb-0" x-data="{ open: $wire.endpointForm.headers !== '' }" id="input-group-{{ md5(mt_rand()) }}">
+		<div class="mb-4 last:mb-0" x-data="{ open: $wire.endpointForm.headers !== '' }" id="input-group-{{ unique_key() }}">
 
 			<div class="flex items-center cursor-pointer gap-2" @click.prevent="open = !open">
 				<svg class="w-2 h-2 shrink-0 mb-1" :class="open ? 'rotate-180': 'rotate-90'" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
@@ -77,7 +77,7 @@
 		</div>
 
 		<!-- Advanced Settings -->
-		<div class="mb-8 last:mb-0" x-data="{ open: $persist(false).as('endpoint-advanced-settings-expanded') }" id="input-group-{{ md5(mt_rand()) }}">
+		<div class="mb-8 last:mb-0" x-data="{ open: $persist(false).as('endpoint-advanced-settings-expanded') }" id="input-group-{{ unique_key() }}">
 
 			<div class="flex items-center cursor-pointer gap-2" @click.prevent="open = !open">
 				<svg class="w-2 h-2 shrink-0 mb-1" :class="open ? 'rotate-180': 'rotate-90'" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">

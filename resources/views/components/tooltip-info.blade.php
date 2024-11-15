@@ -1,4 +1,4 @@
-@props(['id' => md5(mt_rand())])
+@props(['id' => unique_key()])
 
 <div>
 	<button data-popover-target="tooltip-{{ $id }}" {{ $attributes->merge(['class' => 'block']) }}>

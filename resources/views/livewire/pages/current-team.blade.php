@@ -124,7 +124,7 @@
 							</div>
 
 							<!-- Tags Filter -->
-							<livewire:tags.filter-tags :tags="Auth::user()->currentTeam->tags" wire:model.live="filterTagId" wire:key="{{ md5(mt_rand()) }}" />
+							<livewire:tags.filter-tags :tags="Auth::user()->currentTeam->tags" wire:model.live="filterTagId" key="team-filter-tags" />
 
 							<!-- Send Message button -->
 							@if (Gate::check('sendMessage', $team))

@@ -348,7 +348,7 @@
 		</div>
 
 		<!-- Advanced Settings -->
-		<div x-data="{ open: $persist(false).as('evaluation-advanced-settings-expanded') }" id="input-group-{{ md5(mt_rand()) }}">
+		<div x-data="{ open: $persist(false).as('evaluation-advanced-settings-expanded') }" id="input-group-{{ unique_key() }}">
 
 			<div class="flex items-center cursor-pointer gap-2" @click.prevent="open = !open">
 				<svg class="w-2 h-2 shrink-0 mb-1" :class="open ? 'rotate-180': 'rotate-90'" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
@@ -446,7 +446,7 @@
 					<livewire:tags.manage-tags
 							id="evaluationForm-manage-tags"
 							wire:model="evaluationForm.tags"
-							wire:key="{{ md5(mt_rand()) }}"
+							wire:key="{{ unique_key() }}"
 							tooltip="Only users with the following tags can evaluate this search evaluation."
 					/>
 				</div>

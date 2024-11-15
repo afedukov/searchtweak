@@ -1,7 +1,7 @@
 @props(['id'])
 
 @php
-	$id = $id ?? md5(mt_rand());
+	$id = $id ?? unique_key();
 @endphp
 
 <div x-data="{ open: false }" class="inline-block" id="{{ $id }}">

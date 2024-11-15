@@ -70,11 +70,10 @@
 		</div>
 	</div>
 	<div class="grow">
-		@php($id = md5(mt_rand()))
 		<div class="h-[120px]">
 			<canvas
-					id="id-{{ $id }}"
-					wire:key="key-{{ $id }}"
+					id="metric-card-id-{{ $metric->id }}"
+					wire:key="metric-card-key-{{ $metric->id }}-{{ $attached }}"
 					data-metric-card="{{ $metric->id }}"
 					data-metric-values="{{ json_encode($metric->getLastValues()) }}"
 					width="500"

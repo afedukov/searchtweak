@@ -25,13 +25,13 @@
 							link
 							total
 							class="w-full"
-							wire:key="{{ md5(mt_rand()) }}"
+							key="evaluation-progress-{{ $evaluation->id }}"
 					/>
 				</div>
 
 				<div class="flex items-baseline gap-1">
-					<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
-					<livewire:evaluations.evaluation-status :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+					<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" key="evaluation-archived-badge-{{ $evaluation->id }}" />
+					<livewire:evaluations.evaluation-status :evaluation="$evaluation" key="evaluation-status-{{ $evaluation->id }}" />
 				</div>
 			</div>
 

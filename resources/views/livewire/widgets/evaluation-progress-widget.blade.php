@@ -18,7 +18,7 @@
 					link
 					total
 					class="w-full"
-					wire:key="{{ md5(mt_rand()) }}"
+					key="evaluation-progress-{{ $evaluation->id }}"
 			/>
 
 			<!-- Info icon and evaluation description -->

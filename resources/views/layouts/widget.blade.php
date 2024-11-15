@@ -1,4 +1,4 @@
-@props(['id' => md5(mt_rand()), 'padding' => 'px-5 py-4'])
+@props(['padding' => 'px-5 py-4'])
 
 <div class="xl:col-span-6 col-span-full bg-white dark:bg-slate-800 shadow-lg rounded-sm border border-slate-200 dark:border-slate-700">
 	<header class="{{ $padding }} border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">

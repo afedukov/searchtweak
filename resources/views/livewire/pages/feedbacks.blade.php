@@ -6,7 +6,7 @@
 
 				<div class="mb-1">
 					<!-- Evaluation Scale Type -->
-					<livewire:evaluations.evaluation-scale-type :evaluation="$evaluation" />
+					<livewire:evaluations.evaluation-scale-type :evaluation="$evaluation" key="evaluation-scale-type-{{ $evaluation->id }}" />
 				</div>
 			</div>
 		</h2>
@@ -18,7 +18,7 @@
 			<!-- Go Back -->
 			<x-go-back href="{{ route('evaluation', [$evaluation->id]) }}" />
 		</x-block.navigation-tabs>
-
+s
 		<!-- Feedbacks -->
 		<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
 			<div class="col-span-full xl:col-span-8 bg-white dark:bg-slate-800 shadow-lg rounded-sm border border-slate-200 dark:border-slate-700">
@@ -42,7 +42,7 @@
 									:evaluation="$evaluation"
 									total
 									class="min-w-80"
-									wire:key="{{ md5(mt_rand()) }}"
+									key="evaluation-progress-{{ $evaluation->id }}"
 							/>
 						</div>
 
@@ -71,7 +71,7 @@
 						<!-- Right Column -->
 						<div class="flex flex-wrap gap-2">
 							<!-- Tags Filter -->
-							<livewire:tags.filter-tags :tags="Auth::user()->currentTeam->tags" wire:model.live="filterTagId" wire:key="{{ md5(mt_rand()) }}" />
+							<livewire:tags.filter-tags :tags="Auth::user()->currentTeam->tags" wire:model.live="filterTagId" key="feedbacks-filter-tags" />
 						</div>
 
 

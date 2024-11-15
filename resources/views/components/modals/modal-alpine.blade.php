@@ -1,7 +1,7 @@
 @props(['id', 'maxWidth', 'var' => 'show'])
 
 @php
-	$id = $id ?? md5(mt_rand());
+	$id = $id ?? unique_key();
 
 	$maxWidth = [
 		'sm' => 'sm:max-w-sm',

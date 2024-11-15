@@ -162,7 +162,7 @@
 								</div>
 
 								<!-- Badge -->
-								<livewire:sidebar.feedback-badge />
+								<livewire:sidebar.feedback-badge key="sidebar-feedback-badge" />
 							</div>
 						</a>
 					</li>

@@ -35,7 +35,7 @@
 		<div class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase pt-1.5 pb-2 px-4">Notifications</div>
 		<ul>
 			@forelse ($notifications as $notification)
-				<li wire:key="{{ $notification->id }}" class="border-b border-slate-200 dark:border-slate-700 last:border-0">
+				<li wire:key="notification-{{ $notification->id }}" class="border-b border-slate-200 dark:border-slate-700 last:border-0">
 					<a wire:click="read('{{ $notification->id }}')" class="flex py-2 px-4 hover:bg-slate-50 dark:hover:bg-slate-700/20" href="javascript:void(0)">
 						<div
 								@class([

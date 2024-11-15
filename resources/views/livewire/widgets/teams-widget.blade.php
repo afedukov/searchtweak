@@ -48,7 +48,7 @@
 			<tbody class="text-sm font-medium divide-y divide-slate-100 dark:divide-slate-700">
 			@foreach ($teams as $team)
 				<!-- Row -->
-				<tr wire:key="{{ $team->id }}" class="hover:bg-slate-100 dark:hover:bg-slate-800">
+				<tr wire:key="team-item-{{ $team->id }}" class="hover:bg-slate-100 dark:hover:bg-slate-800">
 					<td class="p-2">
 						<div class="text-slate-800 dark:text-slate-100">
 							{{ $team->name }}

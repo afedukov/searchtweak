@@ -26,7 +26,7 @@
 							<!-- Filter button -->
 
 							<!-- Tags Filter -->
-							<livewire:tags.filter-tags :tags="Auth::user()->currentTeam->tags" wire:model.live="filterTagId" wire:key="{{ md5(mt_rand()) }}" />
+							<livewire:tags.filter-tags :tags="Auth::user()->currentTeam->tags" wire:model.live="filterTagId" key="team-filter-tags" />
 
 							<!-- Create Model button -->
 							@if (Gate::check('create-model', Auth::user()->currentTeam))

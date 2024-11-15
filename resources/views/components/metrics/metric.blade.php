@@ -1,6 +1,7 @@
 @props(['value', 'displayName', 'briefDescription' => null, 'scaleType', 'change' => null, 'compact' => null])
 
 <label
+		{{ $attributes }}
 		@if ($compact !== null)
 			x-data="{ compact: @js($compact) }"
 		@endif

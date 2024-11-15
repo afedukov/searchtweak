@@ -23,6 +23,6 @@ class PinSearchEvaluation
         }
 
         $evaluation->pinned = $pinned;
-        $evaluation->save();
+        $evaluation->saveQuietly();
     }
 }

@@ -11,7 +11,7 @@
 	</header>
 
 	<div class="grow">
-		@php($id = md5(mt_rand()))
+		@php($id = unique_key())
 		<div class="h-[400px]">
 			<canvas
 					id="id-{{ $id }}"

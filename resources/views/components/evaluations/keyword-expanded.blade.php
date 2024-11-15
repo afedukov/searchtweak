@@ -11,10 +11,10 @@
 			</tr>
 		@else
 			@forelse ($keyword->snapshots as $snapshot)
-				<tr class="border-b dark:border-gray-700">
+				<tr class="border-b dark:border-gray-700" wire:key="snapshot-{{ $snapshot->id }}">
 					<td class="px-6 py-4 align-top">
 						<!-- Grade Buttons -->
-						<livewire:evaluations.evaluation-grade-buttons :evaluation="$evaluation" :snapshot="$snapshot" wire:key="{{ md5(mt_rand()) }}" />
+						<livewire:evaluations.evaluation-grade-buttons :evaluation="$evaluation" :snapshot="$snapshot" key="grade-buttons-{{ $snapshot->id }}" />
 					</td>
 					<td class="px-6 py-4">
 						<x-evaluations.snapshot-preview :snapshot="$snapshot" :show-position="true" image-class="max-h-24" />

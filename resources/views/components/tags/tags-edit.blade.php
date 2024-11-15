@@ -1,6 +1,6 @@
 @props(['id' => null, 'team', 'tooltip' => ''])
 @php
-	$id ??= md5(mt_rand());
+	$id ??= unique_key();
 	$colors = \App\Models\Tag::getColors();
 @endphp
 
@@ -41,7 +41,7 @@
 	<!-- Available Tags -->
 	<div class="flex flex-wrap rounded-lg border border-dashed p-4 gap-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-500 items-center mb-4">
 
-		<livewire:tags.create-tag :id="$id" :team="$team" :colors="$colors" wire:model="tag" wire:key="{{ md5(mt_rand()) }}" />
+		<livewire:tags.create-tag :id="$id" :team="$team" :colors="$colors" wire:model="tag" key="create-tag-{{ $id }}" />
 
 		<template x-if="availableTags.length === 0">
 			<span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-gray-400 dark:text-gray-500">

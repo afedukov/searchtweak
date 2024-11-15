@@ -74,11 +74,10 @@
 	</div>
 
 	<div class="grow">
-		@php($id = md5(mt_rand()))
 		<div class="h-[300px]">
 			<canvas
-					id="id-{{ $id }}"
-					wire:key="key-{{ $id }}"
+					id="model-canvas-id-{{ $model->id }}"
+					wire:key="model-canvas-key-{{ $model->id }}-{{ $attached }}"
 					data-model-metrics-card="{{ $model->id }}"
 					data-model-metrics-metrics="{{ json_encode($metrics) }}"
 					width="500"

@@ -105,7 +105,7 @@
 
 				<div class="mb-2">
 					<!-- Evaluation Scale Type -->
-					<livewire:evaluations.evaluation-scale-type :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+					<livewire:evaluations.evaluation-scale-type :evaluation="$evaluation" key="evaluation-scale-type-{{ $evaluation->id }}" />
 				</div>
 
 				<x-tags.tags-list :tags="$evaluation->tags" empty-label="" class="mt-1" />
@@ -117,32 +117,28 @@
 				</td>
 			@endif
 			<td class="px-4 py-4 align-baseline">
+				@php($metricIds = $evaluation->metrics->pluck('id')->implode('-'))
 				<!-- Evaluation Metrics -->
-				<div class="flex flex-wrap gap-3">
-					@foreach ($evaluation->metrics as $metric)
-						<x-metrics.evaluation-metric
-								:metric="$metric"
-								:keywords-count="$evaluation->keywords_count"
-								:change="$metric->getChange(Auth::user()->currentTeam->baseline)"
-						/>
-					@endforeach
-				</div>
+				<livewire:evaluations.evaluation-metrics
+						:evaluation="$evaluation"
+						key="metrics-{{ $evaluation->id }}-baseline-{{ Auth::user()->currentTeam->baseline_evaluation_id }}-{{ $metricIds }}"
+				/>
 			</td>
 			<td class="px-4 py-4 align-baseline">
-				<livewire:evaluations.evaluation-progress link :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+				<livewire:evaluations.evaluation-progress link :evaluation="$evaluation" key="evaluation-progress-{{ $evaluation->id }}" />
 			</td>
 			<td class="px-4 py-4 align-baseline text-center">
-				<livewire:evaluations.evaluation-keywords-count :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+				<livewire:evaluations.evaluation-keywords-count :evaluation="$evaluation" key="evaluation-keywords-count-{{ $evaluation->id }}" />
 			</td>
 			<td class="px-4 py-4 align-baseline">
 				<div class="flex items-baseline gap-1">
-					<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
-					<livewire:evaluations.evaluation-status :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+					<livewire:evaluations.evaluation-archived-badge :evaluation="$evaluation" key="evaluation-archived-badge-{{ $evaluation->id }}" />
+					<livewire:evaluations.evaluation-status :evaluation="$evaluation" key="evaluation-status-{{ $evaluation->id }}" />
 				</div>
 			</td>
 			<td class="px-4 py-4 align-baseline">
 				<!-- Evaluation Control -->
-				<livewire:evaluations.evaluation-control :evaluation="$evaluation" wire:key="{{ md5(mt_rand()) }}" />
+				<livewire:evaluations.evaluation-control :evaluation="$evaluation" key="evaluation-control-{{ $evaluation->id }}" />
 			</td>
 			<td class="px-4 py-4 text-right align-baseline">
 				<!-- Context Menu -->
@@ -170,14 +166,14 @@
 
 					<!-- Set as Baseline -->
 					@if ($evaluation->isBaselineable() && Gate::check('baseline', $evaluation))
-						<x-block.context-menu-item wire:click="baseline('{{ $evaluation->id }}', true)">
+						<x-block.context-menu-item wire:click="setBaseline('{{ $evaluation->id }}', true)">
 							{{ __('Set as Baseline') }}
 						</x-block.context-menu-item>
 					@endif
 
 					<!-- Unset as Baseline -->
 					@if ($evaluation->isUnbaselineable() && Gate::check('baseline', $evaluation))
-						<x-block.context-menu-item wire:click="baseline('{{ $evaluation->id }}', false)">
+						<x-block.context-menu-item wire:click="setBaseline('{{ $evaluation->id }}', false)">
 							{{ __('Unset as Baseline') }}
 						</x-block.context-menu-item>
 					@endif
