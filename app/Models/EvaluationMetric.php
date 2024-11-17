@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\DTO\MetricChange;
+use App\Events\EvaluationMetricChangedEvent;
 use App\Livewire\Widgets\EvaluationMetricWidget;
 use App\Services\Metrics\PreviousEvaluationMetricService;
 use App\Services\Scorers\Scorer;
@@ -70,6 +71,10 @@ class EvaluationMetric extends Model
         static::updated(function (EvaluationMetric $metric) {
             if ($metric->isDirty(EvaluationMetric::FIELD_NUM_RESULTS)) {
                 $metric->syncPreviousValue();
+            }
+
+            if ($metric->isDirty()) {
+                EvaluationMetricChangedEvent::dispatch($metric);
             }
         });
     }

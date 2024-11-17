@@ -75,9 +75,10 @@
 
 	<div class="grow">
 		<div class="h-[300px]">
+			@php($id = unique_key())
 			<canvas
-					id="model-canvas-id-{{ $model->id }}"
-					wire:key="model-canvas-key-{{ $model->id }}-{{ $attached }}"
+					id="id-{{ $id }}"
+					wire:key="key-{{ $id }}"
 					data-model-metrics-card="{{ $model->id }}"
 					data-model-metrics-metrics="{{ json_encode($metrics) }}"
 					width="500"

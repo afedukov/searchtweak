@@ -85,6 +85,8 @@ class SearchModel extends TeamBroadcastableModel implements TaggableInterface
         self::FIELD_SETTINGS => 'array',
     ];
 
+    private ?array $metrics = null;
+
     protected function getBroadcastChannelName(): string
     {
         return sprintf('team.%d', $this->team_id);
@@ -153,7 +155,16 @@ class SearchModel extends TeamBroadcastableModel implements TaggableInterface
      */
     public function getMetrics(): array
     {
-        return app(ModelMetricsBuilder::class)->getMetrics($this);
+        if ($this->metrics === null) {
+            $this->metrics = app(ModelMetricsBuilder::class)->getMetrics($this);
+        }
+
+        return $this->metrics;
+    }
+
+    public function getMetricIds(): array
+    {
+        return array_map(fn (ModelMetric $metric) => $metric->getId(), $this->getMetrics());
     }
 
     public function tags(): BelongsToMany

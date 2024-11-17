@@ -38,7 +38,7 @@ readonly class RecalculateMetrics
         $evaluation->updateTimestamps();
         $evaluation->save();
 
-        if ($evaluation->progress >= 100) {
+        if ($evaluation->progress >= 100 && !$evaluation->isFinished()) {
             FinishEvaluationJob::dispatch($evaluation->id);
         }
     }

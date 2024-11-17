@@ -13,7 +13,7 @@ class EvaluationMetrics extends Component
     protected function getListeners(): array
     {
         return [
-            sprintf('echo-private:search-evaluation.%s,.evaluation.feedback.changed', $this->evaluation->id) => '$refresh',
+            sprintf('echo-private:search-evaluation.%s,.evaluation.metric.changed', $this->evaluation->id) => '$refresh',
         ];
     }
 

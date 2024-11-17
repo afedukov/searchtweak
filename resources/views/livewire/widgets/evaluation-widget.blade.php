@@ -24,7 +24,7 @@
 							:evaluation="$evaluation"
 							link
 							total
-							class="w-full"
+							class="w-full min-w-48"
 							key="evaluation-progress-{{ $evaluation->id }}"
 					/>
 				</div>

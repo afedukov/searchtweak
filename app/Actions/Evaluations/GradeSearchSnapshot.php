@@ -13,10 +13,6 @@ class GradeSearchSnapshot
     {
         Gate::forUser($user)->authorize('gradeSnapshot', $snapshot->keyword->evaluation);
 
-        if (!$snapshot->keyword->evaluation->isActive()) {
-            throw new \RuntimeException('Evaluation is not active');
-        }
-
         /** @var UserFeedback|null $feedback */
         $feedback = $this->getOwnGradedFeedback($snapshot, $user) ??
             $this->getOwnNotGradedFeedback($snapshot, $user) ??

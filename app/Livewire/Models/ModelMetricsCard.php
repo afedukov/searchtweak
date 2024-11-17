@@ -26,6 +26,13 @@ class ModelMetricsCard extends Component
         return $this->model->id;
     }
 
+    protected function getListeners(): array
+    {
+        return [
+            sprintf('echo-private:team.%d,.evaluation.metric.changed', $this->model->team_id) => '$refresh',
+        ];
+    }
+
     public function render(): View
     {
         $attached = Auth::user()->widgets()
