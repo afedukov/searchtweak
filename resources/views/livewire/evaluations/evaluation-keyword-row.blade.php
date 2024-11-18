@@ -35,7 +35,7 @@
 			</div>
 		</td>
 	</tr>
-	<tr x-show="expand">
+	<tr x-show="expand" x-cloak>
 		<td colspan="3" class="p-0 m-0">
 			<x-evaluations.keyword-expanded :evaluation="$evaluation" :keyword="$keyword" />
 		</td>
