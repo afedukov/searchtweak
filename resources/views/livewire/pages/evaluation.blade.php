@@ -199,11 +199,16 @@
 								</div>
 								<input wire:model.live.debounce.500ms="query" type="text" class="block pt-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg w-80 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search for keywords" />
 							</div>
+
+							<!-- Keywords Order By -->
+							<livewire:evaluations.keywords-order-by :evaluation="$evaluation" wire:model.live="orderBy" key="evaluation-keywords-order" />
 						</div>
 
 						<!-- Right Column -->
-
-						<livewire:evaluations.evaluation-keywords-count :evaluation="$evaluation" key="evaluation-keywords-count-{{ $evaluation->id }}" />
+						<div class="flex flex-wrap gap-3 items-center">
+							<!-- Keywords Count -->
+							<livewire:evaluations.evaluation-keywords-count :evaluation="$evaluation" key="evaluation-keywords-count-{{ $evaluation->id }}" />
+						</div>
 
 					</div>
 
@@ -215,69 +220,19 @@
 						<!-- Table -->
 						<table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
 							<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-							<tr>
-								<th scope="col" class="px-6 py-3 w-16">
-								</th>
-								<th scope="col" class="px-6 py-3">
-									{{ __('Keyword') }}
-								</th>
-								<th scope="col" class="px-6 py-3">
-									{{ __('Metrics') }}
-								</th>
-							</tr>
-							</thead>
-							<tbody>
-							@forelse ($keywords as $keyword)
-								<tr
-										id="keyword-item-{{ $keyword->id }}"
-										wire:key="keyword-item-{{ $keyword->id }}"
-										:class="expand ? 'bg-gray-50 dark:bg-gray-700' : 'bg-white dark:bg-gray-800'"
-										class="cursor-pointer border-b last:border-0 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-										x-data="{ expand: $persist(false).as('keyword-expanded-@js($keyword->id)') }"
-										@click.prevent="expand = !expand"
-								>
-									<td class="px-6 py-4 text-center">
-										<!-- Collapse/Expand Row Button -->
-										<div class="flex items-center cursor-pointer">
-											<svg class="w-3 h-3 shrink-0" :class="expand ? 'rotate-180': 'rotate-90'" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-												<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5 5 1 1 5"/>
-											</svg>
-										</div>
-
-										<template x-teleport="#expand-keyword-{{ $keyword->id }}">
-											<div x-show="expand" x-collapse>
-												<x-evaluations.keyword-expanded :evaluation="$evaluation" :keyword="$keyword" />
-											</div>
-										</template>
-									</td>
-									<th scope="row" class="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-										<div class="relative inline-flex">
-											{{ $keyword->keyword }}
-											<!-- Non-graded Snapshots Count Badge -->
-											<livewire:evaluations.evaluation-keyword-count-badge :keyword="$keyword" key="evaluation-keyword-count-badge-{{ $keyword->id }}" />
-
-											@if ($keyword->isFailed())
-												<!-- Failed Keyword Badge -->
-												<span class="ml-2 font-medium px-2.5 py-1 rounded-full text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-													Failed
-												</span>
-											@endif
-										</div>
-									</th>
-									<td class="px-6 py-4">
-										<!-- Keyword Metrics -->
-										<div class="flex flex-wrap gap-3">
-											@foreach ($evaluation->metrics as $metric)
-												<livewire:evaluations.evaluation-keyword-metric :keyword="$keyword" :metric="$metric" key="evaluation-keyword-metric-{{ $keyword->id }}-{{ $metric->id }}" />
-											@endforeach
-										</div>
-									</td>
-								</tr>
 								<tr>
-									<td colspan="3" class="p-0 m-0">
-										<div id="expand-keyword-{{ $keyword->id }}"></div>
-									</td>
+									<th scope="col" class="px-6 py-3 w-16">
+									</th>
+									<th scope="col" class="px-6 py-3">
+										{{ __('Keyword') }}
+									</th>
+									<th scope="col" class="px-6 py-3">
+										{{ __('Metrics') }}
+									</th>
 								</tr>
+							</thead>
+							@forelse ($keywords as $keyword)
+								<livewire:evaluations.evaluation-keyword-row :evaluation="$evaluation" :keyword="$keyword" key="evaluation-keyword-row-{{ $keyword->id }}" />
 							@empty
 								<tr>
 									<td colspan="3" class="px-5 py-4 text-center">
@@ -285,7 +240,6 @@
 									</td>
 								</tr>
 							@endforelse
-							</tbody>
 						</table>
 						<nav class="items-center flex-column flex-wrap md:flex-row justify-between pt-4" aria-label="Table navigation">
 							{{ $keywords->links() }}
