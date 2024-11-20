@@ -12,24 +12,54 @@ abstract class TeamBroadcastableModel extends Model
 
     abstract protected function getBroadcastChannelName(): string;
 
+    /**
+     * Get additional channels to broadcast to when the model is created.
+     *
+     * @return array<\Illuminate\Broadcasting\Channel>
+     */
+    protected function additionalBroadcastCreatedChannels(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get additional channels to broadcast to when the model is updated.
+     *
+     * @return array<\Illuminate\Broadcasting\Channel>
+     */
+    protected function additionalBroadcastUpdatedChannels(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get additional channels to broadcast to when the model is deleted.
+     *
+     * @return array<\Illuminate\Broadcasting\Channel>
+     */
+    protected function additionalBroadcastDeletedChannels(): array
+    {
+        return [];
+    }
+
     public static function bootBroadcastsEvents(): void
     {
         static::created(function (self $model) {
-            $model->broadcastCreated([
+            $model->broadcastCreated(array_merge([
                 new PrivateChannel($model->getBroadcastChannelName()),
-            ]);
+            ], $model->additionalBroadcastCreatedChannels()));
         });
 
         static::updated(function (self $model) {
-            $model->broadcastUpdated([
-                new PrivateChannel($model->getBroadcastChannelName()),
-            ]);
+            $model->broadcastUpdated(array_merge(
+                [new PrivateChannel($model->getBroadcastChannelName()),
+            ], $model->additionalBroadcastUpdatedChannels()));
         });
 
         static::deleted(function (self $model) {
-            $model->broadcastDeleted([
+            $model->broadcastDeleted(array_merge([
                 new PrivateChannel($model->getBroadcastChannelName()),
-            ]);
+            ], $model->additionalBroadcastDeletedChannels()));
         });
     }
 
