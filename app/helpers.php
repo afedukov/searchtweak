@@ -17,6 +17,6 @@
 if (!function_exists('unique_key')) {
     function unique_key(): string
     {
-        return uniqid('', true);
+        return str_replace('.', '', uniqid('', true));
     }
 }
