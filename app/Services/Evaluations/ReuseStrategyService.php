@@ -2,6 +2,7 @@
 
 namespace App\Services\Evaluations;
 
+use App\Jobs\Evaluations\RecalculateMetricsJob;
 use App\Models\EvaluationKeyword;
 use App\Models\SearchEvaluation;
 use App\Models\UserFeedback;
@@ -43,7 +44,9 @@ class ReuseStrategyService
                                 ->whereNotNull(UserFeedback::FIELD_USER_ID)
                                 ->whereNotNull(UserFeedback::FIELD_GRADE)
                                 ->filter(fn (UserFeedback $feedback) =>
-                                    empty($evaluationTags) || $feedback->user->tags->whereIn(UserTag::FIELD_ID, $evaluationTags)->isNotEmpty()
+                                    empty($evaluationTags) ||
+                                        // Check if the user has all the evaluation tags
+                                        $feedback->user->tags->whereIn(UserTag::FIELD_ID, $evaluationTags)->count() === count($evaluationTags)
                                 )
                                 ->map(fn (UserFeedback $feedback) => [
                                     UserFeedback::FIELD_USER_ID => $feedback->user_id,
@@ -76,6 +79,8 @@ class ReuseStrategyService
             });
 
         foreach ($evaluation->keywords as $keyword) {
+            $updated = false;
+
             foreach ($keyword->snapshots as $snapshot) {
                 $userIds = $snapshot->feedbacks
                     ->whereNotNull(UserFeedback::FIELD_GRADE)
@@ -107,10 +112,19 @@ class ReuseStrategyService
 
                     $feedback->user_id = $reuseFeedback[UserFeedback::FIELD_USER_ID];
                     $feedback->grade = $reuseFeedback[UserFeedback::FIELD_GRADE];
-                    $feedback->save();
+                    $feedback->saveQuietly();
+
+                    $updated = true;
 
                     $userIds[] = $feedback->user_id;
                 }
+            }
+
+            if ($updated) {
+                RecalculateMetricsJob::dispatch($keyword->id);
+
+                // Flush ungraded snapshots count cache for the whole team
+                UserFeedbackService::flushUngradedSnapshotsCountCache($teamId);
             }
         }
     }
