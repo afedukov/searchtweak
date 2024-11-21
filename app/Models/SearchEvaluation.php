@@ -17,6 +17,7 @@ use App\Services\Scorers\Scales\Scale;
 use App\Services\Scorers\Scales\ScaleFactory;
 use App\Services\Transformers\Transformers;
 use Carbon\Carbon;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -141,6 +142,30 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
     protected function getBroadcastChannelName(): string
     {
         return sprintf('team.%d', $this->model->team_id);
+    }
+
+    /**
+     * Get additional channels to broadcast to when the model is updated.
+     *
+     * @return array<\Illuminate\Broadcasting\Channel>
+     */
+    protected function additionalBroadcastUpdatedChannels(): array
+    {
+        return [
+            new PrivateChannel(sprintf('search-evaluation.%d', $this->id)),
+        ];
+    }
+
+    /**
+     * Get additional channels to broadcast to when the model is deleted.
+     *
+     * @return array<\Illuminate\Broadcasting\Channel>
+     */
+    protected function additionalBroadcastDeletedChannels(): array
+    {
+        return [
+            new PrivateChannel(sprintf('search-evaluation.%d', $this->id)),
+        ];
     }
 
     public static function booted(): void

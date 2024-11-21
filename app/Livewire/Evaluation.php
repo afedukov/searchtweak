@@ -43,6 +43,8 @@ class Evaluation extends Component
     protected function getListeners(): array
     {
         return [
+            sprintf('echo-private:search-evaluation.%d,.SearchEvaluationUpdated', $this->evaluation->id) => '$refresh',
+            sprintf('echo-private:search-evaluation.%d,.SearchEvaluationDeleted', $this->evaluation->id) => '$refresh',
             sprintf('echo-private:team.%d,.baseline.evaluation.changed', Auth::user()->current_team_id) => '$refresh',
         ];
     }

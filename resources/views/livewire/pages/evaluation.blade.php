@@ -240,7 +240,7 @@
 										:evaluation="$evaluation"
 										:keyword="$keyword"
 										:baseline-values="$baselineValues[$keyword->id] ?? []"
-										key="evaluation-keyword-row-{{ $keyword->id }}-{{ $baseline?->id }}"
+										key="evaluation-keyword-row-{{ $keyword->id }}-{{ $evaluation->status }}-{{ $baseline?->id }}"
 								/>
 							@empty
 								<tr>
