@@ -127,10 +127,7 @@
 							@endif
 
 							<!-- Finish Evaluation Button -->
-							<livewire:evaluations.evaluation-finish-button
-									:evaluation="$evaluation"
-									key="finish-{{ $evaluation->id }}-{{ $evaluation->status }}"
-							/>
+							<livewire:evaluations.evaluation-finish-button :evaluation="$evaluation" key="evaluation-finish-button-{{ $evaluation->id }}" />
 
 							<div class="flex gap-3">
 								<!-- Progress Badge -->
