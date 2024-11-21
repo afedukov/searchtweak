@@ -4,6 +4,7 @@
 			:displayName="$scorer->getDisplayName($metric->num_results)"
 			:briefDescription="$scorer->getBriefDescription()"
 			:scaleType="$scorer->getScale()->getType()"
+			:change="$change"
 			compact
 	/>
 </div>

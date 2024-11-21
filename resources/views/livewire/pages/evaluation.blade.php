@@ -215,6 +215,10 @@
 				</div>
 
 				<div class="p-3">
+
+					<!-- Baseline Evaluation -->
+					<livewire:evaluations.baseline-evaluation :baseline="$baseline" key="baseline-evaluation-{{ $baseline?->id }}" />
+
 					<!-- Table and Filters -->
 					<div class="sm:rounded-lg overflow-x-auto">
 						<!-- Table -->
@@ -232,7 +236,12 @@
 								</tr>
 							</thead>
 							@forelse ($keywords as $keyword)
-								<livewire:evaluations.evaluation-keyword-row :evaluation="$evaluation" :keyword="$keyword" key="evaluation-keyword-row-{{ $keyword->id }}" />
+								<livewire:evaluations.evaluation-keyword-row
+										:evaluation="$evaluation"
+										:keyword="$keyword"
+										:baseline-values="$baselineValues[$keyword->id] ?? []"
+										key="evaluation-keyword-row-{{ $keyword->id }}-{{ $baseline?->id }}"
+								/>
 							@empty
 								<tr>
 									<td colspan="3" class="px-5 py-4 text-center">

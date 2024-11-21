@@ -177,7 +177,7 @@ class EvaluationMetric extends Model
         return app(PreviousEvaluationMetricService::class)->getPrevious($this);
     }
 
-    private function getMetricChange(?float $value, ?float $previousValue): ?MetricChange
+    public static function getMetricChange(?float $value, ?float $previousValue): ?MetricChange
     {
         if ($value === null || $previousValue === null) {
             return null;
@@ -199,7 +199,7 @@ class EvaluationMetric extends Model
     public function getChange(?SearchEvaluation $baseline = null): ?MetricChange
     {
         if ($baseline === null) {
-            return $this->getMetricChange($this->value, $this->previous_value);
+            return EvaluationMetric::getMetricChange($this->value, $this->previous_value);
         }
 
         $baselineMetric = $baseline->metrics
@@ -208,7 +208,7 @@ class EvaluationMetric extends Model
             ->first();
 
         if ($baselineMetric) {
-            return $this->getMetricChange($this->value, $baselineMetric->value);
+            return EvaluationMetric::getMetricChange($this->value, $baselineMetric->value);
         }
 
         return null;

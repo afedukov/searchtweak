@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\BaselineEvaluationChangedEvent;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -74,6 +75,15 @@ class Team extends JetstreamTeam
         'updated' => TeamUpdated::class,
         'deleted' => TeamDeleted::class,
     ];
+
+    public static function booted(): void
+    {
+        static::updated(function (Team $team) {
+            if ($team->isDirty(self::FIELD_BASELINE_EVALUATION_ID)) {
+                BaselineEvaluationChangedEvent::dispatch($team->id, $team->baseline_evaluation_id);
+            }
+        });
+    }
 
     public function endpoints(): HasMany
     {

@@ -13,6 +13,11 @@ class EvaluationKeywordRow extends Component
 
     public EvaluationKeyword $keyword;
 
+    /**
+     * @var array<string, float|null>
+     */
+    public array $baselineValues = [];
+
     public function render(): View
     {
         return view('livewire.evaluations.evaluation-keyword-row');

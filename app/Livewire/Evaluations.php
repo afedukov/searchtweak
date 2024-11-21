@@ -40,6 +40,7 @@ class Evaluations extends Component
             sprintf('echo-private:team.%d,.SearchEvaluationCreated', $teamId) => '$refresh',
             sprintf('echo-private:team.%d,.SearchEvaluationUpdated', $teamId) => '$refresh',
             sprintf('echo-private:team.%d,.SearchEvaluationDeleted', $teamId) => '$refresh',
+            sprintf('echo-private:team.%d,.baseline.evaluation.changed', $teamId) => '$refresh',
         ];
     }
 

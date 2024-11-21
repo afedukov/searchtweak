@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Actions\Evaluations\FinishSearchEvaluation;
 use App\DTO\OrderBy;
+use App\Livewire\Traits\Evaluations\BaselineEvaluationTrait;
 use App\Livewire\Traits\Evaluations\EditEvaluationModalTrait;
 use App\Livewire\Traits\Evaluations\ExportEvaluationTrait;
 use App\Livewire\Widgets\EvaluationWidget;
@@ -27,6 +28,7 @@ class Evaluation extends Component
     use EditEvaluationModalTrait;
     use ExportEvaluationTrait;
     use WithPagination;
+    use BaselineEvaluationTrait;
 
     public const int PER_PAGE = 5;
 
@@ -37,6 +39,13 @@ class Evaluation extends Component
     public string $query = '';
 
     public OrderBy $orderBy;
+
+    protected function getListeners(): array
+    {
+        return [
+            sprintf('echo-private:team.%d,.baseline.evaluation.changed', Auth::user()->current_team_id) => '$refresh',
+        ];
+    }
 
     public function mount(SearchEvaluation $evaluation): void
     {
@@ -54,6 +63,8 @@ class Evaluation extends Component
 
     public function render(): View
     {
+        $this->baseline = Auth::user()->currentTeam->baseline;
+
         $attached = Auth::user()->widgets()
             ->where(UserWidget::FIELD_WIDGET_CLASS, EvaluationWidget::class)
             ->where(UserWidget::FIELD_SETTINGS . '->id', $this->evaluation->id)
@@ -66,13 +77,50 @@ class Evaluation extends Component
             ->orderByDesc(EvaluationKeyword::FIELD_FAILED);
 
         $keywords = $this->applyOrderBy($query)
-            ->with('snapshots.feedbacks.user')
+            ->with(['snapshots.feedbacks.user', 'keywordMetrics.metric'])
             ->paginate(self::PER_PAGE);
 
         return view('livewire.pages.evaluation', [
             'attached' => $attached,
             'keywords' => $keywords,
+            'baselineValues' => $this->getBaselineValues($keywords->items()),
         ])->title($this->evaluation->name);
+    }
+
+    /**
+     * @param array<EvaluationKeyword> $keywords
+     *
+     * @return array
+     */
+    private function getBaselineValues(array $keywords): array
+    {
+        if ($this->baseline === null || empty($keywords)) {
+            return [];
+        }
+
+        $baselineValues = [];
+
+        $this->baseline->load('keywords.keywordMetrics.metric');
+
+        $baselineKeywords = $this->baseline
+            ->keywords
+            ->keyBy(EvaluationKeyword::FIELD_KEYWORD);
+
+        foreach ($keywords as $keyword) {
+            /** @var EvaluationKeyword $baselineKeyword */
+            $baselineKeyword = $baselineKeywords[$keyword->keyword] ?? null;
+            if ($baselineKeyword === null) {
+                continue;
+            }
+
+            $baselineValues[$keyword->id] = $baselineKeyword->keywordMetrics
+                ->mapWithKeys(fn (KeywordMetric $keywordMetric) => [
+                    sprintf('%s_%d', $keywordMetric->metric->scorer_type, $keywordMetric->metric->num_results) => $keywordMetric->value,
+                ])
+                ->all();
+        }
+
+        return $baselineValues;
     }
 
     public function finish(FinishSearchEvaluation $action): void

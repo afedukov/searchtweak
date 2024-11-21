@@ -30,7 +30,12 @@
 			<!-- Keyword Metrics -->
 			<div class="flex flex-wrap gap-3">
 				@foreach ($evaluation->metrics as $metric)
-					<livewire:evaluations.evaluation-keyword-metric :keyword="$keyword" :metric="$metric" key="evaluation-keyword-metric-{{ $keyword->id }}-{{ $metric->id }}" />
+					<livewire:evaluations.evaluation-keyword-metric
+							:keyword="$keyword"
+							:metric="$metric"
+							:baseline-value="$baselineValues[sprintf('%s_%d', $metric->scorer_type, $metric->num_results)] ?? null"
+							key="evaluation-keyword-metric-{{ $keyword->id }}-{{ $metric->id }}"
+					/>
 				@endforeach
 			</div>
 		</td>

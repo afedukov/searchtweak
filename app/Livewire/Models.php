@@ -38,6 +38,7 @@ class Models extends Component
             sprintf('echo-private:team.%d,.SearchModelCreated', $teamId) => '$refresh',
             sprintf('echo-private:team.%d,.SearchModelUpdated', $teamId) => '$refresh',
             sprintf('echo-private:team.%d,.SearchModelDeleted', $teamId) => '$refresh',
+            sprintf('echo-private:team.%d,.baseline.evaluation.changed', $teamId) => '$refresh',
         ];
     }
 

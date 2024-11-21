@@ -13,6 +13,8 @@ class EvaluationKeywordMetric extends Component
     public EvaluationKeyword $keyword;
     public EvaluationMetric $metric;
 
+    public ?float $baselineValue = null;
+
     protected function getListeners(): array
     {
         return [
@@ -22,9 +24,12 @@ class EvaluationKeywordMetric extends Component
 
     public function render(): View
     {
+        $value = $this->metric->keywordMetrics->firstWhere(KeywordMetric::FIELD_EVALUATION_KEYWORD_ID, $this->keyword->id)?->value ?? null;
+
         return view('livewire.evaluations.evaluation-keyword-metric', [
             'scorer' => $this->metric->getScorer(),
-            'value' => $this->metric->keywordMetrics->firstWhere(KeywordMetric::FIELD_EVALUATION_KEYWORD_ID, $this->keyword->id)?->value ?? null,
+            'value' => $value,
+            'change' => EvaluationMetric::getMetricChange($value, $this->baselineValue)
         ]);
     }
 }
