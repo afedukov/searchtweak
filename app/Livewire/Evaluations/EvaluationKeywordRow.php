@@ -18,6 +18,13 @@ class EvaluationKeywordRow extends Component
      */
     public array $baselineValues = [];
 
+    protected function getListeners(): array
+    {
+        return [
+            sprintf('echo-private:search-evaluation.%s,.evaluation.status.changed', $this->evaluation->id) => '$refresh',
+        ];
+    }
+
     public function render(): View
     {
         return view('livewire.evaluations.evaluation-keyword-row');
