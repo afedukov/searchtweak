@@ -2,7 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Actions\Evaluations\FinishSearchEvaluation;
 use App\DTO\OrderBy;
 use App\Livewire\Traits\Evaluations\BaselineEvaluationTrait;
 use App\Livewire\Traits\Evaluations\EditEvaluationModalTrait;
@@ -15,7 +14,6 @@ use App\Models\UserWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use Laravel\Jetstream\RedirectsActions;
 use Livewire\Component;
@@ -33,8 +31,6 @@ class Evaluation extends Component
     public const int PER_PAGE = 5;
 
     public SearchEvaluation $evaluation;
-
-    public bool $confirmingEvaluationFinish = false;
 
     public string $query = '';
 
@@ -123,21 +119,6 @@ class Evaluation extends Component
         }
 
         return $baselineValues;
-    }
-
-    public function finish(FinishSearchEvaluation $action): void
-    {
-        try {
-            Gate::authorize('finish', $this->evaluation);
-
-            $action->finish($this->evaluation, false);
-        } catch (\Exception $e) {
-            Toaster::error($e->getMessage());
-
-            return;
-        } finally {
-            $this->confirmingEvaluationFinish = false;
-        }
     }
 
     public function attach(): void
