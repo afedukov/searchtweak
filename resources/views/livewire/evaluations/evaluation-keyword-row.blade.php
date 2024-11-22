@@ -12,7 +12,7 @@
 				</svg>
 			</div>
 		</td>
-		<th scope="row" class="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+		<th scope="row" class="px-6 py-4 min-w-32 sm:min-w-64 font-semibold text-gray-900 dark:text-white">
 			<div class="relative inline-flex">
 				{{ $keyword->keyword }}
 				<!-- Non-graded Snapshots Count Badge -->
@@ -26,9 +26,9 @@
 				@endif
 			</div>
 		</th>
-		<td class="px-6 py-4">
+		<td class="px-6 pt-4 pb-1 w-full">
 			<!-- Keyword Metrics -->
-			<div class="flex flex-wrap gap-3">
+			<div class="flex flex-wrap">
 				@foreach ($evaluation->metrics as $metric)
 					<livewire:evaluations.evaluation-keyword-metric
 							:keyword="$keyword"

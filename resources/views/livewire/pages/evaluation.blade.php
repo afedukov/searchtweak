@@ -38,7 +38,10 @@
 		</x-block.navigation-tabs>
 
 		<!-- Evaluation -->
-		<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+		<div
+				class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto"
+				x-data="{ excludedMetrics: $persist([]).as('excluded-metrics-@js($evaluation->id)') }"
+		>
 
 			<!-- Evaluation Widgets -->
 			<div class="grid grid-cols-12 gap-6 mb-8">
@@ -154,6 +157,9 @@
 
 							<!-- Keywords Order By -->
 							<livewire:evaluations.keywords-order-by :evaluation="$evaluation" wire:model.live="orderBy" key="evaluation-keywords-order" />
+
+							<!-- Keywords Select Metrics -->
+							<livewire:evaluations.keywords-select-metrics :evaluation="$evaluation" key="evaluation-keywords-select-metrics" />
 						</div>
 
 						<!-- Right Column -->

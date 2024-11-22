@@ -1,4 +1,4 @@
-<div class="flex flex-wrap gap-3">
+<div x-show="!excludedMetrics.includes({{ $metric->id }})" class="flex flex-wrap mr-3 mb-3">
 	<x-metrics.metric
 			:value="$value"
 			:displayName="$scorer->getDisplayName($metric->num_results)"
