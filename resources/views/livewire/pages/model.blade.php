@@ -91,7 +91,7 @@
 						<!-- Left Column -->
 						<div class="flex flex-wrap gap-3">
 							<!-- Search Box -->
-							<livewire:components.search-box wire:model.live.debounce.500ms="query" placeholder="Search for evaluations" key="evaluations-search-box" />
+							<livewire:components.search-box wire:model.live="query" placeholder="Search for evaluations" key="evaluations-search-box" />
 						</div>
 
 						<!-- Right Column -->
