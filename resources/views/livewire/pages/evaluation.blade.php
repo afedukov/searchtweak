@@ -201,11 +201,13 @@
 										key="evaluation-keyword-row-{{ $keyword->id }}-{{ $evaluation->status }}-{{ $baseline?->id }}"
 								/>
 							@empty
-								<tr>
-									<td colspan="3" class="px-5 py-4 text-center">
-										<span class="text-gray-500 dark:text-gray-400">No keywords found.</span>
-									</td>
-								</tr>
+								<tbody>
+									<tr>
+										<td colspan="3" class="px-5 py-4 text-center">
+											<span class="text-gray-500 dark:text-gray-400">No keywords found.</span>
+										</td>
+									</tr>
+								</tbody>
 							@endforelse
 						</table>
 						<nav class="items-center flex-column flex-wrap md:flex-row justify-between pt-4" aria-label="Table navigation">

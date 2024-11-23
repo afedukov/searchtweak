@@ -5,7 +5,7 @@
 		</svg>
 	</div>
 	<input
-			wire:model.live.debounce.500ms="query"
+			wire:model.live.debounce.750ms="query"
 			type="text"
 			@isset($placeholder)placeholder="{{ $placeholder }}" @endisset
 			class="block pt-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-md w-80 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
