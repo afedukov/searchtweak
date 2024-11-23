@@ -1,4 +1,4 @@
-<div x-data="{ showCreateTag: @entangle('showCreateTag') }">
+<div x-data="{ showCreateTag: $wire.entangle('showCreateTag') }">
 	<!-- Button -->
 	<button
 			class="text-xs px-2.5 py-1 border-2 border-dotted bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center cursor-pointer focus:outline-none"

@@ -4,7 +4,7 @@
 		class="relative"
 		x-data="{
 			showColorPicker: false,
-			color: @entangle($attributes->wire('model')),
+			color: $wire.entangle('{{ $attributes->wire('model')->value() }}'),
 			colorClass: 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-300'
 		}"
 >

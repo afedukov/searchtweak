@@ -14,7 +14,7 @@
 <div class="relative" wire:ignore>
     <input
 			x-data="{
-				value: @entangle($attributes->wire('model')),
+				value: $wire.entangle('{{ $attributes->wire('model')->value() }}'),
 				instance: undefined,
 				init() {
 					this.instance = flatpickr(this.$refs.input, {...{{ json_encode($options) }}, ...{

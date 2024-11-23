@@ -119,7 +119,13 @@
 				</header>
 				<div class="p-3">
 					<!-- Table -->
-					<div class="sm:rounded-lg overflow-x-auto" x-data="{ confirmingLeavingTeam: @entangle('confirmingLeavingTeam'), teamId: @entangle('teamId') }">
+					<div
+							class="sm:rounded-lg overflow-x-auto"
+							x-data="{
+								confirmingLeavingTeam: $wire.entangle('confirmingLeavingTeam'),
+								teamId: $wire.entangle('teamId'),
+							}"
+					>
 
 						<table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
 							<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">

@@ -1,10 +1,10 @@
 <div
 		x-data="{
-			tags: @entangle('tags'),
-			teamTags: @entangle('teamTags'),
-			tag: @entangle('tag'),
-			showDeleteTag: @entangle('showDeleteTag'),
-			tagToDelete: @entangle('tagToDelete'),
+			tags: $wire.entangle('tags'),
+			teamTags: $wire.entangle('teamTags'),
+			tag: $wire.entangle('tag'),
+			showDeleteTag: $wire.entangle('showDeleteTag'),
+			tagToDelete: $wire.entangle('tagToDelete'),
 			availableTags: [],
 		}"
 		x-init="

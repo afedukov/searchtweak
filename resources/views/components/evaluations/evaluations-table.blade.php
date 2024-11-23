@@ -5,8 +5,8 @@
 
 <div
 		x-data="{
-			confirmingEvaluationRemoval: @entangle('confirmingEvaluationRemoval'),
-			evaluationIdBeingRemoved: @entangle('evaluationIdBeingRemoved'),
+			confirmingEvaluationRemoval: $wire.entangle('confirmingEvaluationRemoval'),
+			evaluationIdBeingRemoved: $wire.entangle('evaluationIdBeingRemoved'),
 			compact: $persist(true).as('compact'),
 		}"
 >

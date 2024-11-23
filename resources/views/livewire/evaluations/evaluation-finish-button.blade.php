@@ -1,4 +1,4 @@
-<div class="flex gap-3 mb-3 sm:mb-0" x-data="{ finish: @entangle('confirmingEvaluationFinish') }">
+<div class="flex gap-3 mb-3 sm:mb-0" x-data="{ finish: $wire.entangle('confirmingEvaluationFinish') }">
 	@if (!$evaluation->isFinished() && $evaluation->hasStarted() && Gate::check('finish', $evaluation))
 		<!-- Finish Button -->
 		<x-button

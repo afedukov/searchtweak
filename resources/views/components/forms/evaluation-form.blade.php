@@ -59,7 +59,7 @@
 				class="mb-8 last:mb-0"
 				x-data="{
 					scorers: @js($scorers),
-					metrics: @entangle('evaluationForm.metrics'),
+					metrics: $wire.entangle('evaluationForm.metrics'),
 					showSettings: false,
 					chooseScorer: false,
 					current: null,
@@ -216,9 +216,9 @@
 		<div
 			class="mb-8 last:mb-0"
 			x-data="{
-				transformers: @entangle('evaluationForm.transformers'),
-				scaleType: @entangle('evaluationForm.scale_type'),
-				metrics: @entangle('evaluationForm.metrics'),
+				transformers: $wire.entangle('evaluationForm.transformers'),
+				scaleType: $wire.entangle('evaluationForm.scale_type'),
+				metrics: $wire.entangle('evaluationForm.metrics'),
 				scorers: @js($scorers),
 				get requiredTransformers() {
 					const transformers = [];

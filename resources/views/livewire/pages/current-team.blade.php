@@ -164,15 +164,15 @@
 							class="sm:rounded-lg overflow-x-auto"
 							x-data="{
 								showUserTags: false,
-								tags: @entangle('tags'),
-								teamTags: @entangle('teamTags'),
+								tags: $wire.entangle('tags'),
+								teamTags: $wire.entangle('teamTags'),
 								availableTags: [],
-								tag: @entangle('tag'),
-								showDeleteTag: @entangle('showDeleteTag'),
-								tagToDelete: @entangle('tagToDelete'),
-								confirmingTeamMemberRemoval: @entangle('confirmingTeamMemberRemoval'),
-								confirmingLeavingTeam: @entangle('confirmingLeavingTeam'),
-								teamMemberIdBeingRemoved: @entangle('teamMemberIdBeingRemoved'),
+								tag: $wire.entangle('tag'),
+								showDeleteTag: $wire.entangle('showDeleteTag'),
+								tagToDelete: $wire.entangle('tagToDelete'),
+								confirmingTeamMemberRemoval: $wire.entangle('confirmingTeamMemberRemoval'),
+								confirmingLeavingTeam: $wire.entangle('confirmingLeavingTeam'),
+								teamMemberIdBeingRemoved: $wire.entangle('teamMemberIdBeingRemoved'),
 							}"
 							x-init="
 								$watch('tag', value => { teamTags.push(value); });

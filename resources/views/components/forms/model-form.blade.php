@@ -160,7 +160,7 @@
 			<p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
 				Test the model by sending a request to the endpoint and attempting to retrieve documents using the corresponding endpoint mapper code.
 			</p>
-			<div class="flex items-baseline gap-2" x-data="{ executionResult: @entangle('executionResult') }">
+			<div class="flex items-baseline gap-2" x-data="{ executionResult: $wire.entangle('executionResult') }">
 				<x-button type="button" wire:click="test" wire:loading.attr="disabled" @click="executionResult = null">
 					{{ __('Test') }}
 				</x-button>

@@ -55,10 +55,10 @@
 				<div class="p-3">
 					<!-- Table and Filters -->
 					<div class="sm:rounded-lg overflow-x-auto" x-data="{
-							verifyConfirmation: @entangle('verifyConfirmation'),
-							verifyUserId: @entangle('verifyUserId'),
-							deleteConfirmation: @entangle('deleteConfirmation'),
-							deleteUserId: @entangle('deleteUserId'),
+							verifyConfirmation: $wire.entangle('verifyConfirmation'),
+							verifyUserId: $wire.entangle('verifyUserId'),
+							deleteConfirmation: $wire.entangle('deleteConfirmation'),
+							deleteUserId: $wire.entangle('deleteUserId'),
 						}"
 					>
 						<!-- Table -->
