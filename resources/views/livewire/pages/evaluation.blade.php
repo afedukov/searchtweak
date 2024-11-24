@@ -164,8 +164,8 @@
 
 						<!-- Right Column -->
 						<div class="flex flex-wrap gap-3 items-center">
-							<!-- Keywords Count -->
-							<livewire:evaluations.evaluation-keywords-count :evaluation="$evaluation" key="evaluation-keywords-count-{{ $evaluation->id }}" />
+							<!-- Keywords Status Filter -->
+							<livewire:evaluations.keywords-status-filter wire:model.live="filterKeywordsStatus" :evaluation="$evaluation" key="evaluation-keywords-status-filter-{{ $evaluation->id }}" />
 						</div>
 
 					</div>

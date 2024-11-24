@@ -36,6 +36,8 @@ class Evaluation extends Component
 
     public OrderBy $orderBy;
 
+    public string $filterKeywordsStatus = 'all';
+
     protected function getListeners(): array
     {
         return [
@@ -69,8 +71,9 @@ class Evaluation extends Component
         $query = $this->evaluation
             ->keywordsUnordered()
             ->when($this->query, fn (Builder $query) => $query->where(EvaluationKeyword::FIELD_KEYWORD, 'like', "%{$this->query}%"))
-            ->getQuery()
-            ->orderByDesc(EvaluationKeyword::FIELD_FAILED);
+            ->getQuery();
+
+        $query = $this->applyFilters($query);
 
         $keywords = $this->applyOrderBy($query)
             ->with(['snapshots.feedbacks.user', 'keywordMetrics.metric'])
@@ -168,5 +171,14 @@ class Evaluation extends Component
                 ->orderBy('evaluation_keywords.' . EvaluationKeyword::FIELD_ID)
                 ->select('evaluation_keywords.*');
         }
+    }
+
+    private function applyFilters(Builder $query): Builder
+    {
+        return match ($this->filterKeywordsStatus) {
+            'failed' => $query->where(EvaluationKeyword::FIELD_FAILED, true),
+            'successful' => $query->where(EvaluationKeyword::FIELD_FAILED, false),
+            default => $query->orderByDesc(EvaluationKeyword::FIELD_FAILED),
+        };
     }
 }
