@@ -70,7 +70,9 @@ class Evaluation extends Component
 
         $query = $this->evaluation
             ->keywordsUnordered()
-            ->when($this->query, fn (Builder $query) => $query->where(EvaluationKeyword::FIELD_KEYWORD, 'like', "%{$this->query}%"))
+            ->when($this->query, fn (Builder $query) =>
+                $query->whereRaw('LOWER(' . EvaluationKeyword::FIELD_KEYWORD . ') LIKE ?', ['%' . strtolower($this->query) . '%'])
+            )
             ->getQuery();
 
         $query = $this->applyFilters($query);
