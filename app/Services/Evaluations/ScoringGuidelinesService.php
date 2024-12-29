@@ -3,10 +3,10 @@
 namespace App\Services\Evaluations;
 
 use App\Services\Scorers\Scales\ScaleFactory;
-use HTMLPurifier;
 use Illuminate\Support\Facades\Blade;
 use League\CommonMark\CommonMarkConverter;
 use League\CommonMark\Exception\CommonMarkException;
+use Stevebauman\Purify\Facades\Purify;
 
 readonly class ScoringGuidelinesService
 {
@@ -18,7 +18,7 @@ readonly class ScoringGuidelinesService
         'dd',
     ];
 
-    public function __construct(private CommonMarkConverter $commonMark, private HTMLPurifier $htmlPurifier)
+    public function __construct(private CommonMarkConverter $commonMark)
     {
     }
 
@@ -58,6 +58,6 @@ readonly class ScoringGuidelinesService
             $unsafeHtml = $markdown;
         }
 
-        return $this->htmlPurifier->purify($unsafeHtml);
+        return Purify::clean($unsafeHtml);
     }
 }
