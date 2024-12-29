@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Actions\Evaluations\GradeSearchEvaluation;
 use App\Models\SearchEvaluation;
 use App\Models\UserFeedback;
+use App\Services\Evaluations\ScoringGuidelinesService;
 use App\Services\Evaluations\UserFeedbackService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -19,6 +20,8 @@ class GiveFeedback extends Component
     public ?UserFeedback $feedback = null;
 
     public ?UserFeedback $previous = null;
+
+    public string $scoringGuidelines = '';
 
     public function mount(?int $evaluationId = null): void
     {
@@ -39,6 +42,8 @@ class GiveFeedback extends Component
     private function fetchFeedback(): void
     {
         $this->feedback = app(UserFeedbackService::class)->fetch(Auth::user(), $this->evaluation);
+
+        $this->initScoringGuidelines();
     }
 
     private function getPreviousFeedback(): ?UserFeedback
@@ -71,6 +76,19 @@ class GiveFeedback extends Component
         $this->feedback = $this->previous;
         $this->previous = null;
 
+        $this->initScoringGuidelines();
+
         $this->dispatch('$refresh');
+    }
+
+    private function initScoringGuidelines(): void
+    {
+        if ($this->feedback) {
+            $this->scoringGuidelines = app(ScoringGuidelinesService::class)->getScoringGuidelinesHTML(
+                $this->feedback->snapshot->keyword->evaluation->getScoringGuidelines()
+            );
+        } else {
+            $this->scoringGuidelines = '';
+        }
     }
 }

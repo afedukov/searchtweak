@@ -31,6 +31,7 @@ The request body must be a JSON object with the following properties:
 - `setting_show_position` (boolean) <span style="color: red">required</span>: Whether to show the position of the results.
 - `setting_reuse_strategy` (integer) <span style="color: red">required</span>: The reuse strategy for grades. Possible values are `0` (No), `1` (Query/Doc), `2` (Query/Doc/Position).
 - `setting_auto_restart` (boolean) <span style="color: red">required</span>: Whether to auto-restart the evaluation.
+- `setting_scoring_guidelines` (string) <span style="color: grey">optional</span>: The scoring guidelines for the evaluation. You can use **Markdown** syntax in this field. For more information, see the <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" class="text-blue-600 dark:text-blue-500 hover:underline">Markdown Guide</a> 
 - `transformers` (object) <span style="color: red">required</span>: The transformers for the evaluation.
   - `scale_type` (string) <span style="color: red">required</span>: The source scale type of the transformers. Possible values are `binary`, `graded`, `detail`. Must match the `scale_type` of the evaluation.
   - `rules` (object) <span style="color: red">required</span>: The rules for the transformers. Must contain rules for each required scale type. If transformers are not required, set to an empty object.
@@ -92,7 +93,8 @@ curl -X POST "https://searchtweak.com/api/v1/evaluations" \
           "setting_feedback_strategy": 1,
           "setting_reuse_strategy": 0,
           "setting_show_position": true,
-          "setting_auto_restart": false
+          "setting_auto_restart": false,
+          "setting_scoring_guidelines": "Scoring guidelines for the evaluation. You can use **Markdown** syntax in this field."
         }'
 ```
  
@@ -140,7 +142,8 @@ curl -X POST "https://searchtweak.com/api/v1/evaluations" \
         }
       },
       "scale_type": "detail"
-    }
+    },
+    "setting_scoring_guidelines": "Scoring guidelines for the evaluation. You can use **Markdown** syntax in this field."
   },
   "metrics": [
     {

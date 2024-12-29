@@ -101,6 +101,7 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
     public const string SETTING_REUSE_STRATEGY = 'reuse';
     public const string SETTING_AUTO_RESTART = 'auto_restart';
     public const string SETTING_TRANSFORMERS = 'transformers';
+    public const string SETTING_SCORING_GUIDELINES = 'scoring_guidelines';
 
     public const int REUSE_STRATEGY_NONE = 0;
     public const int REUSE_STRATEGY_QUERY_DOC = 1;
@@ -328,6 +329,11 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
     public function autoRestart(): bool
     {
         return $this->settings[self::SETTING_AUTO_RESTART] ?? false;
+    }
+
+    public function getScoringGuidelines(): string
+    {
+        return $this->settings[self::SETTING_SCORING_GUIDELINES] ?? '';
     }
 
     public function getTransformers(): Transformers

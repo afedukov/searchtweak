@@ -2,7 +2,7 @@
 
 <x-modals.simple-modal>
 	<x-slot name="button">
-		<a href="javascript:void(0)" @click="open = true" @click.prevent="open = true" class="text-blue-600 hover:text-blue-700 dark:text-blue-500 dark:hover:text-blue-400 hover:underline">
+		<a href="javascript:void(0)" @click.prevent="open = true" class="text-blue-600 hover:text-blue-700 dark:text-blue-500 dark:hover:text-blue-400 hover:underline">
 			View
 		</a>
 	</x-slot>

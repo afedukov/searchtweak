@@ -16,6 +16,7 @@
     "require": {
         "php": "^8.3",
         "binarytorch/larecipe": "^2.7",
+        "ezyang/htmlpurifier": "^4.18",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^11.0",
         "laravel/horizon": "^5.24",
@@ -23,6 +24,7 @@
         "laravel/reverb": "@beta",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.8",
+        "league/commonmark": "^2.6",
         "league/flysystem-aws-s3-v3": "^3.0",
         "livewire/livewire": "^3.0",
         "masmerise/livewire-toaster": "^2.1",

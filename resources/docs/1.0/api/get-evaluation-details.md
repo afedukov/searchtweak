@@ -65,7 +65,8 @@ curl -X GET "https://searchtweak.com/api/v1/evaluations/139" \
         }
       },
       "scale_type": "detail"
-    }
+    },
+    "scoring_guidelines": "Scoring guidelines for the evaluation."
   },
   "metrics": [
     {

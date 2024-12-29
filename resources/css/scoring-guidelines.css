@@ -1,0 +1,114 @@
+.scoring-guidelines ul {
+    @apply list-disc ml-4 mb-2;
+}
+
+.scoring-guidelines ol {
+    @apply list-decimal ml-4 mb-2;
+}
+
+.scoring-guidelines h1 {
+    @apply text-lg font-semibold leading-tight;
+}
+
+.scoring-guidelines h2 {
+    @apply text-base font-semibold leading-tight;
+}
+
+.scoring-guidelines h3 {
+    @apply text-sm font-semibold leading-tight;
+}
+
+.scoring-guidelines h4 {
+    @apply text-xs font-semibold leading-tight;
+}
+
+.scoring-guidelines h5 {
+    @apply text-xs font-semibold leading-tight;
+}
+
+.scoring-guidelines h6 {
+    @apply text-xs font-semibold leading-tight;
+}
+
+.scoring-guidelines a {
+    @apply text-blue-600 dark:text-blue-500;
+}
+
+.scoring-guidelines a:hover {
+    @apply underline;
+}
+
+.scoring-guidelines blockquote {
+    @apply border-l-4 border-gray-200 pl-3 py-2 text-gray-600 dark:border-gray-600 dark:text-gray-300;
+}
+
+.scoring-guidelines code {
+    @apply bg-gray-100 dark:bg-gray-700 px-1 inline-block rounded text-sm text-gray-800 dark:text-gray-200 break-words;
+}
+
+.scoring-guidelines pre {
+    @apply bg-gray-100 dark:bg-gray-700 p-3 rounded text-sm overflow-auto;
+}
+
+.scoring-guidelines hr {
+    @apply border-t border-gray-300 my-4 dark:border-gray-600;
+}
+
+.scoring-guidelines img {
+    @apply max-w-full h-auto;
+}
+
+.scoring-guidelines dl {
+    @apply border border-gray-200 dark:border-gray-700 rounded p-4;
+}
+
+.scoring-guidelines dt {
+    @apply font-semibold mb-2;
+}
+
+.scoring-guidelines dd {
+    @apply ml-4 mb-2;
+}
+
+.scoring-guidelines q {
+    @apply italic text-gray-600 dark:text-gray-400;
+}
+
+.scoring-guidelines em {
+    @apply italic text-gray-700 dark:text-gray-300;
+}
+
+.scoring-guidelines strong {
+    @apply font-bold text-gray-900 dark:text-gray-100;
+}
+
+.scoring-guidelines ul ul,
+.scoring-guidelines ol ol {
+    @apply ml-4 list-disc;
+}
+
+.scoring-guidelines ul ol,
+.scoring-guidelines ol ul {
+    @apply ml-4 list-decimal;
+}
+
+.scoring-guidelines sup {
+    @apply align-super text-xs;
+}
+
+.scoring-guidelines sub {
+    @apply align-sub text-xs;
+}
+
+.scoring-guidelines > * + * {
+    @apply mt-4;
+}
+
+.scoring-guidelines pre[data-language]::before {
+    @apply bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-mono px-2 py-1 rounded-tl rounded-tr;
+    content: attr(data-language);
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+}

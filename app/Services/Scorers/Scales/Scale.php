@@ -58,6 +58,11 @@ abstract class Scale implements JsonSerializable
         return sprintf('scales.%s.badge', $this->getType());
     }
 
+    public function getScoringGuidelinesTemplate(): string
+    {
+        return sprintf('components.scales.%s.scoring-guidelines', $this->getType());
+    }
+
     public function jsonSerialize(): array
     {
         return [

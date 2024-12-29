@@ -65,7 +65,8 @@ curl -X GET "https://searchtweak.com/api/v1/evaluations" \
           ]
         },
         "scale_type": "graded"
-      }
+      },
+      "scoring_guidelines": "Scoring guidelines for the evaluation."
     },
     "metrics": [
       {
@@ -117,7 +118,8 @@ curl -X GET "https://searchtweak.com/api/v1/evaluations" \
       "transformers": {
         "rules": [],
         "scale_type": "binary"
-      }
+      },
+      "scoring_guidelines": "Scoring guidelines for the evaluation."
     },
     "metrics": [
       {

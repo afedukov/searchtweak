@@ -29,6 +29,22 @@
 						</p>
 					</div>
 				@else
+					@if ($scoringGuidelines)
+						<div class="mb-4">
+							<x-modals.simple-modal>
+								<x-slot name="button">
+									<a href="javascript:void(0)" @click.prevent="open = true" class="text-xs underline decoration-dotted">
+										Scoring Guidelines
+									</a>
+								</x-slot>
+
+								<div class="scoring-guidelines p-5 space-y-4">
+									{!! $scoringGuidelines !!}
+								</div>
+							</x-modals.simple-modal>
+						</div>
+					@endif
+
 					<div class="mb-8 flex items-center gap-3 justify-between">
 						<div>
 							<span class="font-medium text-lg text-gray-500 dark:text-gray-400">
@@ -106,4 +122,5 @@
 		</div>
 	</div>
 
+	@vite('resources/css/scoring-guidelines.css')
 </div>

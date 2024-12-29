@@ -61,6 +61,7 @@ class StoreEvaluationRequest extends FormRequest
                 SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
                 SearchEvaluation::REUSE_STRATEGY_QUERY_DOC_POSITION,
             ]), new ReuseStrategyRule()],
+            'setting_scoring_guidelines' => ['nullable', 'string', 'max:2000'],
             'tags' => ['nullable', 'array'],
             'tags.*.id' => ['integer', Rule::exists('tags', Tag::FIELD_ID)->where(Tag::FIELD_TEAM_ID, $teamId)],
             'scale_type' => ['required', 'string', Rule::in([BinaryScale::SCALE_TYPE, GradedScale::SCALE_TYPE, DetailScale::SCALE_TYPE]), new EvaluationScaleRule()],

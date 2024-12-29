@@ -11,6 +11,7 @@ use App\Jobs\Evaluations\PauseEvaluationJob;
 use App\Jobs\Evaluations\StartEvaluationJob;
 use App\Models\SearchEvaluation;
 use App\Services\Evaluations\JudgementsService;
+use App\Services\Evaluations\ScoringGuidelinesService;
 use App\Services\Evaluations\SyncKeywordsService;
 use App\Services\Evaluations\SyncMetricsService;
 use App\Services\SyncTagsService;
@@ -220,6 +221,8 @@ class EvaluationsController
                     SearchEvaluation::SETTING_REUSE_STRATEGY => $request->get('setting_reuse_strategy'),
                     SearchEvaluation::SETTING_AUTO_RESTART => $request->get('setting_auto_restart'),
                     SearchEvaluation::SETTING_TRANSFORMERS => Transformers::fromArray($request->get('transformers'))->toArray(),
+                    SearchEvaluation::SETTING_SCORING_GUIDELINES => app(ScoringGuidelinesService::class)
+                        ->prepareScoringGuidelinesForSave((string) $request->get('setting_scoring_guidelines')),
                 ],
             ] + $request->validated() + [
                 SearchEvaluation::FIELD_DESCRIPTION => '',

@@ -10,12 +10,14 @@ use App\Models\SearchEndpoint;
 use App\Models\SearchEvaluation;
 use App\Rules\EvaluationKeywordsRule;
 use App\Rules\EvaluationTransformersRule;
+use App\Services\Evaluations\ScoringGuidelinesService;
 use App\Services\Evaluations\SyncKeywordsService;
 use App\Services\Evaluations\SyncMetricsService;
 use App\Services\SyncTagsService;
 use App\Services\Transformers\Transformers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Livewire\Component;
 use Livewire\Form;
 
 class EvaluationForm extends Form
@@ -44,11 +46,24 @@ class EvaluationForm extends Form
 
     public bool $setting_auto_restart = false;
 
+    public string $setting_scoring_guidelines = '';
+
+    public array $defaultGuidelines = [];
+
+    public array $guidelines = [];
+
     public array $tags = [];
 
     public string $scale_type = '';
 
     public array $transformers = [];
+
+    public function __construct(protected Component $component, protected $propertyName)
+    {
+        $this->setDefaultGuidelines();
+
+        parent::__construct($component, $propertyName);
+    }
 
     public function rules(): array
     {
@@ -78,6 +93,8 @@ class EvaluationForm extends Form
                     SearchEvaluation::SETTING_REUSE_STRATEGY => $this->setting_reuse_strategy,
                     SearchEvaluation::SETTING_AUTO_RESTART => $this->setting_auto_restart,
                     SearchEvaluation::SETTING_TRANSFORMERS => Transformers::createFromForm($this)->toArray(),
+                    SearchEvaluation::SETTING_SCORING_GUIDELINES => app(ScoringGuidelinesService::class)
+                        ->prepareScoringGuidelinesForSave($this->setting_scoring_guidelines),
                 ],
             ]
         );
@@ -101,6 +118,8 @@ class EvaluationForm extends Form
                     SearchEvaluation::SETTING_REUSE_STRATEGY => $this->setting_reuse_strategy,
                     SearchEvaluation::SETTING_AUTO_RESTART => $this->setting_auto_restart,
                     SearchEvaluation::SETTING_TRANSFORMERS => Transformers::createFromForm($this)->toArray(),
+                    SearchEvaluation::SETTING_SCORING_GUIDELINES => app(ScoringGuidelinesService::class)
+                        ->prepareScoringGuidelinesForSave($this->setting_scoring_guidelines),
                 ],
             ]
         );
@@ -129,6 +148,7 @@ class EvaluationForm extends Form
                 'setting_show_position' => $evaluation->settings[SearchEvaluation::SETTING_SHOW_POSITION] ?? false,
                 'setting_reuse_strategy' => $evaluation->settings[SearchEvaluation::SETTING_REUSE_STRATEGY] ?? SearchEvaluation::REUSE_STRATEGY_NONE,
                 'setting_auto_restart' => $evaluation->settings[SearchEvaluation::SETTING_AUTO_RESTART] ?? false,
+                'setting_scoring_guidelines' => $evaluation->getScoringGuidelines(),
                 'transformers' => $evaluation->getTransformers()->toFormArray() + Transformers::getDefaultFormTransformers(),
             ] + $evaluation->toArray();
 
@@ -150,5 +170,17 @@ class EvaluationForm extends Form
         }
 
         $this->fill($values);
+    }
+
+    public function setDefaultGuidelines(): void
+    {
+        $this->defaultGuidelines = app(ScoringGuidelinesService::class)->getDefaultScoringGuidelines();
+
+        $this->guidelines = $this->defaultGuidelines;
+
+        $guidelines = $this->evaluation?->getScoringGuidelines();
+        if ($guidelines && $this->scale_type) {
+            $this->guidelines[$this->scale_type] = $guidelines;
+        }
     }
 }
