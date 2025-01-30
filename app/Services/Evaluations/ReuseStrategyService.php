@@ -35,6 +35,7 @@ class ReuseStrategyService
             ->with('keywords.snapshots.feedbacks.user.tags')
             ->whereKeyNot($evaluation->id)
             ->where(SearchEvaluation::FIELD_SCALE_TYPE, $evaluation->scale_type)
+            ->where(SearchEvaluation::FIELD_ARCHIVED, false)
             ->chunkById(5, function (Collection $evaluations) use ($strategy, $keywords, &$pool, $evaluationTags) {
                 /** @var SearchEvaluation $evaluation */
                 foreach ($evaluations as $evaluation) {
