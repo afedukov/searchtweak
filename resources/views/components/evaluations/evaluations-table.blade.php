@@ -98,7 +98,7 @@
 							{{ $evaluation->name }}
 						</div>
 						<div class="break-words whitespace-normal text-sm text-gray-400 dark:text-gray-400">
-							{{ $evaluation->description }}
+							{!! nl2br(e($evaluation->description)) !!}
 						</div>
 					</a>
 				</div>

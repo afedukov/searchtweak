@@ -51,7 +51,7 @@ class StoreEvaluationRequest extends FormRequest
         return [
             'model_id' => ['required', Rule::exists('search_models', SearchModel::FIELD_ID)->where(SearchModel::FIELD_TEAM_ID, $teamId)],
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:4000'],
             'metrics' => ['required', 'array', new EvaluationMetricRule()],
             'setting_feedback_strategy' => ['required', 'integer', Rule::in([1, 3]), new FeedbackStrategyRule()],
             'setting_show_position' => ['required', 'boolean'],
