@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Auth\Authenticatable;
 use Laravel\Jetstream\Events\TeamCreated;
 use Laravel\Jetstream\Events\TeamDeleted;
 use Laravel\Jetstream\Events\TeamUpdated;
@@ -32,8 +34,9 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Collection<Tag> $tags
  * @property SearchEvaluation $baseline
  */
-class Team extends JetstreamTeam
+class Team extends JetstreamTeam implements AuthenticatableContract
 {
+    use Authenticatable;
     use HasFactory, HasApiTokens;
 
     public const string FIELD_ID = 'id';
