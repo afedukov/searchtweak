@@ -288,4 +288,187 @@ class ReuseStrategyServiceTest extends TestCase
         // Should NOT reuse because scale types differ
         $this->assertNull($feedback->grade);
     }
+
+    public function test_reuse_query_doc_position_strategy(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        // Create finished evaluation
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+
+        $oldKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'shoes',
+        ]);
+
+        $oldSnapshot = new SearchSnapshot([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+            SearchSnapshot::FIELD_POSITION => 3,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-shoe',
+            SearchSnapshot::FIELD_NAME => 'Shoe Doc',
+            SearchSnapshot::FIELD_DOC => [],
+        ]);
+        $oldSnapshot->saveQuietly();
+
+        $grader = User::factory()->create();
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+            UserFeedback::FIELD_USER_ID => $grader->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        // New evaluation with QUERY_DOC_POSITION
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC_POSITION,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+
+        $newKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'shoes',
+        ]);
+
+        // Same doc, SAME position
+        $newSnapshotMatch = new SearchSnapshot([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_POSITION => 3,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-shoe',
+            SearchSnapshot::FIELD_NAME => 'New Shoe Doc',
+            SearchSnapshot::FIELD_DOC => [],
+        ]);
+        $newSnapshotMatch->saveQuietly();
+
+        $feedbackMatch = UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $newSnapshotMatch->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_GRADE => null,
+        ]);
+
+        // Same doc, DIFFERENT position — should NOT get reused
+        $newSnapshotNoMatch = new SearchSnapshot([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_POSITION => 5,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-shoe',
+            SearchSnapshot::FIELD_NAME => 'New Shoe Doc Different Pos',
+            SearchSnapshot::FIELD_DOC => [],
+        ]);
+        $newSnapshotNoMatch->saveQuietly();
+
+        $feedbackNoMatch = UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $newSnapshotNoMatch->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_GRADE => null,
+        ]);
+
+        EvaluationMetric::factory()->create([
+            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationMetric::FIELD_SCORER_TYPE => 'precision',
+            EvaluationMetric::FIELD_NUM_RESULTS => 10,
+        ]);
+
+        $this->service->apply($newEval);
+
+        $feedbackMatch->refresh();
+        $this->assertEquals($grader->id, $feedbackMatch->user_id);
+        $this->assertEquals(BinaryScale::RELEVANT, $feedbackMatch->grade);
+
+        $feedbackNoMatch->refresh();
+        // Position doesn't match, so should NOT be reused
+        $this->assertNull($feedbackNoMatch->user_id);
+        $this->assertNull($feedbackNoMatch->grade);
+    }
+
+    public function test_reuse_does_not_assign_already_graded_user(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $grader = User::factory()->create();
+
+        // Create finished evaluation with graded feedback from $grader
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+
+        $oldKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'monitor',
+        ]);
+
+        $oldSnapshot = new SearchSnapshot([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+            SearchSnapshot::FIELD_POSITION => 1,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-mon',
+            SearchSnapshot::FIELD_NAME => 'Monitor Doc',
+            SearchSnapshot::FIELD_DOC => [],
+        ]);
+        $oldSnapshot->saveQuietly();
+
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+            UserFeedback::FIELD_USER_ID => $grader->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        // New evaluation — $grader already has a graded feedback on this snapshot
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 2,
+            ],
+        ]);
+
+        $newKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'monitor',
+        ]);
+
+        $newSnapshot = new SearchSnapshot([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_POSITION => 1,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-mon',
+            SearchSnapshot::FIELD_NAME => 'New Monitor Doc',
+            SearchSnapshot::FIELD_DOC => [],
+        ]);
+        $newSnapshot->saveQuietly();
+
+        // Grader already has a graded feedback on this snapshot
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $newSnapshot->id,
+            UserFeedback::FIELD_USER_ID => $grader->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::IRRELEVANT,
+        ]);
+
+        // Another empty slot
+        $feedbackEmpty = UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $newSnapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_GRADE => null,
+        ]);
+
+        $this->service->apply($newEval);
+
+        $feedbackEmpty->refresh();
+        // $grader already has feedback on this snapshot, so the empty slot should NOT get $grader again
+        $this->assertNotEquals($grader->id, $feedbackEmpty->user_id);
+    }
 }

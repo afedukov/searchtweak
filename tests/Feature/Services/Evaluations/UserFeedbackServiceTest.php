@@ -172,4 +172,98 @@ class UserFeedbackServiceTest extends TestCase
         $this->assertEquals('ungraded-snapshots-count::team.42', $tag);
         $this->assertEquals('ungraded-snapshots-count::user.7', $key);
     }
+
+    public function test_get_ungraded_snapshots_count_cached(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $user->switchTeam($user->currentTeam);
+        [$evaluation, $snapshot] = $this->createEvaluationWithSnapshot($user);
+
+        // Create ungraded feedback
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_GRADE => null,
+        ]);
+
+        $count = $this->service->getUngradedSnapshotsCountCached($user);
+
+        $this->assertEquals(1, $count);
+    }
+
+    public function test_get_ungraded_snapshots_count_excludes_graded(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $user->switchTeam($user->currentTeam);
+        [$evaluation, $snapshot] = $this->createEvaluationWithSnapshot($user);
+
+        // Already graded — should not be counted
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => $user->id,
+            UserFeedback::FIELD_GRADE => 1,
+        ]);
+
+        $count = $this->service->getUngradedSnapshotsCountCached($user);
+
+        $this->assertEquals(0, $count);
+    }
+
+    public function test_fetch_returns_null_when_all_graded(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $user->switchTeam($user->currentTeam);
+        [$evaluation, $snapshot] = $this->createEvaluationWithSnapshot($user);
+
+        // All feedback is graded — nothing to fetch
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => $user->id,
+            UserFeedback::FIELD_GRADE => 1,
+        ]);
+
+        $feedback = $this->service->fetch($user, $evaluation);
+
+        $this->assertNull($feedback);
+    }
+
+    public function test_fetch_does_not_steal_another_users_recent_assignment(): void
+    {
+        $user1 = User::factory()->withPersonalTeam()->create();
+        $user1->switchTeam($user1->currentTeam);
+        [$evaluation, $snapshot] = $this->createEvaluationWithSnapshot($user1);
+
+        $user2 = User::factory()->create();
+
+        // Feedback recently assigned to user2 (within the 5-minute lock)
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => $user2->id,
+            UserFeedback::FIELD_GRADE => null,
+        ]);
+
+        // user1 tries to fetch — should get null since user2 still has the lock
+        $feedback = $this->service->fetch($user1, $evaluation);
+
+        $this->assertNull($feedback);
+    }
+
+    public function test_previous_ignores_ungraded_feedback(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $user->switchTeam($user->currentTeam);
+        [$evaluation, $snapshot] = $this->createEvaluationWithSnapshot($user);
+
+        // Ungraded feedback assigned to user
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => $user->id,
+            UserFeedback::FIELD_GRADE => null,
+        ]);
+
+        $previous = $this->service->previous($user, $evaluation);
+
+        // Should be null since the feedback is not graded
+        $this->assertNull($previous);
+    }
 }
