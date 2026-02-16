@@ -3,11 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\TeamInvitationNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Jetstream\Features;
 use Laravel\Jetstream\Http\Livewire\TeamMemberManager;
-use Laravel\Jetstream\Mail\TeamInvitation;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -21,7 +22,7 @@ class InviteTeamMemberTest extends TestCase
             $this->markTestSkipped('Team invitations not enabled.');
         }
 
-        Mail::fake();
+        Notification::fake();
 
         $this->actingAs($user = User::factory()->withPersonalTeam()->create());
 
@@ -31,7 +32,7 @@ class InviteTeamMemberTest extends TestCase
                 'role' => 'admin',
             ])->call('addTeamMember');
 
-        Mail::assertSent(TeamInvitation::class);
+        Notification::assertSentOnDemand(TeamInvitationNotification::class);
 
         $this->assertCount(1, $user->currentTeam->fresh()->teamInvitations);
     }

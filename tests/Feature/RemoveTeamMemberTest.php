@@ -37,9 +37,12 @@ class RemoveTeamMemberTest extends TestCase
 
         $this->actingAs($otherUser);
 
+        // The custom TeamMemberManager catches exceptions and shows a toast
+        // instead of returning 403, so we verify the member is not removed.
         $component = Livewire::test(TeamMemberManager::class, ['team' => $user->currentTeam])
             ->set('teamMemberIdBeingRemoved', $user->id)
-            ->call('removeTeamMember')
-            ->assertStatus(403);
+            ->call('removeTeamMember');
+
+        $this->assertCount(1, $user->currentTeam->fresh()->users);
     }
 }

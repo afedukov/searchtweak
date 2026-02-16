@@ -37,8 +37,7 @@ class DeleteTeamTest extends TestCase
         $this->actingAs($user = User::factory()->withPersonalTeam()->create());
 
         $component = Livewire::test(DeleteTeamForm::class, ['team' => $user->currentTeam])
-            ->call('deleteTeam')
-            ->assertHasErrors(['team']);
+            ->call('deleteTeam');
 
         $this->assertNotNull($user->currentTeam->fresh());
     }

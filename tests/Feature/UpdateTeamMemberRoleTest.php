@@ -22,11 +22,11 @@ class UpdateTeamMemberRoleTest extends TestCase
 
         $component = Livewire::test(TeamMemberManager::class, ['team' => $user->currentTeam])
             ->set('managingRoleFor', $otherUser)
-            ->set('currentRole', 'editor')
+            ->set('currentRole', 'evaluator')
             ->call('updateRole');
 
         $this->assertTrue($otherUser->fresh()->hasTeamRole(
-            $user->currentTeam->fresh(), 'editor'
+            $user->currentTeam->fresh(), 'evaluator'
         ));
     }
 
@@ -35,19 +35,20 @@ class UpdateTeamMemberRoleTest extends TestCase
         $user = User::factory()->withPersonalTeam()->create();
 
         $user->currentTeam->users()->attach(
-            $otherUser = User::factory()->create(), ['role' => 'admin']
+            $otherUser = User::factory()->create(), ['role' => 'evaluator']
         );
 
         $this->actingAs($otherUser);
 
+        // Evaluator role lacks manage_team permission, so the role update should fail.
+        // The custom TeamMemberManager catches AuthorizationException and shows a toast.
         $component = Livewire::test(TeamMemberManager::class, ['team' => $user->currentTeam])
             ->set('managingRoleFor', $otherUser)
-            ->set('currentRole', 'editor')
-            ->call('updateRole')
-            ->assertStatus(403);
+            ->set('currentRole', 'admin')
+            ->call('updateRole');
 
         $this->assertTrue($otherUser->fresh()->hasTeamRole(
-            $user->currentTeam->fresh(), 'admin'
+            $user->currentTeam->fresh(), 'evaluator'
         ));
     }
 }
