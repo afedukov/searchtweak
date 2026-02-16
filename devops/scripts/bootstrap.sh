@@ -2,8 +2,15 @@
 
 ACTION='\033[0;32m'
 
+COMPOSER_FLAGS="--optimize-autoloader"
+
+# Use --no-dev in production
+if [ -f ../.env ] && grep -q "^APP_ENV=production" ../.env; then
+    COMPOSER_FLAGS="$COMPOSER_FLAGS --no-dev"
+fi
+
 echo -e ${ACTION}Installing composer dependencies ...
-docker compose run --rm composer install --optimize-autoloader --no-dev
+docker compose run --rm composer install $COMPOSER_FLAGS
 
 # Check if .env file exists, if not, copy from .env.dist
 if [ ! -f ../.env ]; then

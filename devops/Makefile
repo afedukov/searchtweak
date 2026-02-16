@@ -9,6 +9,9 @@ stop:
 bootstrap:
 	@bash scripts/bootstrap.sh
 
+test:
+	docker compose run --rm artisan test
+
 vite:
 	docker compose run --rm --service-ports npm run dev
 
