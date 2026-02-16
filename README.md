@@ -1,44 +1,108 @@
 # SearchTweak
 
-SearchTweak is a web application designed to evaluate and optimize search engine results. It provides comprehensive tools for assessing the relevance and performance of search outcomes, enabling users to enhance their search functionalities effectively. Additionally, SearchTweak can be utilized for labeling data to train machine learning models and for conducting advanced analytics, making it a versatile tool for both search optimization and data-driven decision-making.
+[![PHP 8.3+](https://img.shields.io/badge/PHP-8.3+-777BB4?logo=php&logoColor=white)](https://php.net)
+[![Laravel 11](https://img.shields.io/badge/Laravel-11-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
+[![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue)](LICENSE.md)
 
-## Clone the Repository
+**Self-hosted search relevance evaluation platform.** Assess search quality by running keyword queries against your search APIs, collecting human relevance judgments, and calculating industry-standard IR metrics.
+
+Use it to benchmark search configurations, label training data for ML models, and track search quality over time.
+
+![Evaluation Detail](public/images/features/evaluations/evaluations1.png)
+
+## Key Features
+
+- **Search Evaluation** — run keyword queries against any search API, collect human relevance judgments, and compute metrics automatically
+- **IR Metrics** — Precision, MAP, MRR, CG, DCG, nDCG with support for Binary, Graded, and Detail grading scales
+- **Metrics Over Time** — track how search quality changes across evaluations with historical charts
+- **Feedback Management** — assign grading tasks to team members, reuse judgments across evaluations, scoring guidelines
+- **Team Collaboration** — role-based access (Admin, Evaluator), team invitations, tag-based organization
+- **Real-time Updates** — live progress via WebSockets as evaluations run and grades come in
+- **REST API** — manage evaluations and models programmatically with token-based authentication
+- **Customizable Dashboard** — configurable widgets for metrics, leaderboard, and feedback activity
+
+<details>
+<summary>More screenshots</summary>
+
+### Metrics Dashboard
+![Metrics Widget](public/images/features/misc/widget1.png)
+
+### Give Feedback
+![Give Feedback](public/images/features/misc/give_feedback1.png)
+
+### Search Models
+![Search Models](public/images/features/models/models1.png)
+
+</details>
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Laravel 11 (PHP 8.3) |
+| Frontend | Livewire 3, Alpine.js, Tailwind CSS |
+| Real-time | Laravel Reverb (WebSockets) |
+| Queue | Laravel Horizon |
+| Database | MySQL |
+| Cache/Queue/Sessions | Redis |
+| Infrastructure | Docker Compose, Traefik, Nginx, PHP-FPM |
+| Auth | Jetstream + Sanctum + Fortify |
+
+## Requirements
+
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+- [Make](https://www.gnu.org/software/make/) (pre-installed on macOS/Linux)
+
+## Getting Started
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/afedukov/searchtweak.git
+cd searchtweak/devops
 ```
 
-## Setup Environment
+### 2. Setup Environment
 
-Navigate to the `/devops` directory and copy the `.env.dist` file to `.env`:
 ```bash
-cd searchtweak/devops
 cp .env.dist .env
 ```
 
-## Configure Hosts File
+### 3. Configure Hosts File
 
-Edit your `/etc/hosts` file (or `C:\Windows\System32\drivers\etc\hosts` on Windows) and add the following line:
-```bash
+Edit your `/etc/hosts` file (or `C:\Windows\System32\drivers\etc\hosts` on Windows):
+```
 127.0.0.1    searchtweak.local traefik.searchtweak.local db.searchtweak.local
 ```
-This will allow you to access the following services:
 
-- App: http://searchtweak.local
-- Traefik Dashboard: http://traefik.searchtweak.local
-- phpMyAdmin: http://db.searchtweak.local
-- Mailhog: http://localhost:8025
+### 4. Start the Application
 
-## Start and Bootstrap the Application
-
-While in the `/devops` directory, run the following command to start and bootstrap the application:
 ```bash
 make
 ```
 
-## Other Useful Commands
+This will start all containers and bootstrap the application (migrations, cache, assets).
+
+### 5. Open in Browser
+
+| Service | URL |
+|---------|-----|
+| App | http://searchtweak.local |
+| Traefik Dashboard | http://traefik.searchtweak.local |
+| phpMyAdmin | http://db.searchtweak.local |
+| MailHog | http://localhost:8025 |
+
+### Default Admin User
+
+Log in at http://searchtweak.local with:
+
+- **Email:** `admin@searchtweak.com`
+- **Password:** `12345678`
+
+## Useful Commands
 
 ```bash
+cd devops
 make start        # Start the application
 make stop         # Stop the application
 make bootstrap    # Bootstrap the application
@@ -46,21 +110,27 @@ make vite         # Start Vite development server
 make vite-prod    # Build Vite for production
 ```
 
+## Running Tests
+
+```bash
+cd devops
+make test                                                   # Run all tests
+docker compose run --rm artisan test                        # Run all tests (alternative)
+docker compose run --rm artisan test --testsuite=Unit       # Run unit tests only
+docker compose run --rm artisan test --testsuite=Feature    # Run feature tests only
+docker compose run --rm artisan test --filter TestName      # Run a specific test
+```
+
 ## Email Setup
 
-By default, **SearchTweak** uses [MailHog](https://github.com/mailhog/MailHog) as the SMTP server. MailHog is a popular email testing tool that captures outgoing emails and provides a web UI for viewing them. It is ideal for development environments where you don't want to send real emails.
+By default, **SearchTweak** uses [MailHog](https://github.com/mailhog/MailHog) to capture outgoing emails in development. Access the MailHog UI at http://localhost:8025.
 
-### Accessing MailHog
+<details>
+<summary>Configuring real email sending (SMTP / Amazon SES)</summary>
 
-To access the MailHog interface, go to:
+Remove the `mailhog` service from `/devops/docker-compose.yml`, then update your `.env` file:
 
-- http://localhost:8025
-
-### Configuring Real Email Sending
-
-If you need to send real emails, you can remove the `mailhog` service from the `/devops/docker-compose.yml` file. After removing the MailHog service, you can configure a real SMTP server or any other Laravel mailer (e.g., Amazon SES) by updating the following environment variables in your `.env` file:
-
-#### Example for SMTP
+#### SMTP
 ```dotenv
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.your-email-provider.com
@@ -72,8 +142,7 @@ MAIL_FROM_ADDRESS=your-email@example.com
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-#### Example for Amazon SES
-To use Amazon SES, you need to configure the following environment variables with your AWS credentials:
+#### Amazon SES
 ```dotenv
 MAIL_MAILER=ses
 AWS_ACCESS_KEY_ID=your-aws-access-key
@@ -83,11 +152,13 @@ MAIL_FROM_ADDRESS=your-email@example.com
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-## Enforcing Email Verification
-If you require users to verify their email addresses before logging into their accounts, follow these steps:
+</details>
+
+<details>
+<summary>Enforcing email verification</summary>
 
 ### 1. Update the User Model
-In the user model `\App\Models\User`, implement the `MustVerifyEmail` interface. This ensures that Laravel handles email verification for users.
+In `App\Models\User`, implement the `MustVerifyEmail` interface:
 ```php
 class User extends Authenticatable implements TaggableInterface, MustVerifyEmail
 {
@@ -96,7 +167,7 @@ class User extends Authenticatable implements TaggableInterface, MustVerifyEmail
 ```
 
 ### 2. Enable Email Verification in Fortify
-In the `config/fortify.php` file, uncomment the line that enables email verification:
+In `config/fortify.php`, uncomment:
 ```php
 'features' => [
     // ...
@@ -105,24 +176,23 @@ In the `config/fortify.php` file, uncomment the line that enables email verifica
 ],
 ```
 
+</details>
+
+## Documentation
+
+Full documentation is available at [DOCUMENTATION.md](DOCUMENTATION.md).
+
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request with your enhancements or bug fixes.
 
 ## License
 
-This project is licensed under the Functional Source License, Version 1.1, with an irrevocable grant to the Apache License, Version 2.0 effective on the second anniversary of the software's release.
+This project is licensed under the **Functional Source License, Version 1.1** (FSL-1.1-Apache-2.0), with an irrevocable grant to the Apache License, Version 2.0 effective on the second anniversary of the software's release.
 
-### Abbreviation
-FSL-1.1-Apache-2.0
+Copyright 2024-2026 Andrey Fedyukov
 
-### Notice
-Copyright 2024 Andrey Fedyukov
-
-### Summary
 - You may use, modify, and redistribute the software for any purpose, except in products or services that compete with the software or any other product or service we offer.
-- This license includes a patent grant, but that grant ends if you make a patent claim against the software.
-- Redistribution requires including a copy of the license and not removing any copyright notices.
 - After two years, you may alternatively use the software under the Apache License, Version 2.0.
 
 See the full [LICENSE](LICENSE.md) file for details.
