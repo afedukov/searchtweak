@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Livewire\Widgets\BaseWidget;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -22,6 +23,8 @@ use Illuminate\Support\Str;
  */
 class UserWidget extends Model
 {
+    use HasFactory;
+
     public const string FIELD_ID = 'id';
     public const string FIELD_USER_ID = 'user_id';
     public const string FIELD_TEAM_ID = 'team_id';

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Tag extends Model
 {
+    use HasFactory;
+
     public const string FIELD_ID = 'id';
     public const string FIELD_TEAM_ID = 'team_id';
     public const string FIELD_COLOR = 'color';

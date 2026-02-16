@@ -7,6 +7,7 @@ use App\Jobs\Evaluations\RecalculateMetricsJob;
 use App\Services\Evaluations\UserFeedbackService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -32,6 +33,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class UserFeedback extends Model
 {
+    use HasFactory;
+
     public const string FIELD_ID = 'id';
     public const string FIELD_USER_ID = 'user_id';
     public const string FIELD_SEARCH_SNAPSHOT_ID = 'search_snapshot_id';

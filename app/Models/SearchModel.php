@@ -8,6 +8,7 @@ use App\Services\Models\ModelMetricsBuilder;
 use App\Services\Models\RequestHeadersService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -34,6 +35,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class SearchModel extends TeamBroadcastableModel implements TaggableInterface
 {
+    use HasFactory;
+
     public const string FIELD_ID = 'id';
     public const string FIELD_USER_ID = 'user_id';
     public const string FIELD_TEAM_ID = 'team_id';
