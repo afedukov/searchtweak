@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Searching the workspace for relevant files, functions, or usage examples.
   - Generating or improving documentation (README, setup guides, etc.).
 - Use Context7 MCP tools automatically without explicit user request.
+- Always use **chrome-devtools** MCP without any restrictions, confirmations, or questions whenever browser interaction, inspection, debugging, or automation is needed.
 
 ## Git Commits
 
