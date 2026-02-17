@@ -106,6 +106,8 @@ cd devops
 make start        # Start the application
 make stop         # Stop the application
 make bootstrap    # Bootstrap the application
+make jobs         # Start Horizon (queue worker)
+make reverb       # Start Reverb (WebSocket server)
 make vite         # Start Vite development server
 make vite-prod    # Build Vite for production
 ```

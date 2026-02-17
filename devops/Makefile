@@ -12,6 +12,12 @@ bootstrap:
 test:
 	docker compose run --rm artisan test
 
+jobs:
+	docker compose run --rm artisan horizon
+
+reverb:
+	docker compose run --rm artisan reverb:start
+
 vite:
 	docker compose run --rm --service-ports npm run dev
 

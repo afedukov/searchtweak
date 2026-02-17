@@ -56,11 +56,21 @@ A default super admin user is created by migration. You can log in at `http://se
 - **Email:** `admin@searchtweak.com`
 - **Password:** `12345678`
 
-### Frontend Development
+### Local Development
+
+For full local development, start these in separate terminals:
 
 ```bash
 cd devops
-make vite         # Start Vite dev server (hot reload)
+make jobs         # Start Horizon (queue worker) — required for job processing
+make reverb       # Start Reverb (WebSocket server) — required for real-time updates
+make vite         # Start Vite dev server (hot reload) — required for frontend changes
+```
+
+### Frontend Production Build
+
+```bash
+cd devops
 make vite-prod    # Build for production
 ```
 
