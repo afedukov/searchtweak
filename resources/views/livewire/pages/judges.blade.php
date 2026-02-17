@@ -128,6 +128,9 @@
 								<th scope="col" class="px-5 py-3 text-center">
 									{{ __('Pairs Judged') }}
 								</th>
+								<th scope="col" class="px-5 py-3 text-center">
+									{{ __('Batch Size') }}
+								</th>
 								<th scope="col" class="px-5 py-3">
 									{{ __('Active') }}
 								</th>
@@ -160,6 +163,13 @@
 									</td>
 									<td class="px-5 py-4 text-center align-baseline">
 										<span class="font-mono text-xs">0</span>
+									</td>
+									<td class="px-5 py-4 text-center align-baseline">
+										@if ($judge->getBatchSize() > 0)
+											<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">{{ $judge->getBatchSize() }}</span>
+										@else
+											<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">Auto</span>
+										@endif
 									</td>
 									<td class="px-5 py-4 align-baseline">
 										<!-- Toggle Judge Active -->
@@ -204,7 +214,7 @@
 								</tr>
 							@empty
 								<tr>
-									<td class="px-5 py-4 text-center" colspan="7">
+									<td class="px-5 py-4 text-center" colspan="8">
 										<span class="text-gray-400 dark:text-gray-500">
 											{{ __('No judges found') }}
 										</span>

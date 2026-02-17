@@ -29,7 +29,7 @@ else
 fi
 
 echo -e ${ACTION}Running migrations ...
-docker compose run --rm artisan migrate --force
+docker compose run --rm artisan migrate:fresh --force --seed
 
 echo -e ${ACTION}Cleaning route cache ...
 docker compose run --rm artisan route:clear

@@ -21,6 +21,9 @@ reverb:
 vite:
 	docker compose run --rm --service-ports npm run dev
 
+seed:
+	docker compose run --rm artisan migrate:fresh --seed
+
 vite-prod:
 	docker compose run --rm --service-ports npm run build
 
