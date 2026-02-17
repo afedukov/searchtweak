@@ -42,6 +42,8 @@ trait EditModelModalTrait
 
     public function editModel(SearchModel $model): void
     {
+        $model = Auth::user()->currentTeam->models()->findOrFail($model->id);
+
         $this->modelForm->reset();
         $this->modelForm->resetErrorBag();
         $this->modelForm->setModel($model);
@@ -52,6 +54,8 @@ trait EditModelModalTrait
 
     public function cloneModel(SearchModel $model): void
     {
+        $model = Auth::user()->currentTeam->models()->findOrFail($model->id);
+
         $this->modelForm->reset();
         $this->modelForm->resetErrorBag();
         $this->modelForm->setModel($model, true);

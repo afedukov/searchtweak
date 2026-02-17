@@ -28,6 +28,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (config('database.default') === 'sqlite') {
+            return;
+        }
+
         Schema::table('evaluation_keywords', function (Blueprint $table) {
             $table->string(EvaluationKeyword::FIELD_KEYWORD, 255)->collation('utf8mb4_unicode_ci')->change();
         });

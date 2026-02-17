@@ -45,4 +45,9 @@ class Permissions
      * Leaderboard
      */
     public const string PERMISSION_VIEW_LEADERBOARD = 'view_leaderboard';
+
+    /**
+     * Judges
+     */
+    public const string PERMISSION_MANAGE_JUDGES = 'manage_judges';
 }
