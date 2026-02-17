@@ -10,6 +10,7 @@ bootstrap:
 	@bash scripts/bootstrap.sh
 
 test:
+	docker compose run --rm artisan config:clear
 	docker compose run --rm artisan test
 
 jobs:
