@@ -113,6 +113,7 @@ class ReuseStrategyService
 
                     $feedback->user_id = $reuseFeedback[UserFeedback::FIELD_USER_ID];
                     $feedback->judge_id = null;
+                    $feedback->reason = $reuseFeedback[UserFeedback::FIELD_REASON];
                     $feedback->grade = $reuseFeedback[UserFeedback::FIELD_GRADE];
                     $feedback->saveQuietly();
 

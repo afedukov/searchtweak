@@ -22,6 +22,7 @@ class GradeSearchSnapshot
 
         $feedback->user_id = $user->id;
         $feedback->judge_id = null;
+        $feedback->reason = null;
         $feedback->grade = $grade;
         $feedback->save();
     }

@@ -27,6 +27,7 @@ class GradeSearchEvaluation
         }
 
         $feedback->judge_id = null;
+        $feedback->reason = null;
         $feedback->grade = $grade;
         $feedback->save();
     }
