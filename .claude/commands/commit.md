@@ -1,12 +1,15 @@
-Review all staged and unstaged changes, then create a git commit.
+Review all staged and unstaged changes, then create one or more atomic git commits.
 
 Steps:
 1. Run `git status` and `git diff` (staged + unstaged) to understand all changes.
 2. Run `git log --oneline -10` to see recent commit message style.
-3. Stage all relevant changed files (prefer specific file names over `git add .`). Do NOT stage files that contain secrets (.env, credentials, etc.).
-4. Write a concise commit message (1-2 sentences) that focuses on the "why" rather than the "what". Follow the style of recent commits.
-5. **Never** add `Co-Authored-By` or any similar attribution lines to the commit message.
-6. Create the commit using a HEREDOC for the message.
-7. Run `git status` after committing to verify success.
+3. Analyze the changes to identify logical groups (e.g., documentation updates, refactoring, feature X, bugfix Y).
+4. For EACH logical group of changes, perform the following loop:
+   a. Stage ONLY the files relevant to this specific group (prefer specific file names). Do NOT stage files that contain secrets.
+   b. Write a concise commit message (1-2 sentences) focusing on the "why". Follow the recent style.
+   c. **Never** add `Co-Authored-By`.
+   d. Create the commit using a HEREDOC.
+5. If changes are unrelated, ensure they are committed separately. If all changes are tightly coupled, one commit is acceptable.
+6. Run `git status` after the process to verify that the working directory is clean.
 
 If there are no changes to commit, inform the user and do nothing.
