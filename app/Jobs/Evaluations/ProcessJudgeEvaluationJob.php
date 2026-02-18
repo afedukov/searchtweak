@@ -7,6 +7,7 @@ use App\Models\Judge;
 use App\Models\SearchEvaluation;
 use App\Models\SearchSnapshot;
 use App\Models\UserFeedback;
+use App\Services\Evaluations\UserFeedbackService;
 use App\Services\Judges\JudgeHandlerFactory;
 use App\Services\Scorers\Scales\ScaleFactory;
 use Illuminate\Bus\Queueable;
@@ -127,6 +128,11 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 ->count();
 
             if ($remainingCount === 0) {
+                // Check if there are human-locked feedbacks whose locks may expire
+                if ($this->redispatchIfHumanLockedFeedbacksExist($snapshotIds)) {
+                    return;
+                }
+
                 Log::channel('judges')->info(sprintf(
                     'ProcessJudgeEvaluationJob[%d]: exiting — no feedbacks available for judging',
                     $this->evaluationId,
@@ -171,8 +177,12 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 }
             }
 
-            // No progress this cycle — stop to avoid infinite loop
+            // No progress this cycle — check for human-locked feedbacks before stopping
             if ($processedInCycle === 0) {
+                if ($this->redispatchIfHumanLockedFeedbacksExist($snapshotIds)) {
+                    return;
+                }
+
                 Log::channel('judges')->info(sprintf(
                     'ProcessJudgeEvaluationJob[%d]: exiting — no progress in cycle',
                     $this->evaluationId,
@@ -186,6 +196,39 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 $processedInCycle,
             ));
         }
+    }
+
+    /**
+     * Check for ungraded feedbacks locked by humans and re-dispatch with delay if found.
+     *
+     * Returns true if re-dispatched (caller should return), false otherwise.
+     */
+    private function redispatchIfHumanLockedFeedbacksExist(\Illuminate\Support\Collection $snapshotIds): bool
+    {
+        $humanLockedCount = UserFeedback::query()
+            ->whereIn(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $snapshotIds)
+            ->whereNull(UserFeedback::FIELD_GRADE)
+            ->whereNull(UserFeedback::FIELD_JUDGE_ID)
+            ->whereNotNull(UserFeedback::FIELD_USER_ID)
+            ->where(UserFeedback::FIELD_UPDATED_AT, '>=', now()->subMinutes(UserFeedbackService::FEEDBACK_LOCK_TIMEOUT_MINUTES))
+            ->count();
+
+        if ($humanLockedCount > 0) {
+            $delayMinutes = UserFeedbackService::FEEDBACK_LOCK_TIMEOUT_MINUTES + 1;
+
+            Log::channel('judges')->info(sprintf(
+                'ProcessJudgeEvaluationJob[%d]: %d feedbacks locked by humans — re-dispatching in %d minutes',
+                $this->evaluationId,
+                $humanLockedCount,
+                $delayMinutes,
+            ));
+
+            self::dispatch($this->evaluationId)->delay(now()->addMinutes($delayMinutes));
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
