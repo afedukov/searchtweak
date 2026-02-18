@@ -1,5 +1,5 @@
 <div>
-	<div class="flex items-center gap-1">
+	<div class="flex items-center gap-1 whitespace-nowrap">
 
 		<x-scales.scale-switch :snapshot="$snapshot" :scale="$evaluation->getScale()" :selected="$grade" />
 
@@ -16,17 +16,22 @@
 	<div class="text-left">
 		<ul class="mt-4">
 			@foreach ($feedbacks as $feedback)
-				<li class="flex items-center gap-1">
-					<x-dynamic-component :component="$evaluation->getScale()->getScaleBadgeComponent()" :grade="$feedback->grade" size="sm" />
+				<li>
+					<div class="flex items-center gap-1">
+						<x-dynamic-component :component="$evaluation->getScale()->getScaleBadgeComponent()" :grade="$feedback->grade" size="sm" />
 
-					<span class="text-xs whitespace-nowrap">
-						@if ($feedback->judge_id)
-							<span class="text-blue-500 dark:text-blue-400">{{ $feedback->judge?->name ?? 'Removed Judge' }}</span>
-							<span class="inline-flex items-center text-[10px] leading-none font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-500 text-white ml-1">AI</span>
-						@else
-							{{ $feedback->user?->name ?? 'Removed User' }}
-						@endif
-					</span>
+						<span class="text-xs whitespace-nowrap">
+							@if ($feedback->judge_id)
+								<span class="text-blue-500 dark:text-blue-400">{{ $feedback->judge?->name ?? 'Removed Judge' }}</span>
+								<span class="inline-flex items-center text-[10px] leading-none font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-500 text-white ml-1">AI</span>
+							@else
+								{{ $feedback->user?->name ?? 'Removed User' }}
+							@endif
+						</span>
+					</div>
+					@if ($feedback->reason)
+						<p class="ml-6 mt-0.5 text-xs text-gray-400 dark:text-gray-500 italic max-w-[250px]">{{ Str::limit($feedback->reason, 150) }}</p>
+					@endif
 				</li>
 			@endforeach
 		</ul>

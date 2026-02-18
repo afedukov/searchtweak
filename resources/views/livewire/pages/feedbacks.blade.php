@@ -114,6 +114,9 @@
 									<td class="px-5 py-4 align-baseline">
 										@if ($feedback->judge_id)
 											<x-block.judge-name :judge="$feedback->judge" />
+											@if ($feedback->reason)
+												<p class="mt-1 ml-10 text-xs text-gray-400 dark:text-gray-500 italic max-w-[200px]">{{ Str::limit($feedback->reason, 150) }}</p>
+											@endif
 										@else
 											<x-block.user-name :user="$feedback->user" />
 										@endif
