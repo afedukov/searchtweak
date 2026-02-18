@@ -29,6 +29,21 @@ class EvaluationSeeder extends Seeder
             SearchEvaluation::FIELD_NAME => 'Baseline Graded Evaluation',
             SearchEvaluation::FIELD_DESCRIPTION => 'Initial graded relevance evaluation for Metro Markets baseline search',
             SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_NONE,
+                SearchEvaluation::SETTING_SHOW_POSITION => false,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+                SearchEvaluation::SETTING_AUTO_RESTART => false,
+                SearchEvaluation::SETTING_TRANSFORMERS => [
+                    'scale_type' => 'graded',
+                    'rules' => [
+                        'binary' => [
+                            0 => 0,
+                            1 => 1,
+                            2 => 1,
+                            3 => 1,
+                        ],
+                    ],
+                ],
                 SearchEvaluation::SETTING_SCORING_GUIDELINES => app(ScoringGuidelinesService::class)->getDefaultScoringGuidelines()['graded'],
             ],
             SearchEvaluation::FIELD_MAX_NUM_RESULTS => null,
