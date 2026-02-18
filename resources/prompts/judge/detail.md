@@ -39,4 +39,5 @@ Rules:
 - `pair_index` must match the index of the pair in the input array (starting from 0).
 - `grade` must be an integer from 1 to 10.
 - `reason` must be a concise explanation (1-2 sentences).
+- `reason` must be written in English only, regardless of the query or product language.
 - Return ONLY the JSON array, no other text.
