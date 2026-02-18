@@ -306,6 +306,7 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 continue;
             }
 
+            $feedback->user_id = null;
             $feedback->grade = $result['grade'];
             $feedback->reason = $result['reason'];
             $feedback->save(); // triggers RecalculateMetricsJob via booted()

@@ -26,6 +26,7 @@ class GradeSearchEvaluation
             throw new \RuntimeException('Snapshot assignment expired');
         }
 
+        $feedback->judge_id = null;
         $feedback->grade = $grade;
         $feedback->save();
     }

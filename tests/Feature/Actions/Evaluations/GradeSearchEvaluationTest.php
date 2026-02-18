@@ -4,6 +4,7 @@ namespace Tests\Feature\Actions\Evaluations;
 
 use App\Actions\Evaluations\GradeSearchEvaluation;
 use App\Models\EvaluationKeyword;
+use App\Models\Judge;
 use App\Models\SearchEndpoint;
 use App\Models\SearchEvaluation;
 use App\Models\SearchModel;
@@ -154,5 +155,28 @@ class GradeSearchEvaluationTest extends TestCase
 
         $feedback->refresh();
         $this->assertEquals(BinaryScale::RELEVANT, $feedback->grade);
+    }
+
+    public function test_grade_clears_judge_assignment_when_user_grades(): void
+    {
+        [$user, $evaluation, $keyword, $snapshot] = $this->createSetup();
+
+        $judge = Judge::factory()->create([
+            Judge::FIELD_USER_ID => $user->id,
+            Judge::FIELD_TEAM_ID => $user->currentTeam->id,
+        ]);
+
+        $feedback = UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => $user->id,
+            UserFeedback::FIELD_JUDGE_ID => $judge->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::IRRELEVANT,
+        ]);
+
+        $this->action->grade($feedback, $user, BinaryScale::RELEVANT);
+
+        $feedback->refresh();
+        $this->assertEquals(BinaryScale::RELEVANT, $feedback->grade);
+        $this->assertNull($feedback->judge_id);
     }
 }
