@@ -159,6 +159,27 @@
 
 		</div>
 
+		<!-- Model Parameters -->
+		<div class="mb-4 last:mb-0" x-data="{ open: $wire.judgeForm.model_params !== '' }" id="input-group-{{ unique_key() }}">
+
+			<div class="flex items-center cursor-pointer gap-2" @click.prevent="open = !open">
+				<svg class="w-2 h-2 shrink-0 mb-1" :class="open ? 'rotate-180': 'rotate-90'" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+					<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5 5 1 1 5"/>
+				</svg>
+				<x-form.label.label-optional for="judgeForm.model_params" class="cursor-pointer" value="Model Parameters" />
+			</div>
+
+			<div class="ml-4" x-show="open" x-cloak>
+				<x-form.input.textarea class="font-mono text-gray-400" rows="4" placeholder="temperature: 0.1&#10;max_tokens: 2048" wire:model="judgeForm.model_params"></x-form.input.textarea>
+				<x-input-error for="judgeForm.model_params" />
+
+				<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+					{{ __('Extra parameters passed directly to the model API. Each parameter on a new line in the format') }}
+					<x-typography.inline-code>param: value</x-typography.inline-code>.
+				</p>
+			</div>
+		</div>
+
 		<!-- Advanced Settings -->
 		<div class="mb-8 last:mb-0" x-data="{ open: $persist(false).as('judge-advanced-settings-expanded') }" id="input-group-{{ unique_key() }}">
 

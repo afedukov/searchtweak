@@ -22,14 +22,12 @@ class GoogleJudgeHandler extends AbstractJudgeHandler
             RequestOptions::HEADERS => [
                 'Content-Type' => 'application/json',
             ],
-            RequestOptions::JSON => [
+            RequestOptions::JSON => array_filter([
                 'contents' => [
                     ['parts' => [['text' => $prompt]]],
                 ],
-                'generationConfig' => [
-                    'temperature' => 0,
-                ],
-            ],
+                'generationConfig' => $judge->getModelParams() ?: null,
+            ], fn($v) => $v !== null),
         ]);
 
         $body = json_decode($response->getBody()->getContents(), true);

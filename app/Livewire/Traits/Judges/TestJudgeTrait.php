@@ -4,6 +4,7 @@ namespace App\Livewire\Traits\Judges;
 
 use App\Models\Judge;
 use App\Services\Judges\JudgeHandlerFactory;
+use App\Services\Judges\JudgeParamsService;
 use App\Services\Scorers\Scales\ScaleFactory;
 use GuzzleHttp\Exception\GuzzleException;
 
@@ -78,6 +79,9 @@ trait TestJudgeTrait
         $tempJudge->provider = $this->judgeForm->provider;
         $tempJudge->model_name = $this->judgeForm->model_name;
         $tempJudge->api_key = $apiKey;
+        $tempJudge->settings = [
+            Judge::SETTING_MODEL_PARAMS => app(JudgeParamsService::class)->composeParamsArray($this->judgeForm->model_params),
+        ];
 
         try {
             $handler = $handlerFactory->create($tempJudge);

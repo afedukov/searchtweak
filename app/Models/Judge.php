@@ -65,6 +65,7 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
     ];
 
     public const string SETTING_BATCH_SIZE = 'batch_size';
+    public const string SETTING_MODEL_PARAMS = 'model_params';
 
     public const array PROMPTS = [
         BinaryScale::SCALE_TYPE => self::FIELD_PROMPT_BINARY,
@@ -151,6 +152,11 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
     public function getBatchSize(): int
     {
         return $this->settings[self::SETTING_BATCH_SIZE] ?? self::DEFAULT_BATCH_SIZE;
+    }
+
+    public function getModelParams(): array
+    {
+        return $this->settings[self::SETTING_MODEL_PARAMS] ?? [];
     }
 
     /**

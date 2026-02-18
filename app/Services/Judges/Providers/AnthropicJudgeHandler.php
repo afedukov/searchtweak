@@ -23,13 +23,13 @@ class AnthropicJudgeHandler extends AbstractJudgeHandler
                 'anthropic-version' => self::API_VERSION,
                 'Content-Type' => 'application/json',
             ],
-            RequestOptions::JSON => [
+            RequestOptions::JSON => array_merge([
                 'model' => $judge->model_name,
                 'max_tokens' => self::MAX_TOKENS,
                 'messages' => [
                     ['role' => 'user', 'content' => $prompt],
                 ],
-            ],
+            ], $judge->getModelParams()),
         ]);
 
         $body = json_decode($response->getBody()->getContents(), true);

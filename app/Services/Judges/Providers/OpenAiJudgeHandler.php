@@ -20,12 +20,12 @@ class OpenAiJudgeHandler extends AbstractJudgeHandler
                 'Authorization' => 'Bearer ' . $judge->api_key,
                 'Content-Type' => 'application/json',
             ],
-            RequestOptions::JSON => [
+            RequestOptions::JSON => array_merge([
                 'model' => $judge->model_name,
                 'messages' => [
                     ['role' => 'user', 'content' => $prompt],
                 ],
-            ],
+            ], $judge->getModelParams()),
         ]);
 
         $body = json_decode($response->getBody()->getContents(), true);

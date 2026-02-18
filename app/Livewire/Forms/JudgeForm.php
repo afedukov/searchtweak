@@ -4,6 +4,7 @@ namespace App\Livewire\Forms;
 
 use App\Models\Judge;
 use App\Models\Tag;
+use App\Services\Judges\JudgeParamsService;
 use App\Services\SyncTagsService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -31,6 +32,8 @@ class JudgeForm extends Form
 
     public int $setting_batch_size = Judge::DEFAULT_BATCH_SIZE;
 
+    public string $model_params = '';
+
     public array $tags = [];
 
     public function rules(): array
@@ -57,6 +60,7 @@ class JudgeForm extends Form
             'prompt_graded' => ['required', 'string', 'max:16384'],
             'prompt_detail' => ['required', 'string', 'max:16384'],
             'setting_batch_size' => ['required', 'integer', 'min:1', 'max:20'],
+            'model_params' => ['nullable', 'string', 'max:4096'],
             'tags' => ['nullable', 'array'],
             'tags.*.id' => ['integer', Rule::exists('tags', Tag::FIELD_ID)->where(Tag::FIELD_TEAM_ID, Auth::user()->current_team_id)],
         ];
@@ -74,12 +78,15 @@ class JudgeForm extends Form
     {
         $this->validate();
 
+        $paramsService = app(JudgeParamsService::class);
+
         $judge = Judge::create(
-            $this->except(['tags', 'setting_batch_size']) + [
+            $this->except(['tags', 'setting_batch_size', 'model_params']) + [
                 Judge::FIELD_USER_ID => Auth::user()->id,
                 Judge::FIELD_TEAM_ID => Auth::user()->current_team_id,
                 Judge::FIELD_SETTINGS => [
                     Judge::SETTING_BATCH_SIZE => $this->setting_batch_size,
+                    Judge::SETTING_MODEL_PARAMS => $paramsService->composeParamsArray($this->model_params),
                 ],
             ]
         );
@@ -93,16 +100,19 @@ class JudgeForm extends Form
     {
         $this->validate();
 
-        $data = $this->except(['tags', 'setting_batch_size']);
+        $paramsService = app(JudgeParamsService::class);
+
+        $data = $this->except(['tags', 'setting_batch_size', 'model_params']);
 
         // Only update api_key if a new value is provided
         if (empty($data['api_key'])) {
             unset($data['api_key']);
         }
 
-        $data[Judge::FIELD_SETTINGS] = array_merge($this->judge->settings ?? [], [
+        $data[Judge::FIELD_SETTINGS] = [
             Judge::SETTING_BATCH_SIZE => $this->setting_batch_size,
-        ]);
+            Judge::SETTING_MODEL_PARAMS => $paramsService->composeParamsArray($this->model_params),
+        ];
 
         $this->judge->update($data);
 
@@ -119,6 +129,7 @@ class JudgeForm extends Form
         // Never expose api_key in the form
         $values['api_key'] = '';
         $values['setting_batch_size'] = $judge->getBatchSize();
+        $values['model_params'] = app(JudgeParamsService::class)->decomposeParamsArray($judge->getModelParams());
 
         if ($clone) {
             unset($values[Judge::FIELD_ID]);
