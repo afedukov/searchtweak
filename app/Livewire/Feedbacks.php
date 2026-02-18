@@ -6,6 +6,7 @@ use App\Actions\Evaluations\ResetUserFeedback;
 use App\Models\EvaluationKeyword;
 use App\Models\SearchEvaluation;
 use App\Models\SearchSnapshot;
+use App\Models\Judge;
 use App\Models\User;
 use App\Models\UserFeedback;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,6 +53,7 @@ class Feedbacks extends Component
                 ->selectRaw('CASE WHEN grade IS NULL THEN 0 ELSE 1 END as is_graded')
                 ->with([
                     'user.tags',
+                    'judge.tags',
                     'snapshot.keyword',
                 ])
                 ->orderBy(UserFeedback::FIELD_UPDATED_AT)
@@ -74,6 +76,9 @@ class Feedbacks extends Component
                 )
                 ->orWhereHas('user', fn (Builder $query) =>
                     $query->where(User::FIELD_NAME, 'like', '%' . $this->query . '%')
+                )
+                ->orWhereHas('judge', fn (Builder $query) =>
+                    $query->where(Judge::FIELD_NAME, 'like', '%' . $this->query . '%')
                 )
             );
         }

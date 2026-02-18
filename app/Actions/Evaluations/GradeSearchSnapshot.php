@@ -46,7 +46,7 @@ class GradeSearchSnapshot
     {
         return $snapshot->feedbacks
             ->filter(fn (UserFeedback $feedback) =>
-                $feedback->grade === null && ($feedback->user_id === null || $feedback->isAssignmentExpired())
+                $feedback->grade === null && $feedback->judge_id === null && ($feedback->user_id === null || $feedback->isAssignmentExpired())
             )
             ->first();
     }
@@ -55,7 +55,7 @@ class GradeSearchSnapshot
     {
         return $snapshot->feedbacks
             ->filter(fn (UserFeedback $feedback) =>
-                $feedback->grade === null && $feedback->user_id !== null && !$feedback->isAssignmentExpired()
+                $feedback->grade === null && $feedback->judge_id === null && $feedback->user_id !== null && !$feedback->isAssignmentExpired()
             )
             ->first();
     }

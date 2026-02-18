@@ -45,20 +45,20 @@ class JudgeTest extends TestCase
         $this->assertEquals(Judge::FIELD_PROMPT_DETAIL, Judge::PROMPTS[DetailScale::SCALE_TYPE]);
     }
 
-    public function test_get_batch_size_returns_zero_by_default(): void
+    public function test_get_batch_size_returns_default_when_empty(): void
     {
         $judge = new Judge();
         $judge->settings = [];
 
-        $this->assertEquals(0, $judge->getBatchSize());
+        $this->assertEquals(Judge::DEFAULT_BATCH_SIZE, $judge->getBatchSize());
     }
 
-    public function test_get_batch_size_returns_zero_when_settings_null(): void
+    public function test_get_batch_size_returns_default_when_settings_null(): void
     {
         $judge = new Judge();
         $judge->settings = null;
 
-        $this->assertEquals(0, $judge->getBatchSize());
+        $this->assertEquals(Judge::DEFAULT_BATCH_SIZE, $judge->getBatchSize());
     }
 
     public function test_get_batch_size_returns_stored_value(): void

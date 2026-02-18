@@ -205,7 +205,7 @@ A finished evaluation set as the team's baseline for comparison. Other evaluatio
 An **AI-powered judge** that can automatically evaluate search result relevance:
 - Configures an LLM provider (OpenAI, Anthropic, Google) with model name and API key
 - Has **per-scale prompt templates** (Binary, Graded, Detail) with a `#pairs#` placeholder for dynamic data injection
-- Configurable **batch size** (0 = auto, 1–20 pairs per LLM request)
+- Configurable **batch size** (1–20 pairs per LLM request, default 5)
 - Can be active or archived (`archived_at` timestamp)
 - Team-scoped, supports tags for filtering
 - API keys encrypted at rest
@@ -497,7 +497,7 @@ All models are in `app/Models/`. Key patterns:
 - **Key Methods**: `isActive()`, `isArchived()`, `getDefaultPrompt(string $scaleType)`, `getBatchSize()`
 - **Scopes**: `active()`
 - **Security**: `api_key` encrypted via Eloquent cast, hidden from serialization
-- **Settings**: `batch_size` (0 = auto, 1–20 per request)
+- **Settings**: `batch_size` (1–20 per request, default 5)
 - **Prompt Templates**: Per-scale (`prompt_binary`, `prompt_graded`, `prompt_detail`) with `#pairs#` placeholder
 
 ### 6.15 `JudgeTag`

@@ -20,7 +20,12 @@
 					<x-dynamic-component :component="$evaluation->getScale()->getScaleBadgeComponent()" :grade="$feedback->grade" size="sm" />
 
 					<span class="text-xs whitespace-nowrap">
-						{{ $feedback->user?->name ?? 'Removed User' }}
+						@if ($feedback->judge_id)
+							<span class="text-blue-500 dark:text-blue-400">{{ $feedback->judge?->name ?? 'Removed Judge' }}</span>
+							<span class="inline-flex items-center text-[10px] leading-none font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-500 text-white ml-1">AI</span>
+						@else
+							{{ $feedback->user?->name ?? 'Removed User' }}
+						@endif
 					</span>
 				</li>
 			@endforeach

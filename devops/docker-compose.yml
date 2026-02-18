@@ -51,6 +51,8 @@ services:
       context: image/php
       args:
         INSTALL_OPCACHE: ${INSTALL_OPCACHE}
+    environment:
+      PHP_OPCACHE_VALIDATE_TIMESTAMPS: ${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     restart: unless-stopped
     volumes:
       - ../:/var/www

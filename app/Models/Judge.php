@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -113,6 +114,11 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
         return $this->belongsTo(Team::class);
     }
 
+    public function feedbacks(): HasMany
+    {
+        return $this->hasMany(UserFeedback::class);
+    }
+
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, JudgeTag::class, JudgeTag::FIELD_JUDGE_ID, JudgeTag::FIELD_TAG_ID, self::FIELD_ID, Tag::FIELD_ID)
@@ -140,9 +146,50 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
         return file_get_contents(resource_path("prompts/judge/{$scaleType}.md"));
     }
 
+    public const int DEFAULT_BATCH_SIZE = 5;
+
     public function getBatchSize(): int
     {
-        return $this->settings[self::SETTING_BATCH_SIZE] ?? 0;
+        return $this->settings[self::SETTING_BATCH_SIZE] ?? self::DEFAULT_BATCH_SIZE;
+    }
+
+    /**
+     * Determine whether this judge is eligible to process the given evaluation
+     * based on tag matching rules (same AND logic as for users).
+     */
+    public static function matchesEvaluation(self $judge, SearchEvaluation $evaluation): bool
+    {
+        $evaluationTags = $evaluation->relationLoaded('tags')
+            ? $evaluation->tags
+            : $evaluation->load('tags')->tags;
+
+        if ($evaluationTags->isEmpty()) {
+            return true;
+        }
+
+        $judgeTags = $judge->relationLoaded('tags')
+            ? $judge->tags
+            : $judge->load('tags')->tags;
+
+        if ($judgeTags->isEmpty()) {
+            return false;
+        }
+
+        return $evaluationTags->pluck(Tag::FIELD_ID)->diff($judgeTags->pluck(Tag::FIELD_ID))->isEmpty();
+    }
+
+    /**
+     * Get the prompt template for the given scale type.
+     */
+    public function getPromptForScale(string $scaleType): string
+    {
+        $field = self::PROMPTS[$scaleType] ?? null;
+
+        if ($field === null) {
+            throw new \InvalidArgumentException(sprintf('Unknown scale type: %s', $scaleType));
+        }
+
+        return $this->{$field} ?? self::getDefaultPrompt($scaleType);
     }
 
     public function toArray(): array

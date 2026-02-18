@@ -18,9 +18,15 @@ class Leaderboard extends Component
 
     public const int PER_PAGE = 10;
 
+    public const string FILTER_TYPE_ALL = 'all';
+    public const string FILTER_TYPE_USERS = 'users';
+    public const string FILTER_TYPE_JUDGES = 'judges';
+
     public string $date;
 
     public int $filterTagId = 0;
+
+    public string $filterType = self::FILTER_TYPE_ALL;
 
     protected function getListeners(): array
     {
@@ -37,10 +43,32 @@ class Leaderboard extends Component
         );
     }
 
+    public function updatedFilterType(): void
+    {
+        $this->resetPage();
+    }
+
     public function render(LeaderboardQueryGenerator $queryGenerator): View
     {
-        $query = $queryGenerator->getQuery(Auth::user()->current_team_id, $this->getDates());
-        $dataset = $queryGenerator->getDataset($query);
+        $teamId = Auth::user()->current_team_id;
+        $dates = $this->getDates();
+
+        if ($this->filterType === self::FILTER_TYPE_JUDGES) {
+            return $this->renderJudges($queryGenerator, $teamId, $dates);
+        }
+
+        if ($this->filterType === self::FILTER_TYPE_USERS) {
+            return $this->renderUsers($queryGenerator, $teamId, $dates);
+        }
+
+        // All: show users and judges combined
+        return $this->renderAll($queryGenerator, $teamId, $dates);
+    }
+
+    private function renderUsers(LeaderboardQueryGenerator $queryGenerator, int $teamId, array $dates): View
+    {
+        $query = $queryGenerator->getUserQuery($teamId, $dates);
+        $dataset = $queryGenerator->getUserDataset($query);
 
         return view('livewire.pages.leaderboard', [
             'team' => Auth::user()->currentTeam,
@@ -51,6 +79,49 @@ class Leaderboard extends Component
                 )
                 ->paginate(self::PER_PAGE),
             'dataset' => $dataset,
+            'showType' => 'users',
+        ])->title('Leaderboard');
+    }
+
+    private function renderJudges(LeaderboardQueryGenerator $queryGenerator, int $teamId, array $dates): View
+    {
+        $query = $queryGenerator->getJudgeQuery($teamId, $dates);
+        $dataset = $queryGenerator->getJudgeDataset($query);
+
+        return view('livewire.pages.leaderboard', [
+            'team' => Auth::user()->currentTeam,
+            'items' => $query
+                ->when($this->filterTagId, fn (Builder $query) =>
+                    $query->whereHas('judge.tags', fn (Builder $query) => $query->whereKey($this->filterTagId))
+                )
+                ->paginate(self::PER_PAGE),
+            'dataset' => $dataset,
+            'showType' => 'judges',
+        ])->title('Leaderboard');
+    }
+
+    private function renderAll(LeaderboardQueryGenerator $queryGenerator, int $teamId, array $dates): View
+    {
+        // For "All" view, show users first then judges as separate sections
+        $userQuery = $queryGenerator->getUserQuery($teamId, $dates);
+        $judgeQuery = $queryGenerator->getJudgeQuery($teamId, $dates);
+        $dataset = $queryGenerator->getUserDataset($userQuery);
+
+        return view('livewire.pages.leaderboard', [
+            'team' => Auth::user()->currentTeam,
+            'items' => $userQuery
+                ->with('user.tags')
+                ->when($this->filterTagId, fn (Builder $query) =>
+                    $query->whereHas('user.tags', fn (Builder $query) => $query->whereKey($this->filterTagId))
+                )
+                ->paginate(self::PER_PAGE),
+            'judgeItems' => $judgeQuery
+                ->when($this->filterTagId, fn (Builder $query) =>
+                    $query->whereHas('judge.tags', fn (Builder $query) => $query->whereKey($this->filterTagId))
+                )
+                ->get(),
+            'dataset' => $dataset,
+            'showType' => 'all',
         ])->title('Leaderboard');
     }
 

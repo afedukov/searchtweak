@@ -78,7 +78,7 @@ class Evaluation extends Component
         $query = $this->applyFilters($query);
 
         $keywords = $this->applyOrderBy($query)
-            ->with(['snapshots.feedbacks.user', 'keywordMetrics.metric'])
+            ->with(['snapshots.feedbacks.user', 'snapshots.feedbacks.judge', 'keywordMetrics.metric'])
             ->paginate(self::PER_PAGE);
 
         return view('livewire.pages.evaluation', [

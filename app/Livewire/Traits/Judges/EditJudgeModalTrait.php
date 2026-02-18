@@ -12,6 +12,8 @@ use Masmerise\Toaster\Toaster;
 
 trait EditJudgeModalTrait
 {
+    use TestJudgeTrait;
+
     public bool $editJudgeModal = false;
 
     public JudgeForm $judgeForm;
@@ -22,6 +24,7 @@ trait EditJudgeModalTrait
         $this->judgeForm->resetErrorBag();
         $this->judgeForm->judge = null;
         $this->judgeForm->initDefaults();
+        $this->judgeTestResult = null;
 
         $this->editJudgeModal = true;
     }
@@ -33,6 +36,7 @@ trait EditJudgeModalTrait
         $this->judgeForm->reset();
         $this->judgeForm->resetErrorBag();
         $this->judgeForm->setJudge($judge);
+        $this->judgeTestResult = null;
         $this->editJudgeModal = true;
     }
 
@@ -43,6 +47,7 @@ trait EditJudgeModalTrait
         $this->judgeForm->reset();
         $this->judgeForm->resetErrorBag();
         $this->judgeForm->setJudge($judge, true);
+        $this->judgeTestResult = null;
         $this->editJudgeModal = true;
     }
 

@@ -16,6 +16,9 @@ test:
 jobs:
 	docker compose run --rm artisan horizon
 
+queue-reload:
+	docker exec searchtweak-queue php artisan horizon:terminate
+
 reverb:
 	docker compose run --rm artisan reverb:start
 

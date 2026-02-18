@@ -29,7 +29,7 @@ class JudgeForm extends Form
 
     public string $prompt_detail = '';
 
-    public int $setting_batch_size = 0;
+    public int $setting_batch_size = Judge::DEFAULT_BATCH_SIZE;
 
     public array $tags = [];
 
@@ -56,7 +56,7 @@ class JudgeForm extends Form
             'prompt_binary' => ['required', 'string', 'max:16384'],
             'prompt_graded' => ['required', 'string', 'max:16384'],
             'prompt_detail' => ['required', 'string', 'max:16384'],
-            'setting_batch_size' => ['required', 'integer', 'min:0', 'max:20'],
+            'setting_batch_size' => ['required', 'integer', 'min:1', 'max:20'],
             'tags' => ['nullable', 'array'],
             'tags.*.id' => ['integer', Rule::exists('tags', Tag::FIELD_ID)->where(Tag::FIELD_TEAM_ID, Auth::user()->current_team_id)],
         ];

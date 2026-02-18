@@ -112,10 +112,18 @@
 										<x-block.date-label :date="$feedback->updated_at" />
 									</td>
 									<td class="px-5 py-4 align-baseline">
-										<x-block.user-name :user="$feedback->user" />
+										@if ($feedback->judge_id)
+											<x-block.judge-name :judge="$feedback->judge" />
+										@else
+											<x-block.user-name :user="$feedback->user" />
+										@endif
 									</td>
 									<td class="px-5 py-4 align-baseline">
-										<x-tags.tags-list :tags="$feedback->user?->getTeamTags(Auth::user()->current_team_id) ?? []" />
+										@if ($feedback->judge_id)
+											<x-tags.tags-list :tags="$feedback->judge?->tags ?? collect()" />
+										@else
+											<x-tags.tags-list :tags="$feedback->user?->getTeamTags(Auth::user()->current_team_id) ?? []" />
+										@endif
 									</td>
 									<td class="px-5 py-4 align-baseline">
 										<span class="font-semibold text-gray-700 dark:text-gray-300">

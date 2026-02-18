@@ -1,6 +1,7 @@
 <div>
 	<x-slot name="header">
 		<h2 class="font-semibold text-xl text-gray-700 leading-tight dark:text-slate-300">
+			<span class="uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-500 text-white ml-2">AI</span>
 			{{ __('Judges') }}
 		</h2>
 	</x-slot>
@@ -143,15 +144,21 @@
 							@forelse ($judges as $judge)
 								<tr wire:key="judge-item-{{ $judge->id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
 									<th scope="row" class="px-5 py-4 font-medium text-gray-900 dark:text-white align-baseline">
-										<div>
+										<div class="flex items-center gap-2">
 											{{ $judge->name }}
+											@if (in_array($judge->id, $workingJudgeIds))
+												<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full dark:bg-green-900 dark:text-green-300">
+													<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+													Working
+												</span>
+											@endif
 										</div>
 										<div class="text-sm text-gray-400 dark:text-gray-400">
 											{{ $judge->description }}
 										</div>
 									</th>
 									<td class="px-5 py-4 align-baseline">
-										<span class="text-sm font-medium me-2 px-2.5 py-0.5 rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+										<span class="text-sm font-medium me-2 px-2.5 py-1.5 rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
 											{{ ucfirst($judge->provider) }}
 										</span>
 									</td>
@@ -162,14 +169,10 @@
 										<x-tags.tags-list :tags="$judge->tags" empty-label="" />
 									</td>
 									<td class="px-5 py-4 text-center align-baseline">
-										<span class="font-mono text-xs">0</span>
+										<span class="font-mono text-xs">{{ $judge->pairs_judged_count }}</span>
 									</td>
 									<td class="px-5 py-4 text-center align-baseline">
-										@if ($judge->getBatchSize() > 0)
-											<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">{{ $judge->getBatchSize() }}</span>
-										@else
-											<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">Auto</span>
-										@endif
+										<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">{{ $judge->getBatchSize() }}</span>
 									</td>
 									<td class="px-5 py-4 align-baseline">
 										<!-- Toggle Judge Active -->

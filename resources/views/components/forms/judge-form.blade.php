@@ -91,6 +91,72 @@
 				<x-typography.inline-code>#pairs#</x-typography.inline-code>
 				{{ __('placeholder for the JSON array of query/product pairs to evaluate.') }}
 			</p>
+
+			<!-- Test Judge -->
+			<div class="mt-6">
+				<x-form.label.label-optional for="test-judge" value="Test Judge" />
+				<p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+					{{ __('Send sample query/product pairs to the LLM using the active prompt tab to verify the configuration.') }}
+				</p>
+				<div class="flex items-baseline gap-2" x-data="{ judgeTestResult: $wire.entangle('judgeTestResult') }">
+					<x-button type="button" wire:click="testJudge" wire:loading.attr="disabled"
+						@click="judgeTestResult = null; $wire.judgeTestScaleType = promptTab">
+						{{ __('Test') }}
+					</x-button>
+					<span wire:loading wire:target="testJudge" class="text-sm font-medium text-gray-400 dark:text-gray-500">
+						{{ __('Requesting...') }}
+					</span>
+
+					{{-- Success --}}
+					<template x-if="judgeTestResult && judgeTestResult.successful" x-cloak>
+						<div x-data="{ open: false }" class="p-2 items-baseline text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert">
+							{{ __('LLM responded.') }}
+							{{ __('Graded') }} <span class="font-semibold" x-text="judgeTestResult.graded_count"></span>/<span x-text="judgeTestResult.pairs_count"></span> {{ __('pairs.') }}
+
+							{{-- Toggle details --}}
+							<div class="inline-block ml-2">
+								<div class="flex items-center">
+									<svg class="w-2 h-2 shrink-0 mr-1" :class="open ? 'rotate-180': 'rotate-90'" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+										<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5 5 1 1 5"/>
+									</svg>
+									<a href="javascript:void(0)" @click.prevent="open = !open" class="text-blue-600 hover:text-blue-700 dark:text-blue-500 dark:hover:text-blue-400 hover:underline">
+										{{ __('View Details') }}
+									</a>
+								</div>
+							</div>
+
+							{{-- Grade details --}}
+							<div class="mt-3" x-show="open" x-cloak>
+								<template x-for="grade in judgeTestResult.grades" :key="grade.pair_index">
+									<div class="mb-2 p-2 rounded bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+										<div class="flex items-center gap-2 mb-1">
+											<span class="inline-block px-2 py-0.5 text-xs font-semibold rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" x-text="'Grade: ' + grade.grade"></span>
+											<span class="text-xs text-gray-500 dark:text-gray-400" x-text="grade.product"></span>
+										</div>
+										<template x-if="grade.reason">
+											<p class="text-xs text-gray-600 dark:text-gray-300" x-text="grade.reason"></p>
+										</template>
+									</div>
+								</template>
+
+								{{-- Raw response --}}
+								<div class="mt-2">
+									<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ __('Raw Response:') }}</p>
+									<x-form.input.textarea class="text-xs font-mono" rows="8" disabled x-text="judgeTestResult.response" />
+								</div>
+							</div>
+						</div>
+					</template>
+
+					{{-- Error --}}
+					<template x-if="judgeTestResult && !judgeTestResult.successful" x-cloak>
+						<div class="p-2 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400 text-ellipsis overflow-hidden" role="alert">
+							<span x-text="judgeTestResult.error"></span>
+						</div>
+					</template>
+				</div>
+			</div>
+
 		</div>
 
 		<!-- Advanced Settings -->
@@ -109,14 +175,11 @@
 				<div class="mb-4 last:mb-0">
 					<x-form.label.label-optional for="judgeForm.setting_batch_size" value="Batch Size" />
 					<div class="flex items-center gap-3">
-						<x-input type="number" min="0" max="20" wire:model="judgeForm.setting_batch_size" class="!w-24" />
-						<span class="text-sm text-gray-500 dark:text-gray-400">
-							0 = Auto (all pairs for keyword)
-						</span>
+						<x-input type="number" min="1" max="20" wire:model="judgeForm.setting_batch_size" class="!w-24" />
 					</div>
 					<x-input-error for="judgeForm.setting_batch_size" />
 					<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-						{{ __('Number of query/product pairs to send in a single LLM request (0-20).') }}
+						{{ __('Number of query/product pairs to send in a single LLM request (1-20).') }}
 					</p>
 				</div>
 

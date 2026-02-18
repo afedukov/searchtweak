@@ -104,7 +104,7 @@ class JudgesPromptsTest extends TestCase
             ->assertSet('judgeForm.setting_batch_size', 5);
     }
 
-    public function test_edit_judge_defaults_batch_size_to_zero(): void
+    public function test_edit_judge_defaults_batch_size_when_settings_empty(): void
     {
         $user = User::factory()->withPersonalTeam()->create();
         $judge = Judge::factory()->create([
@@ -116,7 +116,7 @@ class JudgesPromptsTest extends TestCase
         Livewire::actingAs($user)
             ->test(Judges::class)
             ->call('editJudge', $judge)
-            ->assertSet('judgeForm.setting_batch_size', 0);
+            ->assertSet('judgeForm.setting_batch_size', Judge::DEFAULT_BATCH_SIZE);
     }
 
     public function test_clone_judge_copies_all_three_prompts(): void
@@ -150,7 +150,7 @@ class JudgesPromptsTest extends TestCase
             Judge::FIELD_PROMPT_BINARY => 'Old binary',
             Judge::FIELD_PROMPT_GRADED => 'Old graded',
             Judge::FIELD_PROMPT_DETAIL => 'Old detail',
-            Judge::FIELD_SETTINGS => [Judge::SETTING_BATCH_SIZE => 0],
+            Judge::FIELD_SETTINGS => [Judge::SETTING_BATCH_SIZE => 3],
         ]);
 
         Livewire::actingAs($user)
