@@ -85,6 +85,17 @@
 								</div>
 							</div>
 
+							<!-- View Logs button -->
+							@if (Gate::check('view-judges'))
+								<a href="{{ route('judge-logs') }}"
+								   class="btn bg-white dark:bg-slate-800 border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600 text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300">
+									<svg class="w-4 h-4 fill-current opacity-50 shrink-0" viewBox="0 0 16 16">
+										<path d="M14 2H2C1.4 2 1 2.4 1 3v10c0 .6.4 1 1 1h12c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1zm-1 9H3V7h10v4zM3 6V4h10v2H3z"/>
+									</svg>
+									<span class="ml-2">{{ __('View Logs') }}</span>
+								</a>
+							@endif
+
 							<!-- Create Judge button -->
 							@if (Gate::check('create-judge', Auth::user()->currentTeam))
 								<x-button wire:click="createJudge" wire:loading.attr="disabled" class="relative flex">
@@ -196,6 +207,13 @@
 											@if (Gate::check('create-judge', Auth::user()->currentTeam))
 												<x-block.context-menu-item wire:click="cloneJudge('{{ $judge->id }}')">
 													{{ __('Clone') }}
+												</x-block.context-menu-item>
+											@endif
+
+											<!-- View Logs -->
+											@if (Gate::check('view-judges'))
+												<x-block.context-menu-item :href="route('judge.logs', $judge->id)">
+													{{ __('View Logs') }}
 												</x-block.context-menu-item>
 											@endif
 

@@ -13,25 +13,29 @@ class GoogleJudgeHandler extends AbstractJudgeHandler
 
     public function grade(Judge $judge, string $prompt, array $validGrades): array
     {
-        $url = sprintf(self::API_URL_TEMPLATE, $judge->model_name);
+        // Append the API key to the URL so sanitizeUrl() can mask it,
+        // instead of passing it via RequestOptions::QUERY which would not be masked.
+        $url = sprintf(self::API_URL_TEMPLATE, $judge->model_name) . '?key=' . urlencode($judge->api_key);
 
-        $response = $this->client->request('POST', $url, [
-            RequestOptions::TIMEOUT => self::TIMEOUT,
-            RequestOptions::CONNECT_TIMEOUT => 10,
-            RequestOptions::QUERY => ['key' => $judge->api_key],
-            RequestOptions::HEADERS => [
-                'Content-Type' => 'application/json',
-            ],
-            RequestOptions::JSON => array_filter([
-                'contents' => [
-                    ['parts' => [['text' => $prompt]]],
+        $content = $this->executeRequest(
+            judge: $judge,
+            method: 'POST',
+            url: $url,
+            guzzleOptions: [
+                RequestOptions::TIMEOUT => self::TIMEOUT,
+                RequestOptions::CONNECT_TIMEOUT => 10,
+                RequestOptions::HEADERS => [
+                    'Content-Type' => 'application/json',
                 ],
-                'generationConfig' => $judge->getModelParams() ?: null,
-            ], fn($v) => $v !== null),
-        ]);
-
-        $body = json_decode($response->getBody()->getContents(), true);
-        $content = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                RequestOptions::JSON => array_filter([
+                    'contents' => [
+                        ['parts' => [['text' => $prompt]]],
+                    ],
+                    'generationConfig' => $judge->getModelParams() ?: null,
+                ], fn ($v) => $v !== null),
+            ],
+            extractContent: fn (array $body) => $body['candidates'][0]['content']['parts'][0]['text'] ?? '',
+        );
 
         return $this->parseResponse($content, $validGrades);
     }

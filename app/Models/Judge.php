@@ -7,6 +7,7 @@ use App\Services\Scorers\Scales\DetailScale;
 use App\Services\Scorers\Scales\GradedScale;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -31,6 +32,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property User $user
  * @property Team $team
+ * @property Collection<UserFeedback> $feedbacks
+ * @property Collection<JudgeLog> $logs
+ * @property Collection<Tag> $tags
  *
  * @method static Builder|static active()
  */
@@ -72,6 +76,8 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
         GradedScale::SCALE_TYPE => self::FIELD_PROMPT_GRADED,
         DetailScale::SCALE_TYPE => self::FIELD_PROMPT_DETAIL,
     ];
+
+    public const int DEFAULT_BATCH_SIZE = 5;
 
     protected $fillable = [
         self::FIELD_NAME,
@@ -120,6 +126,11 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
         return $this->hasMany(UserFeedback::class);
     }
 
+    public function logs(): HasMany
+    {
+        return $this->hasMany(JudgeLog::class);
+    }
+
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, JudgeTag::class, JudgeTag::FIELD_JUDGE_ID, JudgeTag::FIELD_TAG_ID, self::FIELD_ID, Tag::FIELD_ID)
@@ -146,8 +157,6 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
     {
         return file_get_contents(resource_path("prompts/judge/{$scaleType}.md"));
     }
-
-    public const int DEFAULT_BATCH_SIZE = 5;
 
     public function getBatchSize(): int
     {

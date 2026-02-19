@@ -13,23 +13,26 @@ class OpenAiJudgeHandler extends AbstractJudgeHandler
 
     public function grade(Judge $judge, string $prompt, array $validGrades): array
     {
-        $response = $this->client->request('POST', self::API_URL, [
-            RequestOptions::TIMEOUT => self::TIMEOUT,
-            RequestOptions::CONNECT_TIMEOUT => 10,
-            RequestOptions::HEADERS => [
-                'Authorization' => 'Bearer ' . $judge->api_key,
-                'Content-Type' => 'application/json',
-            ],
-            RequestOptions::JSON => array_merge([
-                'model' => $judge->model_name,
-                'messages' => [
-                    ['role' => 'user', 'content' => $prompt],
+        $content = $this->executeRequest(
+            judge: $judge,
+            method: 'POST',
+            url: self::API_URL,
+            guzzleOptions: [
+                RequestOptions::TIMEOUT => self::TIMEOUT,
+                RequestOptions::CONNECT_TIMEOUT => 10,
+                RequestOptions::HEADERS => [
+                    'Authorization' => 'Bearer ' . $judge->api_key,
+                    'Content-Type' => 'application/json',
                 ],
-            ], $judge->getModelParams()),
-        ]);
-
-        $body = json_decode($response->getBody()->getContents(), true);
-        $content = $body['choices'][0]['message']['content'] ?? '';
+                RequestOptions::JSON => array_merge([
+                    'model' => $judge->model_name,
+                    'messages' => [
+                        ['role' => 'user', 'content' => $prompt],
+                    ],
+                ], $judge->getModelParams()),
+            ],
+            extractContent: fn (array $body) => $body['choices'][0]['message']['content'] ?? '',
+        );
 
         return $this->parseResponse($content, $validGrades);
     }

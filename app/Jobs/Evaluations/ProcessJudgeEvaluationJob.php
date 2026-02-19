@@ -292,8 +292,10 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
         // Build pairs payload for the prompt
         $pairs = $this->buildPairs($claimed);
 
-        // Get prompt template and handler
-        $prompt = $handlerFactory->create($judge)->buildPrompt(
+        // Create a single handler instance for both buildPrompt and grade
+        $handler = $handlerFactory->create($judge);
+
+        $prompt = $handler->buildPrompt(
             $judge->getPromptForScale($evaluation->scale_type),
             $pairs,
         );
@@ -313,8 +315,9 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
         ));
 
         try {
-            $handler = $handlerFactory->create($judge);
-            $results = $handler->grade($judge, $prompt, $validGrades);
+            $results = $handler
+                ->withContext($this->evaluationId, count($pairs), $evaluation->scale_type)
+                ->grade($judge, $prompt, $validGrades);
         } catch (\Throwable $e) {
             Log::channel('judges')->error(sprintf(
                 'ProcessJudgeEvaluationJob[%d]: LLM API error for judge "%s" (id=%d): %s',
