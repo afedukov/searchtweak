@@ -14,7 +14,7 @@ Use it to benchmark search configurations, label training data for ML models, an
 
 - **AI Judges** — automated relevance judging with OpenAI, Anthropic, Google, DeepSeek, xAI, Groq, Mistral, Ollama, and Custom OpenAI-compatible providers
 - **Human + AI Hybrid Flow** — people and AI judges work in one feedback model with `Single` and `Multiple (3)` strategies
-- **Judge Operations** — provider/model configuration, per-scale prompts, batch size control, logs, token usage, and runtime statuses
+- **Judge Operations** — provider/model configuration, per-scale prompts, batch size control, logs, token usage, runtime statuses, and JSONL log export by active filters
 - **Search Evaluation** — run keyword queries against any search API, collect relevance judgments, and compute metrics automatically
 - **IR Metrics** — Precision, MAP, MRR, CG, DCG, nDCG with support for Binary, Graded, and Detail grading scales
 - **Metrics Over Time** — track how search quality changes across evaluations with historical charts

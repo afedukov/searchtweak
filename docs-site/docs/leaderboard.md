@@ -13,6 +13,10 @@ The selected mode affects both:
 - table entries
 - chart series
 
+UI note:
+
+- AI judge rows use a consistent judge identity marker (icon + name) to match other judge-related pages.
+
 ## Filters
 
 - Date range

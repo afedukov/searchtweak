@@ -48,7 +48,7 @@ SearchTweak helps you run repeatable relevance experiments:
 - [Mapper Code](/mapper-code): extract `id`, `name`, and optional fields from API responses.
 - [Search Models](/search-models): define query params/body templates.
 - [Search Evaluations](/search-evaluations): configure strategy, scale, and metric set.
-- [Judges (AI)](/judges): configure LLM judges, prompts, and monitoring.
+- [Judges (AI)](/judges): configure LLM judges, prompts, monitoring, and JSONL log export.
 - [Leaderboard](/leaderboard): compare throughput of users and AI judges.
 - [Evaluation Metrics](/evaluation-metrics): formulas, interpretation, and caveats.
 - [Team Management](/team-management): roles, membership, and permissions.

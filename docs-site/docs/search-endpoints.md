@@ -27,6 +27,7 @@ A Search Endpoint defines **how SearchTweak talks to your search API**.
 - Endpoint activation controls whether it can be used for new models.
 - Existing models/evaluations are not automatically deleted when endpoint is deactivated.
 - Deleting an endpoint may be blocked by unfinished evaluations linked through models.
+- Endpoints list supports segmented status filter: `All | Active | Archived`.
 
 ## Common Mistakes
 

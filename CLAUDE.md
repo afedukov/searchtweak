@@ -316,3 +316,4 @@ Global helpers in `app/helpers.php`:
 - Models extending `TeamBroadcastableModel` auto-broadcast CRUD events on team channels
 - `UserFeedback` assignments expire after 5 minutes if not graded
 - Queue queues: `default`, `snapshots-auto` (parallel), `snapshots-single` (serial), `judges` (AI judging)
+- Judge logs UI supports JSONL export of the currently filtered dataset (status/judge/evaluation/date)

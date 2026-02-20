@@ -17,7 +17,7 @@ features:
   - title: Search Evaluations
     details: Configure models, keywords, strategies, and metrics to measure relevance.
   - title: AI Judges
-    details: Use OpenAI, Anthropic, Google, DeepSeek, xAI, Groq, Mistral, Custom OpenAI-compatible, and Ollama providers.
+    details: Use OpenAI, Anthropic, Google, DeepSeek, xAI, Groq, Mistral, Custom OpenAI-compatible, and Ollama providers with full request/response observability.
   - title: Metrics & Export
     details: Track IR metrics and export aggregated judgements.
 ---

@@ -865,8 +865,8 @@ API requests require an `Authorization: Bearer {token}` header. Tokens are manag
 | `/evaluations` | `Evaluations` | Evaluation listing |
 | `/evaluations/{evaluation}` | `Evaluation` | Evaluation detail view |
 | `/judges` | `Judges` | LLM judge management |
-| `/judges/logs` | `JudgeLogs` | Global judge request logs |
-| `/judges/{judge}/logs` | `JudgeLogs` | Per-judge request logs |
+| `/judges/logs` | `JudgeLogs` | Global judge request logs with filter-aware JSONL export |
+| `/judges/{judge}/logs` | `JudgeLogs` | Per-judge request logs with filter-aware JSONL export |
 | `/models` | `Models` | Search model listing |
 | `/models/{model}` | `Model` | Model detail view |
 | `/endpoints` | `Endpoints` | Endpoint management |
@@ -887,9 +887,9 @@ API requests require an `Authorization: Bearer {token}` header. Tokens are manag
 | `Evaluation` | Full evaluation detail: keywords, snapshots, metrics, feedback |
 | `Models` | Search model management with endpoint testing |
 | `Model` | Model detail with configuration and evaluation history |
-| `Judges` | LLM judge configuration (providers, prompts, batch size, model params, base URL, tags) with reactive status/pairs-judged indicators |
-| `JudgeLogs` | Filtering and inspection of judge provider requests/responses |
-| `Endpoints` | CRUD for search endpoints with mapper code editor |
+| `Judges` | LLM judge configuration (providers, prompts, batch size, model params, base URL, tags) with reactive status/pairs-judged indicators and segmented status filter (`All/Active/Archived`) |
+| `JudgeLogs` | Filtering and inspection of judge provider requests/responses with JSONL export of the current filtered dataset |
+| `Endpoints` | CRUD for search endpoints with mapper code editor and segmented status filter (`All/Active/Archived`) |
 | `GiveFeedback` | Main evaluator UI for grading search results |
 | `Feedbacks` | Admin view of all feedback activity |
 | `Leaderboard` | Rankings with `All | Users | Judges` modes and mixed dataset charting |

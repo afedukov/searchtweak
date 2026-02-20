@@ -47,6 +47,12 @@ Active judges can show:
 
 Inactive judges do not show runtime status badges.
 
+Judges page status filter uses segmented control:
+
+- `All`
+- `Active`
+- `Archived`
+
 ## Assignment and Safety Rules
 
 - One AI judge can grade at most one slot per snapshot.
@@ -63,5 +69,11 @@ Use judge logs for observability:
 - latency
 - token usage
 - error text
+
+Judge Logs page supports:
+
+- global mode (`/judges/logs`) and per-judge mode (`/judges/{judge}/logs`)
+- filters by status/judge/evaluation/date
+- **Export JSONL** of the currently filtered dataset (includes request/response bodies)
 
 This is the primary source for debugging provider, prompt, and parsing issues.
