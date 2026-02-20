@@ -4,6 +4,7 @@
 /public/hot
 /public/storage
 /public/vendor/livewire
+/public/docs
 /storage/*.key
 /vendor
 .env
@@ -19,3 +20,5 @@ yarn-error.log
 /.idea
 /.vscode
 .claude/settings.local.json
+docs-site/docs/.vitepress/cache
+docs-site/docs/.vitepress/dist

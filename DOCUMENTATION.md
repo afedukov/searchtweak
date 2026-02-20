@@ -1218,7 +1218,7 @@ make vite
 ```bash
 make start      # Start all Docker services
 make stop       # Stop all Docker services
-make bootstrap  # Run composer install, migrations, seed, key generate, cache, assets
+make bootstrap  # Run composer install, migrations, seed, key generate, cache, assets, and publish docs
 make test       # Clear config cache and run tests
 make seed       # Reset database with fresh migrations and seeders
 make jobs       # Start Horizon (queue worker)
@@ -1226,6 +1226,11 @@ make queue-reload # Reload Horizon in running queue container (horizon:terminate
 make reverb     # Start Reverb (WebSocket server)
 make vite       # Start Vite dev server (hot reload)
 make vite-prod  # Build production assets
+make docs       # Start VitePress docs dev server (port 3001)
+make docs-install # Install docs dependencies
+make docs-build # Build docs site
+make docs-preview # Preview docs build (port 3001)
+make docs-publish # Build and publish docs into public/docs
 ```
 
 ### 21.5 Database Seeders
@@ -1256,7 +1261,8 @@ docker compose -f devops/docker-compose.yml run --rm npm install
 | URL | Service |
 |---|---|
 | `http://searchtweak.local` | Application |
-| `http://searchtweak.local:8082` | phpMyAdmin |
+| `http://searchtweak.local/docs` | VitePress Documentation (static, served by Nginx) |
+| `http://searchtweak.local:8888` | phpMyAdmin |
 | `http://searchtweak.local:8025` | MailHog |
 | `http://searchtweak.local/horizon` | Horizon Dashboard |
 

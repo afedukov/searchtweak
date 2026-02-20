@@ -302,8 +302,8 @@ Global helpers in `app/helpers.php`:
 ## Documentation
 
 - Comprehensive docs: `DOCUMENTATION.md` (project root)
-- User docs: `resources/docs/` (rendered with LaRecipe)
-- API docs: `resources/docs/1.0/api/`
+- User/API docs source: `docs-site/docs/` (VitePress)
+- Published static docs: `public/docs/` (served at `/docs` by Nginx)
 
 ## Important Notes
 

@@ -58,4 +58,10 @@ docker compose run --rm npm install
 echo -e ${ACTION}Building app resources ...
 docker compose run --rm npm run build
 
+echo -e ${ACTION}Installing docs dependencies ...
+docker compose run --rm npm --prefix docs-site install
+
+echo -e ${ACTION}Publishing docs ...
+docker compose run --rm npm --prefix docs-site run docs:publish
+
 exit 0;

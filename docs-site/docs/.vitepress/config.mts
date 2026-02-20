@@ -1,0 +1,54 @@
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  title: 'SearchTweak Docs',
+  description: 'Search relevance evaluation platform documentation',
+  base: '/docs/',
+  cleanUrls: true,
+  lastUpdated: false,
+  ignoreDeadLinks: true,
+  themeConfig: {
+    siteTitle: 'SearchTweak',
+    logoLink: {
+      link: '/',
+      target: '_self'
+    },
+    nav: [
+      { text: 'Docs', link: '/overview' },
+      { text: 'API', link: '/api/overview' }
+    ],
+    sidebar: [
+      {
+        text: 'Docs',
+        items: [
+          { text: 'Overview', link: '/overview' },
+          { text: 'Search Endpoints', link: '/search-endpoints' },
+          { text: 'Mapper Code', link: '/mapper-code' },
+          { text: 'Search Models', link: '/search-models' },
+          { text: 'Search Evaluations', link: '/search-evaluations' },
+          { text: 'Judges (AI)', link: '/judges' },
+          { text: 'Leaderboard', link: '/leaderboard' },
+          { text: 'Evaluation Metrics', link: '/evaluation-metrics' },
+          { text: 'Team Management', link: '/team-management' },
+          { text: 'Tags', link: '/tags' }
+        ]
+      },
+      {
+        text: 'API Reference',
+        items: [
+          { text: 'Overview', link: '/api/overview' },
+          { text: 'List Models', link: '/api/list-models' },
+          { text: 'Get Model Details', link: '/api/get-model-details' },
+          { text: 'List Evaluations', link: '/api/list-evaluations' },
+          { text: 'Get Evaluation Details', link: '/api/get-evaluation-details' },
+          { text: 'Get Evaluation Judgements', link: '/api/get-evaluation-judgements' },
+          { text: 'Create Evaluation', link: '/api/create-evaluation' },
+          { text: 'Start Evaluation', link: '/api/start-evaluation' },
+          { text: 'Stop Evaluation', link: '/api/stop-evaluation' },
+          { text: 'Finish Evaluation', link: '/api/finish-evaluation' },
+          { text: 'Delete Evaluation', link: '/api/delete-evaluation' }
+        ]
+      }
+    ]
+  }
+})

@@ -4,7 +4,7 @@
 [![Laravel 11](https://img.shields.io/badge/Laravel-11-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
 [![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue)](LICENSE.md)
 
-**Self-hosted search relevance evaluation platform.** Assess search quality by running keyword queries against your search APIs, collecting human relevance judgments, and calculating industry-standard IR metrics.
+**Self-hosted search relevance evaluation platform with AI Judges.** Assess search quality by running keyword queries against your search APIs, collecting human and AI relevance judgments, and calculating industry-standard IR metrics.
 
 Use it to benchmark search configurations, label training data for ML models, and track search quality over time.
 
@@ -12,14 +12,25 @@ Use it to benchmark search configurations, label training data for ML models, an
 
 ## Key Features
 
-- **Search Evaluation** — run keyword queries against any search API, collect human relevance judgments, and compute metrics automatically
+- **AI Judges** — automated relevance judging with OpenAI, Anthropic, Google, DeepSeek, xAI, Groq, Mistral, Ollama, and Custom OpenAI-compatible providers
+- **Human + AI Hybrid Flow** — people and AI judges work in one feedback model with `Single` and `Multiple (3)` strategies
+- **Judge Operations** — provider/model configuration, per-scale prompts, batch size control, logs, token usage, and runtime statuses
+- **Search Evaluation** — run keyword queries against any search API, collect relevance judgments, and compute metrics automatically
 - **IR Metrics** — Precision, MAP, MRR, CG, DCG, nDCG with support for Binary, Graded, and Detail grading scales
 - **Metrics Over Time** — track how search quality changes across evaluations with historical charts
-- **Feedback Management** — assign grading tasks to team members, reuse judgments across evaluations, scoring guidelines
+- **Feedback Management** — assign grading tasks to team members, reuse judgments (human and AI) across evaluations, scoring guidelines
 - **Team Collaboration** — role-based access (Admin, Evaluator), team invitations, tag-based organization
 - **Real-time Updates** — live progress via WebSockets as evaluations run and grades come in
 - **REST API** — manage evaluations and models programmatically with token-based authentication
 - **Customizable Dashboard** — configurable widgets for metrics, leaderboard, and feedback activity
+
+## How It Works
+
+1. Configure a **Search Endpoint** (URL, method, headers, mapper).
+2. Configure a **Search Model** (request template with `#query#`).
+3. Create a **Search Evaluation** (keywords, scale, metrics, strategy).
+4. Collect feedback from **humans and/or AI judges**.
+5. Review metrics and compare quality over time.
 
 <details>
 <summary>More screenshots</summary>
@@ -88,6 +99,7 @@ This will start all containers and bootstrap the application (migrations, cache,
 | Service | URL |
 |---------|-----|
 | App | http://searchtweak.local |
+| Docs (VitePress) | http://searchtweak.local/docs/overview |
 | Traefik Dashboard | http://traefik.searchtweak.local |
 | phpMyAdmin | http://db.searchtweak.local |
 | MailHog | http://localhost:8025 |
@@ -107,9 +119,15 @@ make start        # Start the application
 make stop         # Stop the application
 make bootstrap    # Bootstrap the application
 make jobs         # Start Horizon (queue worker)
+make queue-reload # Reload Horizon workers in the running queue container
 make reverb       # Start Reverb (WebSocket server)
 make vite         # Start Vite development server
 make vite-prod    # Build Vite for production
+make docs-install # Install docs dependencies
+make docs         # Run docs dev server (http://localhost:3001/docs/overview)
+make docs-build   # Build documentation
+make docs-preview # Preview built documentation (http://localhost:3001/docs/overview)
+make docs-publish # Publish built docs to public/docs
 ```
 
 ## Running Tests
@@ -182,7 +200,9 @@ In `config/fortify.php`, uncomment:
 
 ## Documentation
 
-Full documentation is available at [DOCUMENTATION.md](DOCUMENTATION.md).
+- Main docs: http://searchtweak.local/docs/overview
+- API reference: http://searchtweak.local/docs/api/overview
+- Project meta docs: [DOCUMENTATION.md](DOCUMENTATION.md)
 
 ## Contributing
 

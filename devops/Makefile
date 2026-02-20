@@ -25,11 +25,26 @@ reverb:
 vite:
 	docker compose run --rm --service-ports npm run dev
 
+vite-prod:
+	docker compose run --rm --service-ports npm run build
+
 seed:
 	docker compose run --rm artisan migrate:fresh --seed
 
-vite-prod:
-	docker compose run --rm --service-ports npm run build
+docs:
+	docker compose run --rm -p 3001:3001 npm --prefix docs-site run docs:dev
+
+docs-install:
+	docker compose run --rm npm --prefix docs-site install
+
+docs-build:
+	docker compose run --rm npm --prefix docs-site run docs:build
+
+docs-preview:
+	docker compose run --rm -p 3001:3001 npm --prefix docs-site run docs:preview
+
+docs-publish:
+	docker compose run --rm npm --prefix docs-site run docs:publish
 
 default:
 	@$(MAKE) start
