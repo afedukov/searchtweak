@@ -68,4 +68,38 @@ class JudgeTest extends TestCase
 
         $this->assertEquals(12, $judge->getBatchSize());
     }
+
+    public function test_get_base_url_returns_null_for_missing_or_empty_value(): void
+    {
+        $judge = new Judge();
+        $judge->settings = [];
+        $this->assertNull($judge->getBaseUrl());
+
+        $judge->settings = [Judge::SETTING_BASE_URL => '   '];
+        $this->assertNull($judge->getBaseUrl());
+    }
+
+    public function test_get_base_url_returns_trimmed_value(): void
+    {
+        $judge = new Judge();
+        $judge->settings = [Judge::SETTING_BASE_URL => ' https://example.com/v1/ '];
+
+        $this->assertSame('https://example.com/v1/', $judge->getBaseUrl());
+    }
+
+    public function test_provider_requires_api_key_returns_false_for_ollama(): void
+    {
+        $this->assertFalse(Judge::providerRequiresApiKey(Judge::PROVIDER_OLLAMA));
+        $this->assertTrue(Judge::providerRequiresApiKey(Judge::PROVIDER_OPENAI));
+    }
+
+    public function test_provider_labels_include_new_providers(): void
+    {
+        $this->assertSame('DeepSeek', Judge::getProviderLabel(Judge::PROVIDER_DEEPSEEK));
+        $this->assertSame('xAI', Judge::getProviderLabel(Judge::PROVIDER_XAI));
+        $this->assertSame('Groq', Judge::getProviderLabel(Judge::PROVIDER_GROQ));
+        $this->assertSame('Mistral', Judge::getProviderLabel(Judge::PROVIDER_MISTRAL));
+        $this->assertSame('Custom (OpenAI-compatible)', Judge::getProviderLabel(Judge::PROVIDER_CUSTOM_OPENAI));
+        $this->assertSame('Ollama', Judge::getProviderLabel(Judge::PROVIDER_OLLAMA));
+    }
 }

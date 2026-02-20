@@ -34,6 +34,8 @@ class JudgeForm extends Form
 
     public string $model_params = '';
 
+    public string $setting_base_url = '';
+
     public array $tags = [];
 
     public function rules(): array
@@ -51,7 +53,9 @@ class JudgeForm extends Form
             'provider' => ['required', 'string', Rule::in(Judge::VALID_PROVIDERS)],
             'model_name' => ['required', 'string', 'max:255'],
             'api_key' => [
-                Rule::requiredIf($this->judge === null),
+                Rule::requiredIf(fn (): bool => Judge::providerRequiresApiKey($this->provider) && (
+                    $this->judge === null || empty($this->judge->api_key)
+                )),
                 'nullable',
                 'string',
                 'max:1024',
@@ -61,6 +65,13 @@ class JudgeForm extends Form
             'prompt_detail' => ['required', 'string', 'max:16384'],
             'setting_batch_size' => ['required', 'integer', 'min:1', 'max:20'],
             'model_params' => ['nullable', 'string', 'max:4096'],
+            'setting_base_url' => [
+                Rule::requiredIf($this->provider === Judge::PROVIDER_CUSTOM_OPENAI),
+                'nullable',
+                'string',
+                'max:1024',
+                'url:http,https',
+            ],
             'tags' => ['nullable', 'array'],
             'tags.*.id' => ['integer', Rule::exists('tags', Tag::FIELD_ID)->where(Tag::FIELD_TEAM_ID, Auth::user()->current_team_id)],
         ];
@@ -81,13 +92,10 @@ class JudgeForm extends Form
         $paramsService = app(JudgeParamsService::class);
 
         $judge = Judge::create(
-            $this->except(['tags', 'setting_batch_size', 'model_params']) + [
+            $this->except(['tags', 'setting_batch_size', 'model_params', 'setting_base_url']) + [
                 Judge::FIELD_USER_ID => Auth::user()->id,
                 Judge::FIELD_TEAM_ID => Auth::user()->current_team_id,
-                Judge::FIELD_SETTINGS => [
-                    Judge::SETTING_BATCH_SIZE => $this->setting_batch_size,
-                    Judge::SETTING_MODEL_PARAMS => $paramsService->composeParamsArray($this->model_params),
-                ],
+                Judge::FIELD_SETTINGS => $this->composeSettings($paramsService),
             ]
         );
 
@@ -102,17 +110,14 @@ class JudgeForm extends Form
 
         $paramsService = app(JudgeParamsService::class);
 
-        $data = $this->except(['tags', 'setting_batch_size', 'model_params']);
+        $data = $this->except(['tags', 'setting_batch_size', 'model_params', 'setting_base_url']);
 
         // Only update api_key if a new value is provided
         if (empty($data['api_key'])) {
             unset($data['api_key']);
         }
 
-        $data[Judge::FIELD_SETTINGS] = [
-            Judge::SETTING_BATCH_SIZE => $this->setting_batch_size,
-            Judge::SETTING_MODEL_PARAMS => $paramsService->composeParamsArray($this->model_params),
-        ];
+        $data[Judge::FIELD_SETTINGS] = $this->composeSettings($paramsService);
 
         $this->judge->update($data);
 
@@ -130,6 +135,7 @@ class JudgeForm extends Form
         $values['api_key'] = '';
         $values['setting_batch_size'] = $judge->getBatchSize();
         $values['model_params'] = app(JudgeParamsService::class)->decomposeParamsArray($judge->getModelParams());
+        $values['setting_base_url'] = $judge->getBaseUrl() ?? '';
 
         if ($clone) {
             unset($values[Judge::FIELD_ID]);
@@ -146,5 +152,20 @@ class JudgeForm extends Form
         $this->prompt_binary = Judge::getDefaultPrompt('binary');
         $this->prompt_graded = Judge::getDefaultPrompt('graded');
         $this->prompt_detail = Judge::getDefaultPrompt('detail');
+    }
+
+    private function composeSettings(JudgeParamsService $paramsService): array
+    {
+        $settings = [
+            Judge::SETTING_BATCH_SIZE => $this->setting_batch_size,
+            Judge::SETTING_MODEL_PARAMS => $paramsService->composeParamsArray($this->model_params),
+        ];
+
+        $baseUrl = trim($this->setting_base_url);
+        if ($baseUrl !== '' && in_array($this->provider, [Judge::PROVIDER_CUSTOM_OPENAI, Judge::PROVIDER_OLLAMA], true)) {
+            $settings[Judge::SETTING_BASE_URL] = $baseUrl;
+        }
+
+        return $settings;
     }
 }

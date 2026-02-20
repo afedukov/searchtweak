@@ -61,15 +61,40 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
     public const string PROVIDER_OPENAI = 'openai';
     public const string PROVIDER_ANTHROPIC = 'anthropic';
     public const string PROVIDER_GOOGLE = 'google';
+    public const string PROVIDER_DEEPSEEK = 'deepseek';
+    public const string PROVIDER_XAI = 'xai';
+    public const string PROVIDER_GROQ = 'groq';
+    public const string PROVIDER_MISTRAL = 'mistral';
+    public const string PROVIDER_CUSTOM_OPENAI = 'custom_openai';
+    public const string PROVIDER_OLLAMA = 'ollama';
 
     public const array VALID_PROVIDERS = [
         self::PROVIDER_OPENAI,
         self::PROVIDER_ANTHROPIC,
         self::PROVIDER_GOOGLE,
+        self::PROVIDER_DEEPSEEK,
+        self::PROVIDER_XAI,
+        self::PROVIDER_GROQ,
+        self::PROVIDER_MISTRAL,
+        self::PROVIDER_OLLAMA,
+        self::PROVIDER_CUSTOM_OPENAI,
+    ];
+
+    public const array PROVIDER_LABELS = [
+        self::PROVIDER_OPENAI => 'OpenAI',
+        self::PROVIDER_ANTHROPIC => 'Anthropic',
+        self::PROVIDER_GOOGLE => 'Google',
+        self::PROVIDER_DEEPSEEK => 'DeepSeek',
+        self::PROVIDER_XAI => 'xAI',
+        self::PROVIDER_GROQ => 'Groq',
+        self::PROVIDER_MISTRAL => 'Mistral',
+        self::PROVIDER_CUSTOM_OPENAI => 'Custom (OpenAI-compatible)',
+        self::PROVIDER_OLLAMA => 'Ollama',
     ];
 
     public const string SETTING_BATCH_SIZE = 'batch_size';
     public const string SETTING_MODEL_PARAMS = 'model_params';
+    public const string SETTING_BASE_URL = 'base_url';
 
     public const array PROMPTS = [
         BinaryScale::SCALE_TYPE => self::FIELD_PROMPT_BINARY,
@@ -166,6 +191,29 @@ class Judge extends TeamBroadcastableModel implements TaggableInterface
     public function getModelParams(): array
     {
         return $this->settings[self::SETTING_MODEL_PARAMS] ?? [];
+    }
+
+    public function getBaseUrl(): ?string
+    {
+        $baseUrl = $this->settings[self::SETTING_BASE_URL] ?? null;
+
+        if (!is_string($baseUrl)) {
+            return null;
+        }
+
+        $baseUrl = trim($baseUrl);
+
+        return $baseUrl === '' ? null : $baseUrl;
+    }
+
+    public static function providerRequiresApiKey(string $provider): bool
+    {
+        return $provider !== self::PROVIDER_OLLAMA;
+    }
+
+    public static function getProviderLabel(string $provider): string
+    {
+        return self::PROVIDER_LABELS[$provider] ?? ucfirst($provider);
     }
 
     /**

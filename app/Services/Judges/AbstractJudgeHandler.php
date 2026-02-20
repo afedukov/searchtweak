@@ -203,7 +203,13 @@ abstract class AbstractJudgeHandler
     private function extractTokenUsage(string $provider, array $body): array
     {
         return match ($provider) {
-            Judge::PROVIDER_OPENAI => [
+            Judge::PROVIDER_OPENAI,
+            Judge::PROVIDER_DEEPSEEK,
+            Judge::PROVIDER_XAI,
+            Judge::PROVIDER_GROQ,
+            Judge::PROVIDER_MISTRAL,
+            Judge::PROVIDER_CUSTOM_OPENAI,
+            Judge::PROVIDER_OLLAMA => [
                 'prompt_tokens' => $body['usage']['prompt_tokens'] ?? null,
                 'completion_tokens' => $body['usage']['completion_tokens'] ?? null,
                 'total_tokens' => $body['usage']['total_tokens'] ?? null,

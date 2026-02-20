@@ -56,7 +56,7 @@ trait TestJudgeTrait
             $apiKey = $this->judgeForm->judge->api_key;
         }
 
-        if (empty($apiKey)) {
+        if (empty($apiKey) && Judge::providerRequiresApiKey($this->judgeForm->provider)) {
             $this->judgeTestResult = [
                 'successful' => false,
                 'error' => 'API Key is required to test.',
@@ -81,6 +81,7 @@ trait TestJudgeTrait
         $tempJudge->api_key = $apiKey;
         $tempJudge->settings = [
             Judge::SETTING_MODEL_PARAMS => app(JudgeParamsService::class)->composeParamsArray($this->judgeForm->model_params),
+            Judge::SETTING_BASE_URL => trim($this->judgeForm->setting_base_url),
         ];
 
         try {

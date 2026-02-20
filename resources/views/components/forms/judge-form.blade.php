@@ -1,6 +1,6 @@
 @props(['isEditing' => false])
 
-<form wire:submit="saveJudge" id="judge-form">
+<form wire:submit="saveJudge" id="judge-form" x-data="{ provider: $wire.entangle('judgeForm.provider') }">
 	<div class="px-4 py-5 bg-white dark:bg-slate-800 sm:p-6">
 
 		<!-- Judge Name -->
@@ -23,11 +23,24 @@
 			<select wire:model="judgeForm.provider" class="w-full rounded-lg mt-1 block p-2.5 text-sm bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
 				@foreach (\App\Models\Judge::VALID_PROVIDERS as $provider)
 					<option value="{{ $provider }}">
-						{{ ucfirst($provider) }}
+						{{ \App\Models\Judge::getProviderLabel($provider) }}
 					</option>
 				@endforeach
 			</select>
 			<x-input-error for="judgeForm.provider" />
+		</div>
+
+		<!-- Base URL -->
+		<div class="mb-8 last:mb-0" x-show="provider === '{{ \App\Models\Judge::PROVIDER_CUSTOM_OPENAI }}' || provider === '{{ \App\Models\Judge::PROVIDER_OLLAMA }}'" x-cloak>
+			<x-form.label.label-optional for="judgeForm.setting_base_url" value="Base URL" />
+			<x-input type="text" wire:model="judgeForm.setting_base_url" placeholder="https://api.example.com/v1" />
+			<x-input-error for="judgeForm.setting_base_url" />
+			<p class="mt-2 text-sm text-gray-500 dark:text-gray-400" x-show="provider === '{{ \App\Models\Judge::PROVIDER_CUSTOM_OPENAI }}'">
+				{{ __('OpenAI-compatible API base URL. Example: https://api.openai.com/v1') }}
+			</p>
+			<p class="mt-2 text-sm text-gray-500 dark:text-gray-400" x-show="provider === '{{ \App\Models\Judge::PROVIDER_OLLAMA }}'">
+				{{ __('Optional. Defaults to http://localhost:11434/v1') }}
+			</p>
 		</div>
 
 		<!-- Model Name -->

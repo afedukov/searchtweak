@@ -164,8 +164,8 @@
 										</div>
 									</th>
 									<td class="px-5 py-4 align-baseline">
-										<span class="text-sm font-medium me-2 px-2.5 py-1.5 rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-											{{ ucfirst($judge->provider) }}
+										<span class="text-sm font-medium me-2 px-2.5 py-1.5 rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 whitespace-nowrap">
+											{{ \App\Models\Judge::getProviderLabel($judge->provider) }}
 										</span>
 									</td>
 									<td class="px-5 py-4 align-baseline">
