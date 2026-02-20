@@ -48,10 +48,6 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
         $lock = Cache::lock("judge-eval-{$this->evaluationId}", $this->timeout);
 
         if (!$lock->get()) {
-            Log::channel('judges')->info(sprintf(
-                'ProcessJudgeEvaluationJob[%d]: exiting — another instance already processing',
-                $this->evaluationId,
-            ));
             return;
         }
 
@@ -66,11 +62,6 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
     {
         $evaluation = SearchEvaluation::find($this->evaluationId);
         if ($evaluation === null || !$evaluation->isActive()) {
-            Log::channel('judges')->info(sprintf(
-                'ProcessJudgeEvaluationJob[%d]: exiting — evaluation %s',
-                $this->evaluationId,
-                $evaluation === null ? 'not found' : 'not active (status=' . $evaluation->status . ')',
-            ));
             return;
         }
 
@@ -81,20 +72,8 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
         $snapshotIds = $this->getEvaluationSnapshotIds($evaluation);
 
         if ($snapshotIds->isEmpty()) {
-            Log::channel('judges')->info(sprintf(
-                'ProcessJudgeEvaluationJob[%d]: exiting — no snapshots found',
-                $this->evaluationId,
-            ));
             return;
         }
-
-        Log::channel('judges')->info(sprintf(
-            'ProcessJudgeEvaluationJob[%d]: starting — %d snapshots, scale=%s, validGrades=[%s]',
-            $this->evaluationId,
-            $snapshotIds->count(),
-            $evaluation->scale_type,
-            implode(',', $validGrades),
-        ));
 
         $startedAt = microtime(true);
 
@@ -114,10 +93,6 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
             // Re-fetch matching active judges each cycle (hot-swap support)
             $judges = $this->getMatchingJudges($teamId, $evaluation);
             if ($judges->isEmpty()) {
-                Log::channel('judges')->info(sprintf(
-                    'ProcessJudgeEvaluationJob[%d]: exiting — no matching judges',
-                    $this->evaluationId,
-                ));
                 return;
             }
 
@@ -132,21 +107,8 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 if ($this->redispatchIfHumanLockedFeedbacksExist($snapshotIds)) {
                     return;
                 }
-
-                Log::channel('judges')->info(sprintf(
-                    'ProcessJudgeEvaluationJob[%d]: exiting — no feedbacks available for judging',
-                    $this->evaluationId,
-                ));
                 return;
             }
-
-            Log::channel('judges')->info(sprintf(
-                'ProcessJudgeEvaluationJob[%d]: cycle start — %d remaining, %d judges [%s]',
-                $this->evaluationId,
-                $remainingCount,
-                $judges->count(),
-                $judges->pluck('name')->join(', '),
-            ));
 
             // Round-robin: each judge processes one batch per cycle
             $processedInCycle = 0;
@@ -182,19 +144,8 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 if ($this->redispatchIfHumanLockedFeedbacksExist($snapshotIds)) {
                     return;
                 }
-
-                Log::channel('judges')->info(sprintf(
-                    'ProcessJudgeEvaluationJob[%d]: exiting — no progress in cycle',
-                    $this->evaluationId,
-                ));
                 return;
             }
-
-            Log::channel('judges')->info(sprintf(
-                'ProcessJudgeEvaluationJob[%d]: cycle complete — %d graded',
-                $this->evaluationId,
-                $processedInCycle,
-            ));
         }
     }
 
@@ -215,13 +166,6 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
 
         if ($humanLockedCount > 0) {
             $delayMinutes = UserFeedbackService::FEEDBACK_LOCK_TIMEOUT_MINUTES + 1;
-
-            Log::channel('judges')->info(sprintf(
-                'ProcessJudgeEvaluationJob[%d]: %d feedbacks locked by humans — re-dispatching in %d minutes',
-                $this->evaluationId,
-                $humanLockedCount,
-                $delayMinutes,
-            ));
 
             self::dispatch($this->evaluationId)->delay(now()->addMinutes($delayMinutes));
 
@@ -271,23 +215,8 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
         // Claim feedbacks atomically
         $claimed = $this->claimFeedbacks($snapshotIds, $judge, $batchSize);
         if ($claimed->isEmpty()) {
-            Log::channel('judges')->debug(sprintf(
-                'ProcessJudgeEvaluationJob[%d]: judge "%s" (id=%d) — no feedbacks to claim',
-                $this->evaluationId,
-                $judge->name,
-                $judge->id,
-            ));
             return 0;
         }
-
-        Log::channel('judges')->info(sprintf(
-            'ProcessJudgeEvaluationJob[%d]: judge "%s" (id=%d) — claimed %d feedbacks (batch_size=%d)',
-            $this->evaluationId,
-            $judge->name,
-            $judge->id,
-            $claimed->count(),
-            $batchSize,
-        ));
 
         // Build pairs payload for the prompt
         $pairs = $this->buildPairs($claimed);
@@ -300,47 +229,14 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
             $pairs,
         );
 
-        Log::channel('judges')->info(sprintf(
-            'ProcessJudgeEvaluationJob[%d]: judge "%s" — sending prompt (%d chars) to %s/%s',
-            $this->evaluationId,
-            $judge->name,
-            strlen($prompt),
-            $judge->provider,
-            $judge->model_name,
-        ));
-        Log::channel('judges')->debug(sprintf(
-            "ProcessJudgeEvaluationJob[%d]: === PROMPT START ===\n%s\n=== PROMPT END ===",
-            $this->evaluationId,
-            $prompt,
-        ));
-
         try {
             $results = $handler
                 ->withContext($this->evaluationId, count($pairs), $evaluation->scale_type)
                 ->grade($judge, $prompt, $validGrades);
         } catch (\Throwable $e) {
-            Log::channel('judges')->error(sprintf(
-                'ProcessJudgeEvaluationJob[%d]: LLM API error for judge "%s" (id=%d): %s',
-                $this->evaluationId,
-                $judge->name,
-                $judge->id,
-                $e->getMessage(),
-            ));
             $this->releaseClaimed($claimed);
             return 0;
         }
-
-        Log::channel('judges')->info(sprintf(
-            'ProcessJudgeEvaluationJob[%d]: judge "%s" — received %d results',
-            $this->evaluationId,
-            $judge->name,
-            count($results),
-        ));
-        Log::channel('judges')->debug(sprintf(
-            "ProcessJudgeEvaluationJob[%d]: === RESPONSE ===\n%s",
-            $this->evaluationId,
-            json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
-        ));
 
         // Apply grades
         $gradedCount = 0;
@@ -359,14 +255,6 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
             $gradedCount++;
         }
 
-        Log::channel('judges')->info(sprintf(
-            'ProcessJudgeEvaluationJob[%d]: judge "%s" — graded %d/%d feedbacks',
-            $this->evaluationId,
-            $judge->name,
-            $gradedCount,
-            $claimed->count(),
-        ));
-
         return $gradedCount;
     }
 
@@ -380,28 +268,43 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
         Judge $judge,
         int $batchSize,
     ): Collection {
-        $claimed = collect();
+        $claimed = new Collection();
 
         DB::transaction(function () use ($snapshotIds, $judge, $batchSize, &$claimed) {
-            $feedbacks = UserFeedback::query()
-                ->whereIn(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $snapshotIds)
-                ->availableForJudge()
-                ->lockForUpdate()
-                ->limit($batchSize)
-                ->get();
+            $claimedSnapshotIds = [];
 
-            if ($feedbacks->isEmpty()) {
-                return;
+            for ($i = 0; $i < $batchSize; $i++) {
+                /** @var UserFeedback $feedback */
+                $feedback = UserFeedback::query()
+                    ->whereIn(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $snapshotIds)
+                    ->availableForJudge()
+                    // Prevent claiming another slot of the same snapshot in this batch.
+                    ->when(!empty($claimedSnapshotIds), fn ($query) =>
+                        $query->whereNotIn(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $claimedSnapshotIds)
+                    )
+                    // One judge can grade at most one slot per query/doc pair (snapshot) across the whole evaluation.
+                    ->whereNotExists(function ($query) use ($judge) {
+                        $query->selectRaw('1')
+                            ->from('user_feedbacks as judged_feedbacks')
+                            ->whereColumn(
+                                'judged_feedbacks.' . UserFeedback::FIELD_SEARCH_SNAPSHOT_ID,
+                                'user_feedbacks.' . UserFeedback::FIELD_SEARCH_SNAPSHOT_ID
+                            )
+                            ->where('judged_feedbacks.' . UserFeedback::FIELD_JUDGE_ID, $judge->id);
+                    })
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($feedback === null) {
+                    break;
+                }
+
+                $feedback->judge_id = $judge->id;
+                $feedback->save();
+
+                $claimed->push($feedback);
+                $claimedSnapshotIds[] = $feedback->search_snapshot_id;
             }
-
-            // Claim all at once
-            UserFeedback::query()
-                ->whereIn(UserFeedback::FIELD_ID, $feedbacks->pluck(UserFeedback::FIELD_ID))
-                ->update([UserFeedback::FIELD_JUDGE_ID => $judge->id]);
-
-            $claimed = $feedbacks->values()->each(function (UserFeedback $f) use ($judge) {
-                $f->judge_id = $judge->id;
-            });
         });
 
         return $claimed;
