@@ -3,11 +3,13 @@
 namespace Tests\Feature\Http\Controllers\Api;
 
 use App\Models\EvaluationKeyword;
+use App\Models\EvaluationMetric;
 use App\Models\Judge;
 use App\Models\SearchEndpoint;
 use App\Models\SearchEvaluation;
 use App\Models\SearchModel;
 use App\Models\SearchSnapshot;
+use App\Models\Tag;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\UserFeedback;
@@ -90,34 +92,98 @@ class EvaluationsControllerTest extends TestCase
             SearchEvaluation::FIELD_USER_ID => $user->id,
             SearchEvaluation::FIELD_MODEL_ID => $model->id,
             SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+                SearchEvaluation::SETTING_SHOW_POSITION => true,
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_NONE,
+                SearchEvaluation::SETTING_AUTO_RESTART => false,
+                SearchEvaluation::SETTING_TRANSFORMERS => ['scale_type' => BinaryScale::SCALE_TYPE, 'rules' => []],
+                SearchEvaluation::SETTING_SCORING_GUIDELINES => 'Binary guidelines',
+            ],
         ]);
+
+        EvaluationMetric::factory()->create([
+            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationMetric::FIELD_SCORER_TYPE => 'precision',
+            EvaluationMetric::FIELD_NUM_RESULTS => 5,
+            EvaluationMetric::FIELD_VALUE => null,
+        ]);
+
+        $keyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'kettle',
+        ]);
+
+        $tag = Tag::factory()->create([
+            Tag::FIELD_TEAM_ID => $team->id,
+            Tag::FIELD_NAME => 'API',
+        ]);
+        $evaluation->tags()->attach($tag->id);
 
         $this->authenticate($team);
 
         $response = $this->getJson("/api/v1/evaluations/{$evaluation->id}");
 
         $response->assertOk()
-            ->assertJson([
-                'id' => $evaluation->id,
-                'model_id' => $model->id,
-            ]);
+            ->assertJsonStructure([
+                'id',
+                'model_id',
+                'scale_type',
+                'status',
+                'progress',
+                'name',
+                'description',
+                'settings',
+                'metrics' => [['scorer_type', 'num_results', 'value']],
+                'tags' => [['id', 'name']],
+                'keywords',
+                'created_at',
+                'finished_at',
+            ])
+            ->assertJsonPath('id', $evaluation->id)
+            ->assertJsonPath('model_id', $model->id)
+            ->assertJsonPath('scale_type', BinaryScale::SCALE_TYPE)
+            ->assertJsonPath('status', 'pending')
+            ->assertJsonPath('settings.strategy', 1)
+            ->assertJsonPath('settings.position', true)
+            ->assertJsonPath('settings.reuse', SearchEvaluation::REUSE_STRATEGY_NONE)
+            ->assertJsonPath('settings.auto_restart', false)
+            ->assertJsonPath('settings.transformers.scale_type', BinaryScale::SCALE_TYPE)
+            ->assertJsonPath('settings.scoring_guidelines', 'Binary guidelines')
+            ->assertJsonPath('metrics.0.scorer_type', 'precision')
+            ->assertJsonPath('metrics.0.num_results', 5)
+            ->assertJsonPath('metrics.0.value', null)
+            ->assertJsonPath('tags.0.id', $tag->id)
+            ->assertJsonPath('tags.0.name', 'API')
+            ->assertJsonPath('keywords.0', $keyword->keyword);
     }
 
     public function test_store_creates_evaluation(): void
     {
         [$user, $team, $model] = $this->createSetup();
 
+        $tag = Tag::factory()->create([
+            Tag::FIELD_TEAM_ID => $team->id,
+            Tag::FIELD_NAME => 'API',
+        ]);
+
         $data = [
             'model_id' => $model->id,
             'name' => 'New Evaluation',
+            'description' => 'Evaluation description via API',
             'scale_type' => BinaryScale::SCALE_TYPE,
             'keywords' => ['keyword1', 'keyword2'],
-            'metrics' => [['scorer_type' => 'precision', 'num_results' => 5]],
+            'metrics' => [
+                ['scorer_type' => 'precision', 'num_results' => 5],
+                ['scorer_type' => 'ap', 'num_results' => 10],
+            ],
             'transformers' => ['scale_type' => BinaryScale::SCALE_TYPE, 'rules' => []],
+            'tags' => [['id' => $tag->id]],
             'setting_feedback_strategy' => 1,
             'setting_show_position' => true,
             'setting_auto_restart' => false,
             'setting_reuse_strategy' => SearchEvaluation::REUSE_STRATEGY_NONE,
+            'setting_scoring_guidelines' => 'Use binary relevance only',
         ];
 
         $this->authenticate($team);
@@ -125,12 +191,71 @@ class EvaluationsControllerTest extends TestCase
         $response = $this->postJson('/api/v1/evaluations', $data);
 
         $response->assertCreated()
-            ->assertJsonPath('name', 'New Evaluation');
+            ->assertJsonStructure([
+                'id',
+                'model_id',
+                'scale_type',
+                'status',
+                'progress',
+                'name',
+                'description',
+                'settings',
+                'metrics' => [['scorer_type', 'num_results', 'value']],
+                'tags' => [['id', 'name']],
+                'keywords',
+                'created_at',
+                'finished_at',
+            ])
+            ->assertJsonPath('name', 'New Evaluation')
+            ->assertJsonPath('description', 'Evaluation description via API')
+            ->assertJsonPath('model_id', $model->id)
+            ->assertJsonPath('scale_type', BinaryScale::SCALE_TYPE)
+            ->assertJsonPath('status', 'pending')
+            ->assertJsonPath('progress', 0)
+            ->assertJsonPath('settings.strategy', 1)
+            ->assertJsonPath('settings.position', true)
+            ->assertJsonPath('settings.reuse', SearchEvaluation::REUSE_STRATEGY_NONE)
+            ->assertJsonPath('settings.auto_restart', false)
+            ->assertJsonPath('settings.transformers.scale_type', BinaryScale::SCALE_TYPE)
+            ->assertJsonPath('settings.scoring_guidelines', 'Use binary relevance only')
+            ->assertJsonPath('metrics.0.scorer_type', 'precision')
+            ->assertJsonPath('metrics.0.num_results', 5)
+            ->assertJsonPath('metrics.0.value', null)
+            ->assertJsonPath('metrics.1.scorer_type', 'ap')
+            ->assertJsonPath('metrics.1.num_results', 10)
+            ->assertJsonPath('metrics.1.value', null)
+            ->assertJsonPath('tags.0.id', $tag->id)
+            ->assertJsonPath('tags.0.name', 'API')
+            ->assertJsonPath('keywords.0', 'keyword1')
+            ->assertJsonPath('keywords.1', 'keyword2');
 
         $this->assertDatabaseHas('search_evaluations', [
             'name' => 'New Evaluation',
             'model_id' => $model->id,
+            'description' => 'Evaluation description via API',
+            'scale_type' => BinaryScale::SCALE_TYPE,
+            'status' => SearchEvaluation::STATUS_PENDING,
+            'progress' => 0,
         ]);
+
+        $evaluation = SearchEvaluation::query()->where('name', 'New Evaluation')->firstOrFail();
+
+        $this->assertSame($user->id, $evaluation->user_id);
+        $this->assertSame(1, $evaluation->getFeedbackStrategy());
+        $this->assertTrue($evaluation->showPosition());
+        $this->assertSame(SearchEvaluation::REUSE_STRATEGY_NONE, $evaluation->getReuseStrategy());
+        $this->assertFalse($evaluation->autoRestart());
+        $this->assertSame('Use binary relevance only', $evaluation->getScoringGuidelines());
+        $this->assertSame(BinaryScale::SCALE_TYPE, $evaluation->getTransformers()->getScaleType());
+        $this->assertSame([], $evaluation->getTransformers()->getRules());
+
+        $this->assertCount(2, $evaluation->metrics);
+        $this->assertCount(2, $evaluation->keywords);
+        $this->assertCount(1, $evaluation->tags);
+        $this->assertSame(['keyword1', 'keyword2'], $evaluation->keywords->pluck(EvaluationKeyword::FIELD_KEYWORD)->all());
+        $this->assertSame(['precision', 'ap'], $evaluation->metrics->pluck(EvaluationMetric::FIELD_SCORER_TYPE)->all());
+        $this->assertSame([5, 10], $evaluation->metrics->pluck(EvaluationMetric::FIELD_NUM_RESULTS)->all());
+        $this->assertSame([$tag->id], $evaluation->tags->pluck(Tag::FIELD_ID)->all());
     }
 
     public function test_store_validates_request(): void
