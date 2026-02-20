@@ -115,7 +115,7 @@
 									<td class="px-5 py-4 align-baseline">
 										<div class="inline-flex justify-center items-center">
 											@if ($showType === 'judges' || ($showType === 'all' && $item->entry_type === 'judges'))
-												<x-block.judge-name :judge="$item->judge" :show-badge="$showType !== 'all'" />
+												<x-block.judge-name :judge="$item->judge" :icon-circle="true" />
 											@else
 												<x-block.user-name :user="$item->user" />
 											@endif

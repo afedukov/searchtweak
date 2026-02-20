@@ -116,7 +116,7 @@
 											<x-block.judge-name :judge="$feedback->judge" />
 											@if ($feedback->reason)
 												@php($isLongReason = Str::length($feedback->reason) > 150)
-												<p x-data="{ expanded: false }" class="mt-1 ml-10 text-xs text-gray-400 dark:text-gray-500 italic max-w-[200px]">
+												<p x-data="{ expanded: false }" class="mt-1 ml-6 text-xs text-gray-400 dark:text-gray-500 italic max-w-[200px]">
 													<span
 														@if ($isLongReason)
 															@click="expanded = !expanded"

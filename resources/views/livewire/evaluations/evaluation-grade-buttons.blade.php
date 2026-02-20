@@ -14,24 +14,27 @@
 		@endif
 	</div>
 	<div class="text-left">
-		<ul class="mt-4">
+		<ul class="mt-4 space-y-2">
 			@foreach ($feedbacks as $feedback)
-				<li>
-					<div class="flex items-center gap-1">
+				<li class="py-0.5">
+					<div class="flex items-center gap-2">
 						<x-dynamic-component :component="$evaluation->getScale()->getScaleBadgeComponent()" :grade="$feedback->grade" size="sm" />
-
-						<span class="text-xs whitespace-nowrap">
-							@if ($feedback->judge_id)
-								<span class="text-blue-500 dark:text-blue-400">{{ $feedback->judge?->name ?? 'Removed Judge' }}</span>
-								<span class="inline-flex items-center text-[10px] leading-none font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-500 text-white ml-1">AI</span>
-							@else
+						@if ($feedback->judge_id)
+							<x-block.judge-name
+								:judge="$feedback->judge"
+								icon-size="sm"
+								name-class="text-xs leading-none text-blue-500 dark:text-blue-400"
+								class="whitespace-nowrap"
+							/>
+						@else
+							<span class="text-xs whitespace-nowrap leading-none">
 								{{ $feedback->user?->name ?? 'Removed User' }}
-							@endif
-						</span>
+							</span>
+						@endif
 					</div>
 					@if ($feedback->reason)
 						@php($isLongReason = Str::length($feedback->reason) > 150)
-						<p x-data="{ expanded: false }" class="ml-6 mt-0.5 text-xs text-gray-400 dark:text-gray-500 italic max-w-[250px]">
+						<p x-data="{ expanded: false }" class="ml-12 mt-0.5 text-xs text-gray-400 dark:text-gray-500 italic max-w-[250px]">
 							<span
 								@if ($isLongReason)
 									@click="expanded = !expanded"

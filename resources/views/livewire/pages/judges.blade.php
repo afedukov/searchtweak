@@ -117,10 +117,14 @@
 								<tr wire:key="judge-item-{{ $judge->id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
 									<th scope="row" class="px-5 py-4 font-medium text-gray-900 dark:text-white align-baseline">
 										<div class="flex items-center gap-2">
-											{{ $judge->name }}
+											<x-block.judge-name
+												:judge="$judge"
+												icon-size="sm"
+												name-class="text-base font-medium text-gray-900 dark:text-white"
+											/>
 											<livewire:judges.judge-status-badge :judge-id="$judge->id" :team-id="Auth::user()->current_team_id" :key="'judge-status-'.$judge->id" />
 										</div>
-										<div class="text-sm text-gray-400 dark:text-gray-400">
+										<div class="ml-6 text-sm text-gray-400 dark:text-gray-400">
 											{{ $judge->description }}
 										</div>
 									</th>

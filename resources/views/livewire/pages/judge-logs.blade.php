@@ -3,7 +3,15 @@
 		<h2 class="font-semibold text-xl text-gray-700 leading-tight dark:text-slate-300">
 			<span class="uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-500 text-white ml-2">AI</span>
 			@if ($judge !== null)
-				{{ __('Judges') }} / <strong>{{ $judge->name }}</strong> {{ __('Logs') }}
+				<span class="inline-flex items-center gap-2">
+					<span>{{ __('Judges') }} /</span>
+					<x-block.judge-name
+						:judge="$judge"
+						icon-size="sm"
+						name-class="text-xl font-semibold text-gray-700 dark:text-slate-300"
+					/>
+					<span>{{ __('Logs') }}</span>
+				</span>
 			@else
 				{{ __('Judge Logs') }}
 			@endif
@@ -129,7 +137,11 @@
 									@if ($judge === null)
 										<td class="px-5 py-4 align-baseline">
 											@if ($log->judge)
-												<span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $log->judge->name }}</span>
+												<x-block.judge-name
+													:judge="$log->judge"
+													icon-size="sm"
+													name-class="text-sm font-medium text-gray-700 dark:text-gray-300"
+												/>
 											@else
 												<span class="text-xs text-gray-400 dark:text-gray-600 italic">{{ __('Judge deleted') }}</span>
 												<div class="font-mono text-xs text-gray-400 dark:text-gray-600">{{ $log->provider }}/{{ $log->model }}</div>
