@@ -3,6 +3,7 @@
 namespace Tests\Feature\Services\Leaderboard;
 
 use App\Models\EvaluationKeyword;
+use App\Models\Judge;
 use App\Models\SearchEndpoint;
 use App\Models\SearchEvaluation;
 use App\Models\SearchModel;
@@ -68,6 +69,48 @@ class LeaderboardQueryGeneratorTest extends TestCase
         }
     }
 
+    private function createFeedbackForJudge(Judge $judge, int $teamId, int $count = 1): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $team = $owner->currentTeam;
+        $endpoint = SearchEndpoint::factory()->create([
+            SearchEndpoint::FIELD_USER_ID => $owner->id,
+            SearchEndpoint::FIELD_TEAM_ID => $team->id,
+        ]);
+        $model = SearchModel::factory()->create([
+            SearchModel::FIELD_USER_ID => $owner->id,
+            SearchModel::FIELD_TEAM_ID => $teamId,
+            SearchModel::FIELD_ENDPOINT_ID => $endpoint->id,
+        ]);
+        $evaluation = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $owner->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 3,
+            ],
+        ]);
+        $keyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+        ]);
+
+        for ($i = 0; $i < $count; $i++) {
+            $snapshot = new SearchSnapshot([
+                SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $keyword->id,
+                SearchSnapshot::FIELD_POSITION => $i + 1,
+                SearchSnapshot::FIELD_DOC_ID => 'doc-j-' . $i,
+                SearchSnapshot::FIELD_NAME => 'Doc J ' . $i,
+                SearchSnapshot::FIELD_DOC => [],
+            ]);
+            $snapshot->saveQuietly();
+
+            UserFeedback::factory()->create([
+                UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+                UserFeedback::FIELD_JUDGE_ID => $judge->id,
+                UserFeedback::FIELD_GRADE => 1,
+            ]);
+        }
+    }
+
     public function test_query_returns_results_for_team(): void
     {
         $user = User::factory()->withPersonalTeam()->create();
@@ -125,5 +168,52 @@ class LeaderboardQueryGeneratorTest extends TestCase
         $dataset = $this->generator->getDataset($query, 1);
 
         $this->assertCount(1, $dataset);
+    }
+
+    public function test_get_judge_query_returns_results_for_team(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $team = $owner->currentTeam;
+        $judge = Judge::factory()->create([
+            Judge::FIELD_USER_ID => $owner->id,
+            Judge::FIELD_TEAM_ID => $team->id,
+        ]);
+
+        $this->createFeedbackForJudge($judge, $team->id, 4);
+
+        $query = $this->generator->getJudgeQuery($team->id, [
+            Carbon::now()->subYear(),
+            Carbon::now()->addDay(),
+        ]);
+
+        $results = $query->get();
+
+        $this->assertCount(1, $results);
+        $this->assertEquals($judge->id, $results->first()->judge_id);
+        $this->assertEquals(4, $results->first()->feedback_count);
+    }
+
+    public function test_get_judge_dataset_format(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $team = $owner->currentTeam;
+        $judge = Judge::factory()->create([
+            Judge::FIELD_USER_ID => $owner->id,
+            Judge::FIELD_TEAM_ID => $team->id,
+            Judge::FIELD_NAME => 'Judge Dataset',
+        ]);
+
+        $this->createFeedbackForJudge($judge, $team->id, 2);
+
+        $query = $this->generator->getJudgeQuery($team->id, [
+            Carbon::now()->subYear(),
+            Carbon::now()->addDay(),
+        ]);
+
+        $dataset = $this->generator->getJudgeDataset($query, 10);
+
+        $this->assertCount(1, $dataset);
+        $this->assertSame('Judge Dataset (AI)', $dataset[0]['label']);
+        $this->assertEquals(2, $dataset[0]['value']);
     }
 }
