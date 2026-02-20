@@ -1,4 +1,30 @@
-<div x-data="{ showDeleteApiToken: false }">
+<div x-data="{
+	showDeleteApiToken: false,
+	tokenCopied: false,
+	copyApiToken() {
+		const input = this.$refs.apiTokenInput;
+		if (!input) return;
+
+		const value = input.value || '';
+		if (!value) return;
+
+		const onSuccess = () => {
+			this.tokenCopied = true;
+			setTimeout(() => this.tokenCopied = false, 2000);
+		};
+
+		if (navigator.clipboard && window.isSecureContext) {
+			navigator.clipboard.writeText(value).then(onSuccess);
+			return;
+		}
+
+		input.removeAttribute('disabled');
+		input.select();
+		document.execCommand('copy');
+		input.setAttribute('disabled', 'disabled');
+		onSuccess();
+	}
+}">
 	<x-slot name="header">
 		<h2 class="font-semibold text-xl text-gray-700 leading-tight dark:text-slate-300">
 			{{ __('Current Team') }}
@@ -558,15 +584,26 @@
 					<label for="api-key" class="text-sm font-medium text-gray-900 dark:text-white mb-2 block">API token</label>
 					<div class="relative mb-4">
 						@if ($apiTokenPlain)
-							<div id="api-key-wrapper">
+							<div id="api-key-wrapper" class="relative">
 								<input
-										id="api-key"
-										wire:model="apiTokenPlain"
-										type="text"
-										class="col-span-6 bg-gray-50 border border-gray-300 text-gray-500 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500"
-										disabled
-										readonly
+									id="api-key"
+									x-ref="apiTokenInput"
+									wire:model="apiTokenPlain"
+									type="text"
+									class="col-span-6 bg-gray-50 border border-gray-300 text-gray-500 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 pe-10 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500"
+									disabled
+									readonly
 								>
+								<button
+									type="button"
+									@click.prevent="copyApiToken"
+									class="absolute inset-y-0 end-0 flex items-center px-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+									title="{{ __('Copy') }}"
+									aria-label="{{ __('Copy') }}"
+								>
+									<i x-show="!tokenCopied" class="fa-regular fa-copy"></i>
+									<i x-show="tokenCopied" x-transition class="fa-solid fa-check text-green-600 dark:text-green-400"></i>
+								</button>
 							</div>
 						@else
 							@if ($apiToken)
