@@ -115,7 +115,18 @@
 										@if ($feedback->judge_id)
 											<x-block.judge-name :judge="$feedback->judge" />
 											@if ($feedback->reason)
-												<p class="mt-1 ml-10 text-xs text-gray-400 dark:text-gray-500 italic max-w-[200px]">{{ Str::limit($feedback->reason, 150) }}</p>
+												@php($isLongReason = Str::length($feedback->reason) > 150)
+												<p x-data="{ expanded: false }" class="mt-1 ml-10 text-xs text-gray-400 dark:text-gray-500 italic max-w-[200px]">
+													<span
+														@if ($isLongReason)
+															@click="expanded = !expanded"
+														@endif
+														class="block text-left w-full"
+													>
+														<span x-show="!expanded">{{ $isLongReason ? Str::substr($feedback->reason, 0, 150) . '...' : $feedback->reason }}</span>
+														<span x-show="expanded" x-cloak>{{ $feedback->reason }}</span>
+													</span>
+												</p>
 											@endif
 										@else
 											<x-block.user-name :user="$feedback->user" />

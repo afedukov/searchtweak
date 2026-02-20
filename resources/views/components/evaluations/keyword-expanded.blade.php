@@ -12,7 +12,7 @@
 		@else
 			@forelse ($keyword->snapshots as $snapshot)
 				<tr class="border-b dark:border-gray-700" wire:key="snapshot-{{ $snapshot->id }}">
-					<td class="px-6 py-4 align-top w-0">
+					<td class="px-6 py-4 align-top w-[340px] min-w-[340px]">
 						<!-- Grade Buttons -->
 						<livewire:evaluations.evaluation-grade-buttons :evaluation="$evaluation" :snapshot="$snapshot" key="grade-buttons-{{ $snapshot->id }}" />
 					</td>

@@ -30,7 +30,18 @@
 						</span>
 					</div>
 					@if ($feedback->reason)
-						<p class="ml-6 mt-0.5 text-xs text-gray-400 dark:text-gray-500 italic max-w-[250px]">{{ Str::limit($feedback->reason, 150) }}</p>
+						@php($isLongReason = Str::length($feedback->reason) > 150)
+						<p x-data="{ expanded: false }" class="ml-6 mt-0.5 text-xs text-gray-400 dark:text-gray-500 italic max-w-[250px]">
+							<span
+								@if ($isLongReason)
+									@click="expanded = !expanded"
+								@endif
+								class="block text-left w-full"
+							>
+								<span x-show="!expanded">{{ $isLongReason ? Str::substr($feedback->reason, 0, 150) . '...' : $feedback->reason }}</span>
+								<span x-show="expanded" x-cloak>{{ $feedback->reason }}</span>
+							</span>
+						</p>
 					@endif
 				</li>
 			@endforeach
