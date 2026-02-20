@@ -28,14 +28,35 @@ class LeaderboardWidget extends BaseWidget
 
     public function render(): View
     {
-        $query = app(LeaderboardQueryGenerator::class)
-            ->getQuery(Auth::user()->current_team_id, [
-                Carbon::now()->subDays(6)->startOfDay(),
-                Carbon::now()->endOfDay(),
+        $queryGenerator = app(LeaderboardQueryGenerator::class);
+        $dates = [
+            Carbon::now()->subDays(6)->startOfDay(),
+            Carbon::now()->endOfDay(),
+        ];
+        $teamId = Auth::user()->current_team_id;
+
+        $users = $queryGenerator
+            ->getUserQuery($teamId, $dates)
+            ->get()
+            ->map(fn (object $item) => [
+                'label' => $item->user->name,
+                'value' => (int) $item->feedback_count,
             ]);
 
-        $dataset = app(LeaderboardQueryGenerator::class)
-            ->getDataset($query, 5);
+        $judges = $queryGenerator
+            ->getJudgeQuery($teamId, $dates)
+            ->get()
+            ->map(fn (object $item) => [
+                'label' => ($item->judge?->name ?? 'Removed Judge') . ' (AI)',
+                'value' => (int) $item->feedback_count,
+            ]);
+
+        $dataset = $users
+            ->concat($judges)
+            ->sortByDesc('value')
+            ->take(5)
+            ->values()
+            ->all();
 
         return view('livewire.widgets.leaderboard-widget', [
             'dataset' => $dataset,

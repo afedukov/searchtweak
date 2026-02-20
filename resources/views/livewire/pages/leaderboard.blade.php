@@ -28,27 +28,31 @@
 						<div class="flex flex-wrap items-center gap-3">
 
 							<!-- Type Filter -->
-							<div class="inline-flex rounded-lg shadow-sm" role="group">
-								<button type="button"
-										wire:click="$set('filterType', 'all')"
-										class="px-3 py-1.5 text-xs font-medium rounded-l-lg border {{ $filterType === 'all' ? 'bg-indigo-500 text-white border-indigo-500 dark:bg-indigo-600 dark:border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700' }}">
-									All
-								</button>
-								<button type="button"
-										wire:click="$set('filterType', 'users')"
-										class="px-3 py-1.5 text-xs font-medium border-t border-b {{ $filterType === 'users' ? 'bg-indigo-500 text-white border-indigo-500 dark:bg-indigo-600 dark:border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700' }}">
-									Users
-								</button>
-								<button type="button"
-										wire:click="$set('filterType', 'judges')"
-										class="px-3 py-1.5 text-xs font-medium rounded-r-lg border {{ $filterType === 'judges' ? 'bg-indigo-500 text-white border-indigo-500 dark:bg-indigo-600 dark:border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700' }}">
-									Judges
-								</button>
+							<div class="inline-flex rounded-md items-center" role="group">
+								<div class="flex" wire:loading.class="opacity-50 pointer-events-none">
+									<input type="radio" wire:model.live="filterType" wire:loading.attr="disabled" name="leaderboard-filter-type" id="leaderboard-filter-type-all" value="all" class="hidden peer" />
+									<label for="leaderboard-filter-type-all" class="px-4 py-2 cursor-pointer peer-checked:z-10 peer-checked:ring-1 peer-checked:ring-blue-700 peer-checked:text-blue-700 dark:peer-checked:ring-blue-500 dark:peer-checked:text-white text-xs font-semibold text-slate-400 dark:text-slate-400 uppercase bg-white border border-gray-200 rounded-s-md hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
+										{{ __('All') }}
+									</label>
+								</div>
+								<div class="flex" wire:loading.class="opacity-50 pointer-events-none">
+									<input type="radio" wire:model.live="filterType" wire:loading.attr="disabled" name="leaderboard-filter-type" id="leaderboard-filter-type-users" value="users" class="hidden peer" />
+									<label for="leaderboard-filter-type-users" class="px-4 py-2 cursor-pointer peer-checked:z-10 peer-checked:ring-1 peer-checked:ring-blue-700 peer-checked:text-blue-700 dark:peer-checked:ring-blue-500 dark:peer-checked:text-white text-xs font-semibold text-slate-400 dark:text-slate-400 uppercase bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
+										{{ __('Users') }}
+									</label>
+								</div>
+								<div class="flex" wire:loading.class="opacity-50 pointer-events-none">
+									<input type="radio" wire:model.live="filterType" wire:loading.attr="disabled" name="leaderboard-filter-type" id="leaderboard-filter-type-judges" value="judges" class="hidden peer" />
+									<label for="leaderboard-filter-type-judges" class="px-4 py-2 cursor-pointer peer-checked:z-10 peer-checked:ring-1 peer-checked:ring-blue-700 peer-checked:text-blue-700 dark:peer-checked:ring-blue-500 dark:peer-checked:text-white text-xs font-semibold text-slate-400 dark:text-slate-400 uppercase bg-white border border-gray-200 rounded-e-md hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white">
+										<span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-500 text-white mr-1">AI</span>
+										{{ __('Judges') }}
+									</label>
+								</div>
 							</div>
 
 							<!-- Total Count -->
 							<span class="font-semibold text-gray-400 dark:text-gray-400">
-								{{ $items->total() }} {{ Str::plural($showType === 'judges' ? 'judge' : 'entry', $items->total()) }}
+								{{ $items->total() }} {{ Str::plural('entry', $items->total()) }}
 							</span>
 						</div>
 
@@ -79,7 +83,7 @@
 										{{ __('Rank') }}
 									</th>
 									<th scope="col" class="px-5 py-3">
-										{{ $showType === 'judges' ? __('Judge') : __('User') }}
+										{{ $showType === 'all' ? __('Participant') : ($showType === 'judges' ? __('Judge') : __('User')) }}
 									</th>
 									@if ($showType !== 'judges')
 										<th scope="col" class="px-5 py-3">
@@ -96,7 +100,7 @@
 							</thead>
 							<tbody>
 							@forelse ($items as $item)
-								<tr wire:key="leaderboard-item-{{ $showType === 'judges' ? 'j' . $item->judge_id : 'u' . $item->user_id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+								<tr wire:key="leaderboard-item-{{ ($showType === 'all' ? ($item->entry_type === 'judges' ? 'j' . ($item->judge?->id ?? $loop->index) : 'u' . ($item->user?->id ?? $loop->index)) : ($showType === 'judges' ? 'j' . $item->judge_id : 'u' . $item->user_id)) }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
 									<th scope="row" class="px-5 py-4 font-medium text-gray-900 dark:text-white align-baseline">
 										@if ($item->position == 1)
 											<x-typography.round-badge value="1" class="text-white bg-amber-400 dark:bg-amber-500" />
@@ -110,8 +114,8 @@
 									</th>
 									<td class="px-5 py-4 align-baseline">
 										<div class="inline-flex justify-center items-center">
-											@if ($showType === 'judges')
-												<x-block.judge-name :judge="$item->judge" />
+											@if ($showType === 'judges' || ($showType === 'all' && $item->entry_type === 'judges'))
+												<x-block.judge-name :judge="$item->judge" :show-badge="$showType !== 'all'" />
 											@else
 												<x-block.user-name :user="$item->user" />
 											@endif
@@ -119,11 +123,15 @@
 									</td>
 									@if ($showType !== 'judges')
 										<td class="px-5 py-4 align-baseline">
-											<x-block.user-role :user="$item->user" :team="$team" />
+											@if ($showType === 'all' && $item->entry_type === 'judges')
+												<x-block.judge-role />
+											@else
+												<x-block.user-role :user="$item->user" :team="$team" />
+											@endif
 										</td>
 									@endif
 									<td class="px-5 py-4 align-baseline">
-										@if ($showType === 'judges')
+										@if ($showType === 'judges' || ($showType === 'all' && $item->entry_type === 'judges'))
 											<x-tags.tags-list :tags="$item->judge?->tags ?? collect()" />
 										@else
 											<x-tags.tags-list :tags="$item->user->getTeamTags(Auth::user()->current_team_id)" />
@@ -144,38 +152,6 @@
 									</td>
 								</tr>
 							@endforelse
-
-							{{-- In "All" mode, show judge entries after user entries --}}
-							@if (($showType ?? '') === 'all' && isset($judgeItems) && $judgeItems->isNotEmpty())
-								<tr class="bg-gray-50 dark:bg-gray-700/50">
-									<td colspan="5" class="px-5 py-2">
-										<span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">AI Judges</span>
-									</td>
-								</tr>
-								@foreach ($judgeItems as $judgeItem)
-									<tr wire:key="leaderboard-judge-{{ $judgeItem->judge_id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-										<th scope="row" class="px-5 py-4 font-medium text-gray-900 dark:text-white align-baseline">
-											<x-typography.round-badge-blue :value="$judgeItem->position" />
-										</th>
-										<td class="px-5 py-4 align-baseline">
-											<div class="inline-flex justify-center items-center">
-												<x-block.judge-name :judge="$judgeItem->judge" :show-badge="false" />
-											</div>
-										</td>
-										<td class="px-5 py-4 align-baseline">
-											<x-block.judge-role />
-										</td>
-										<td class="px-5 py-4 align-baseline">
-											<x-tags.tags-list :tags="$judgeItem->judge?->tags ?? collect()" />
-										</td>
-										<td class="px-5 py-4 align-baseline">
-											<span class="text-sm font-semibold text-gray-900 dark:text-white">
-												{{ $judgeItem->feedback_count }}
-											</span>
-										</td>
-									</tr>
-								@endforeach
-							@endif
 							</tbody>
 						</table>
 
