@@ -2,11 +2,15 @@
 
 namespace Tests\Feature\Http\Controllers\Api;
 
+use App\Models\EvaluationKeyword;
+use App\Models\Judge;
 use App\Models\SearchEndpoint;
 use App\Models\SearchEvaluation;
 use App\Models\SearchModel;
+use App\Models\SearchSnapshot;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\UserFeedback;
 use App\Services\Scorers\Scales\BinaryScale;
 use App\Services\Scorers\Scales\GradedScale;
 use Laravel\Sanctum\Sanctum;
@@ -271,5 +275,71 @@ class EvaluationsControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJson([]); // Expecting empty array if no data
+    }
+
+    public function test_judgements_aggregates_human_and_ai_feedback_for_snapshot(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $evaluation = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 3,
+            ],
+        ]);
+
+        $keyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'kettle',
+        ]);
+
+        $snapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $keyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-1',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+
+        $judge = Judge::factory()->create([
+            Judge::FIELD_USER_ID => $user->id,
+            Judge::FIELD_TEAM_ID => $team->id,
+        ]);
+
+        // Majority relevant across human + AI should produce grade=1 for binary scale
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => $user->id,
+            UserFeedback::FIELD_JUDGE_ID => null,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_JUDGE_ID => $judge->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+            UserFeedback::FIELD_REASON => 'AI says relevant',
+        ]);
+
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => $user->id,
+            UserFeedback::FIELD_JUDGE_ID => null,
+            UserFeedback::FIELD_GRADE => BinaryScale::IRRELEVANT,
+        ]);
+
+        $this->authenticate($team);
+
+        $response = $this->getJson("/api/v1/evaluations/{$evaluation->id}/judgements");
+
+        $response->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonFragment([
+                'grade' => BinaryScale::RELEVANT,
+                'keyword' => 'kettle',
+                'position' => 1,
+                'doc' => 'doc-1',
+            ]);
     }
 }

@@ -76,6 +76,7 @@ class JudgesPromptsTest extends TestCase
         $judge = Judge::factory()->create([
             Judge::FIELD_USER_ID => $user->id,
             Judge::FIELD_TEAM_ID => $user->currentTeam->id,
+            Judge::FIELD_PROVIDER => Judge::PROVIDER_OPENAI,
             Judge::FIELD_PROMPT_BINARY => 'Saved binary prompt',
             Judge::FIELD_PROMPT_GRADED => 'Saved graded prompt',
             Judge::FIELD_PROMPT_DETAIL => 'Saved detail prompt',
@@ -95,6 +96,7 @@ class JudgesPromptsTest extends TestCase
         $judge = Judge::factory()->create([
             Judge::FIELD_USER_ID => $user->id,
             Judge::FIELD_TEAM_ID => $user->currentTeam->id,
+            Judge::FIELD_PROVIDER => Judge::PROVIDER_OPENAI,
             Judge::FIELD_SETTINGS => [Judge::SETTING_BATCH_SIZE => 5],
         ]);
 
@@ -110,6 +112,7 @@ class JudgesPromptsTest extends TestCase
         $judge = Judge::factory()->create([
             Judge::FIELD_USER_ID => $user->id,
             Judge::FIELD_TEAM_ID => $user->currentTeam->id,
+            Judge::FIELD_PROVIDER => Judge::PROVIDER_OPENAI,
             Judge::FIELD_SETTINGS => [],
         ]);
 
@@ -125,6 +128,7 @@ class JudgesPromptsTest extends TestCase
         $judge = Judge::factory()->create([
             Judge::FIELD_USER_ID => $user->id,
             Judge::FIELD_TEAM_ID => $user->currentTeam->id,
+            Judge::FIELD_PROVIDER => Judge::PROVIDER_OPENAI,
             Judge::FIELD_PROMPT_BINARY => 'Clone binary',
             Judge::FIELD_PROMPT_GRADED => 'Clone graded',
             Judge::FIELD_PROMPT_DETAIL => 'Clone detail',
@@ -147,6 +151,7 @@ class JudgesPromptsTest extends TestCase
         $judge = Judge::factory()->create([
             Judge::FIELD_USER_ID => $user->id,
             Judge::FIELD_TEAM_ID => $user->currentTeam->id,
+            Judge::FIELD_PROVIDER => Judge::PROVIDER_OPENAI,
             Judge::FIELD_PROMPT_BINARY => 'Old binary',
             Judge::FIELD_PROMPT_GRADED => 'Old graded',
             Judge::FIELD_PROMPT_DETAIL => 'Old detail',
