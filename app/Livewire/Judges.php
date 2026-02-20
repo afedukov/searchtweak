@@ -6,7 +6,6 @@ use App\Actions\Judges\DeleteJudge;
 use App\Actions\Judges\ToggleJudgeActive;
 use App\Livewire\Traits\Judges\EditJudgeModalTrait;
 use App\Models\Judge;
-use App\Models\UserFeedback;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -57,8 +56,7 @@ class Judges extends Component
 
         $query = Auth::user()->currentTeam
             ->judges()
-            ->with(['user', 'team', 'tags'])
-            ->withCount(['feedbacks as pairs_judged_count' => fn ($q) => $q->whereNotNull(UserFeedback::FIELD_GRADE)]);
+            ->with(['user', 'team', 'tags']);
 
         if (in_array('archived', $this->filterStatus) && in_array('active', $this->filterStatus)) {
             // Do nothing

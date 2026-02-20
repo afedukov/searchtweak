@@ -175,7 +175,7 @@
 										<x-tags.tags-list :tags="$judge->tags" empty-label="" />
 									</td>
 									<td class="px-5 py-4 text-center align-baseline">
-										<span class="font-mono text-xs">{{ $judge->pairs_judged_count }}</span>
+										<livewire:judges.judge-pairs-judged-count :judge-id="$judge->id" :team-id="Auth::user()->current_team_id" :key="'judge-pairs-judged-'.$judge->id" />
 									</td>
 									<td class="px-5 py-4 text-center align-baseline">
 										<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">{{ $judge->getBatchSize() }}</span>
