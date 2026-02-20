@@ -15,6 +15,7 @@ use App\Livewire\UpdateProfileInformationForm;
 use App\Livewire\Users\DeleteUserForm;
 use App\Models\User;
 use App\Policies\Roles;
+use App\Policies\JudgePolicy;
 use App\Policies\SearchEndpointPolicy;
 use App\Policies\SearchEvaluationPolicy;
 use App\Policies\SearchModelPolicy;
@@ -81,6 +82,9 @@ class JetstreamServiceProvider extends ServiceProvider
         Gate::define('view-evaluations', [SearchEvaluationPolicy::class, 'viewAny']);
 
         Gate::define('view-leaderboard', [SearchEvaluationPolicy::class, 'viewLeaderboard']);
+
+        Gate::define('create-judge', [JudgePolicy::class, 'create']);
+        Gate::define('view-judges', [JudgePolicy::class, 'viewAny']);
 
         Gate::define('superuser', fn (User $user) => $user->super_admin);
     }

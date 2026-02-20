@@ -22,6 +22,7 @@ class Roles
             Permissions::PERMISSION_GIVE_USER_FEEDBACK,
             Permissions::PERMISSION_VIEW_LEADERBOARD,
             Permissions::PERMISSION_MANAGE_API_TOKEN,
+            Permissions::PERMISSION_MANAGE_JUDGES,
         ],
     ];
 

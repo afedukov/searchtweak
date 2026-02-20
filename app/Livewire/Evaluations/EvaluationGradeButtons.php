@@ -30,7 +30,8 @@ class EvaluationGradeButtons extends Component
         $feedbacks = $this->snapshot->feedbacks
             ->filter(fn (UserFeedback $feedback) =>
                 ($feedback->grade !== null) ||
-                ($feedback->user_id !== null && !$feedback->isAssignmentExpired())
+                ($feedback->user_id !== null && !$feedback->isAssignmentExpired()) ||
+                ($feedback->judge_id !== null)
             );
 
         return view('livewire.evaluations.evaluation-grade-buttons', [

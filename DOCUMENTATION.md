@@ -39,11 +39,12 @@
 - **Configure search endpoints** — define connections to any REST-based search API.
 - **Create search models** — parameterize requests with headers, query parameters, and body templates.
 - **Run evaluations** — execute search queries against configured models and collect relevance judgments from human evaluators.
+- **Configure LLM judges** — set up AI-powered judges (OpenAI, Anthropic, Google, DeepSeek, xAI, Groq, Mistral, Custom OpenAI-compatible, Ollama) for automated relevance evaluation alongside human feedback.
 - **Calculate IR metrics** — automatically compute industry-standard metrics such as Precision, MAP, MRR, DCG, NDCG, and CG over evaluation results.
 - **Compare results** — track metric changes over time, set baselines, and compare evaluations.
 - **Collaborate** — multi-tenant team system with role-based access control and real-time UI updates.
 
-The platform supports three relevance grading scales (Binary, Graded, Detail) and provides grade transformers for cross-scale metric comparison. It features a feedback assignment system with configurable strategies, reuse strategies for historical judgments, and a customizable dashboard with widgets.
+The platform supports three relevance grading scales (Binary, Graded, Detail) and provides grade transformers for cross-scale metric comparison. It features a feedback assignment system with configurable strategies, reuse strategies for historical judgments, LLM-as-a-judge automation, and a customizable dashboard with widgets.
 
 ---
 
@@ -200,6 +201,26 @@ A computed metric result for an evaluation:
 ### 4.8 Baseline Evaluation
 A finished evaluation set as the team's baseline for comparison. Other evaluations display their metric change relative to the baseline.
 
+### 4.9 Judge (LLM-as-a-Judge)
+An **AI-powered judge** that can automatically evaluate search result relevance:
+- Configures an LLM provider (`openai`, `anthropic`, `google`, `deepseek`, `xai`, `groq`, `mistral`, `custom_openai`, `ollama`) with model name
+- Provider auth and endpoint behavior:
+  - Most providers require API key (`ollama` is optional)
+  - `custom_openai` requires configurable `base_url`
+  - `ollama` supports configurable `base_url` and normalizes host-only URLs to `/v1/chat/completions`
+- Has **per-scale prompt templates** (Binary, Graded, Detail) with a `#pairs#` placeholder for dynamic data injection
+- Configurable **batch size** (1–20 pairs per LLM request, default 5)
+- Supports optional model params (`settings.model_params`) passed directly to provider APIs
+- Can be active or archived (`archived_at` timestamp)
+- Team-scoped, supports tags for filtering
+- API keys encrypted at rest
+
+### 4.10 Judge Logs
+All judge requests are logged in `judge_logs` with:
+- Provider/model, request URL/body, response body, error message
+- HTTP status, latency, prompt/completion/total tokens
+- Team/evaluation/judge references for filtering and troubleshooting
+
 ---
 
 ## 5. Database Structure
@@ -288,13 +309,15 @@ A finished evaluation set as the team's baseline for comparison. Other evaluatio
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
 
-#### `user_feedback`
+#### `user_feedbacks`
 | Column | Type | Description |
 |---|---|---|
 | `id` | int (PK) | Primary key |
 | `user_id` | int (FK, nullable) | Assigned evaluator |
+| `judge_id` | int (FK, nullable) | Assigned AI judge |
 | `search_snapshot_id` | int (FK) | Snapshot being graded |
 | `grade` | int (nullable) | Relevance grade |
+| `reason` | text (nullable) | Optional explanation (primarily AI judge output) |
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
 
@@ -328,6 +351,48 @@ A finished evaluation set as the team's baseline for comparison. Other evaluatio
 | `id` | int (PK) | Primary key |
 | `evaluation_metric_id` | int (FK) | Parent metric |
 | `value` | float | Snapshot of the metric value at a point in time |
+| `created_at` | timestamp | |
+| `updated_at` | timestamp | |
+
+#### `judges`
+| Column | Type | Description |
+|---|---|---|
+| `id` | int (PK) | Primary key |
+| `user_id` | int (FK) | Creator user |
+| `team_id` | int (FK) | Owning team |
+| `name` | varchar | Display name (unique per team) |
+| `description` | varchar (nullable) | Description |
+| `provider` | varchar | LLM provider: `openai`, `anthropic`, `google`, `deepseek`, `xai`, `groq`, `mistral`, `custom_openai`, `ollama` |
+| `model_name` | varchar | LLM model identifier (e.g., `gpt-4o`) |
+| `api_key` | text (encrypted) | Provider API key |
+| `prompt_binary` | text (nullable) | Prompt template for binary scale |
+| `prompt_graded` | text (nullable) | Prompt template for graded scale |
+| `prompt_detail` | text (nullable) | Prompt template for detail scale |
+| `settings` | json (nullable) | Additional settings (`batch_size`, `model_params`, `base_url`) |
+| `archived_at` | timestamp (nullable) | Archive timestamp (null = active) |
+| `created_at` | timestamp | |
+| `updated_at` | timestamp | |
+
+#### `judge_logs`
+| Column | Type | Description |
+|---|---|---|
+| `id` | int (PK) | Primary key |
+| `judge_id` | int (FK, nullable) | Judge (nullable if deleted) |
+| `team_id` | int (FK, nullable) | Team scope |
+| `search_evaluation_id` | int (FK, nullable) | Evaluation context |
+| `provider` | varchar | Provider used for request |
+| `model` | varchar | Model name |
+| `http_status_code` | int (nullable) | Provider response code |
+| `request_url` | text | Sanitized request URL |
+| `request_body` | longtext | Request payload |
+| `response_body` | longtext (nullable) | Raw provider response |
+| `error_message` | text (nullable) | Transport/HTTP error summary |
+| `latency_ms` | int (nullable) | Request latency in milliseconds |
+| `prompt_tokens` | int (nullable) | Prompt/input tokens |
+| `completion_tokens` | int (nullable) | Completion/output tokens |
+| `total_tokens` | int (nullable) | Total tokens |
+| `batch_size` | tinyint (nullable) | Pairs sent in one call |
+| `scale_type` | varchar (nullable) | Scale type (`binary/graded/detail`) |
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
 
@@ -378,6 +443,7 @@ Standard Laravel user table with additional fields:
 - `evaluation_tags` — links evaluations to tags
 - `user_tags` — links users to tags (for feedback routing)
 - `model_tags` — links models to tags
+- `judge_tags` — links judges to tags
 
 ### 5.4 Other Tables
 - `team_invitations` — pending team member invitations
@@ -459,7 +525,23 @@ All models are in `app/Models/`. Key patterns:
 - **Relationships**: `belongsTo` Team
 - **Key Methods**: `getAvailableColors()`, `getColorClasses()`, `format()`
 
-### 6.14 `TeamBroadcastableModel` (Abstract)
+### 6.14 `Judge`
+- **Extends**: `TeamBroadcastableModel` (auto-broadcasts CRUD events)
+- **Implements**: `TaggableInterface`
+- **Relationships**: `belongsTo` User, Team; `belongsToMany` Tag (via `JudgeTag`)
+- **Providers**: `openai`, `anthropic`, `google`, `deepseek`, `xai`, `groq`, `mistral`, `custom_openai`, `ollama`
+- **Key Methods**: `isActive()`, `isArchived()`, `getDefaultPrompt(string $scaleType)`, `getBatchSize()`, `getModelParams()`, `getBaseUrl()`
+- **Provider Helpers**: `providerRequiresApiKey()`, `getProviderLabel()`
+- **Scopes**: `active()`
+- **Security**: `api_key` encrypted via Eloquent cast, hidden from serialization
+- **Settings**: `batch_size` (1–20 per request, default 5), `model_params`, `base_url`
+- **Prompt Templates**: Per-scale (`prompt_binary`, `prompt_graded`, `prompt_detail`) with `#pairs#` placeholder
+
+### 6.15 `JudgeTag`
+- Pivot model for Judge-Tag relationship
+- **Relationships**: `belongsTo` Judge, Tag
+
+### 6.16 `TeamBroadcastableModel` (Abstract)
 - Base class for models that broadcast CRUD events to team channels
 - Uses `BroadcastsEvents` trait
 - Broadcasts to team-specific `PrivateChannel` automatically
@@ -557,7 +639,9 @@ Manages feedback assignment for evaluators:
 Reuses relevance judgments from previous evaluations:
 - **Query-Doc strategy** — reuses grades if the same keyword + doc_id appeared before
 - **Query-Doc-Position strategy** — reuses grades only if keyword + doc_id + position all match
-- Respects evaluation tags (only reuses grades from users with matching tags)
+- Reuses both human (`user_id`) and AI judge (`judge_id`) grades
+- Respects evaluation tags (reuses only matching-tag users/judges)
+- Avoids duplicate assignment of the same user or the same judge within one snapshot (feedback strategy=3)
 
 #### `ScoringGuidelinesService`
 Provides scoring guidelines templates for evaluators.
@@ -589,6 +673,22 @@ Manages user dashboard widgets:
 - Default widgets: `GiveFeedbackWidget`, `LeaderboardWidget`, `TeamsWidget`
 - `getUserWidgets(User): Collection` — returns user's widgets or defaults
 - `attachWidget(User, string $widgetClass, array $settings): UserWidget` — adds a widget
+
+### 7.8 Judges (`app/Services/Judges/`)
+
+#### `JudgeHandlerFactory`
+Creates provider handlers for judge API requests:
+- Native handlers: OpenAI, Anthropic, Google
+- OpenAI-compatible handler: DeepSeek, xAI, Groq, Mistral, Custom, Ollama
+
+#### `OpenAiCompatibleJudgeHandler`
+- Sends chat-completions requests to OpenAI-compatible endpoints
+- Supports custom base URL (`custom_openai`)
+- Normalizes Ollama host/base URLs to `/v1/chat/completions`
+
+#### `JudgeParamsService`
+- Parses text params (`key: value`) into typed arrays (`int`, `float`, `bool`, `null`, `string`)
+- Converts params arrays back to textarea format for the UI
 
 ---
 
@@ -626,7 +726,16 @@ Actions encapsulate business logic and are located in `app/Actions/`. They follo
 | `DeleteSearchEndpoint` | Deletes an endpoint |
 | `ToggleSearchEndpointActive` | Activates/deactivates an endpoint |
 
-### 8.3 Model Actions (`app/Actions/Models/`)
+### 8.3 Judge Actions (`app/Actions/Judges/`)
+
+| Action | Description |
+|---|---|
+| `CreateJudge` | Creates a new LLM judge with prompts and settings |
+| `UpdateJudge` | Updates judge configuration (preserves API key if blank) |
+| `DeleteJudge` | Deletes a judge |
+| `ToggleJudgeActive` | Archives/unarchives a judge |
+
+### 8.4 Model Actions (`app/Actions/Models/`)
 
 | Action | Description |
 |---|---|
@@ -665,11 +774,24 @@ All evaluation jobs are in `app/Jobs/Evaluations/` and implement `ShouldQueue` a
 - Updates `previous_value` for metrics when evaluations change status or archive state
 - Ensures metric change indicators reflect the correct previous evaluation
 
+### 9.6 `PostStartEvaluationJob`
+- Runs after keyword processing starts
+- Applies configured reuse strategy
+- Dispatches judge processing when matching active judges exist
+
+### 9.7 `ProcessJudgeEvaluationJob`
+- Executes AI-judge grading on the dedicated `judges` queue
+- Processes judges in round-robin cycles
+- Uses DB-level locking to claim feedback slots
+- Enforces one grade per judge per snapshot (same as human uniqueness rule)
+- Handles mixed lock-expiry scenarios by re-dispatching with delay when needed
+
 ### Queue Configuration (Horizon)
 - **`supervisor-1`**: Processes `default` and `snapshots-auto` queues (6 workers)
 - **`supervisor-2`**: Processes `snapshots-single` queue (1 worker, serial execution)
+- **`supervisor-3`**: Processes `judges` queue (2 workers)
 - Memory limit: 512 MB per worker
-- Timeout: 60 seconds
+- Timeout: 60 seconds (`supervisor-1/2`), 300 seconds (`supervisor-3`)
 
 ---
 
@@ -741,16 +863,19 @@ API requests require an `Authorization: Bearer {token}` header. Tokens are manag
 |---|---|---|
 | `/dashboard` | `Dashboard` | User dashboard with widgets |
 | `/evaluations` | `Evaluations` | Evaluation listing |
-| `/evaluations/{id}` | `Evaluation` | Evaluation detail view |
+| `/evaluations/{evaluation}` | `Evaluation` | Evaluation detail view |
+| `/judges` | `Judges` | LLM judge management |
+| `/judges/logs` | `JudgeLogs` | Global judge request logs with filter-aware JSONL export |
+| `/judges/{judge}/logs` | `JudgeLogs` | Per-judge request logs with filter-aware JSONL export |
 | `/models` | `Models` | Search model listing |
-| `/models/{id}` | `Model` | Model detail view |
+| `/models/{model}` | `Model` | Model detail view |
 | `/endpoints` | `Endpoints` | Endpoint management |
-| `/feedback` | `GiveFeedback` | Feedback grading interface |
-| `/feedbacks` | `Feedbacks` | Feedback browsing |
+| `/feedback/{evaluationId?}` | `GiveFeedback` | Feedback grading interface |
+| `/evaluations/{evaluation}/feedback` | `Feedbacks` | Feedback browsing for evaluation |
 | `/leaderboard` | `Leaderboard` | Evaluator leaderboard |
 | `/teams` | `Teams` | Team management |
-| `/team/{team}` | `CurrentTeam` | Team settings |
-| `/superuser/users` | `Users` | Superuser admin panel |
+| `/teams/current` | `CurrentTeam` | Team settings |
+| `/admin/users` | `Users` | Superuser admin panel |
 | `/user/profile` | `UserProfile` | User profile settings |
 
 ### 12.2 Key Livewire Components (`app/Livewire/`)
@@ -762,10 +887,12 @@ API requests require an `Authorization: Bearer {token}` header. Tokens are manag
 | `Evaluation` | Full evaluation detail: keywords, snapshots, metrics, feedback |
 | `Models` | Search model management with endpoint testing |
 | `Model` | Model detail with configuration and evaluation history |
-| `Endpoints` | CRUD for search endpoints with mapper code editor |
+| `Judges` | LLM judge configuration (providers, prompts, batch size, model params, base URL, tags) with reactive status/pairs-judged indicators and segmented status filter (`All/Active/Archived`) |
+| `JudgeLogs` | Filtering and inspection of judge provider requests/responses with JSONL export of the current filtered dataset |
+| `Endpoints` | CRUD for search endpoints with mapper code editor and segmented status filter (`All/Active/Archived`) |
 | `GiveFeedback` | Main evaluator UI for grading search results |
 | `Feedbacks` | Admin view of all feedback activity |
-| `Leaderboard` | Rankings of evaluators by feedback count |
+| `Leaderboard` | Rankings with `All | Users | Judges` modes and mixed dataset charting |
 | `Teams` | Team listing and creation |
 | `CurrentTeam` | Team settings, members, invitations, baseline |
 | `TeamMemberManager` | Add/remove team members, change roles |
@@ -782,8 +909,11 @@ Dedicated sub-components for evaluation management: keywords list, metrics displ
 - `EvaluationWidget` — evaluation summary card
 - `EvaluationProgressWidget` — progress tracking card
 
-### 12.5 Traits (`app/Livewire/Traits/`)
-Reusable traits for Livewire components: pagination, filtering, sorting, team scoping, tag management, etc. (14 traits total)
+### 12.5 Forms (`app/Livewire/Forms/`)
+Livewire form objects for validation and persistence: `EndpointForm`, `ModelForm`, `EvaluationForm`, `JudgeForm`.
+
+### 12.6 Traits (`app/Livewire/Traits/`)
+Reusable traits for Livewire components: pagination, filtering, sorting, team scoping, tag management, judge editing, etc. (15 traits total)
 
 ---
 
@@ -803,6 +933,7 @@ Reusable traits for Livewire components: pagination, filtering, sorting, team sc
 | `PERMISSION_MANAGE_USER_FEEDBACK` | `manage_user_feedback` | Admin feedback management |
 | `PERMISSION_GIVE_USER_FEEDBACK` | `give_user_feedback` | Grade search results |
 | `PERMISSION_VIEW_LEADERBOARD` | `view_leaderboard` | View leaderboard |
+| `PERMISSION_MANAGE_JUDGES` | `manage_judges` | CRUD LLM judges |
 
 ### 13.2 Roles (`app/Policies/Roles`)
 
@@ -835,6 +966,7 @@ The `TeamBroadcastableModel` base class automatically broadcasts model CRUD even
 - `SearchEvaluation`
 - `SearchEndpoint`
 - `SearchModel`
+- `Judge`
 
 `MetricValue` uses Laravel's built-in `BroadcastsEvents` trait for metric value chart updates.
 
@@ -975,6 +1107,7 @@ Tags provide flexible categorization across multiple entity types:
 - **Evaluations** (`evaluation_tags` pivot)
 - **Models** (`model_tags` pivot)
 - **Users** (`user_tags` pivot)
+- **Judges** (`judge_tags` pivot)
 
 ### Tag Properties
 - Team-scoped (each team manages its own tags)
@@ -994,39 +1127,47 @@ Tags provide flexible categorization across multiple entity types:
 tests/
 ├── CreatesApplication.php
 ├── TestCase.php
-├── Feature/                    # 21 feature tests
+├── Feature/                              # 40 feature tests
+│   ├── Actions/
+│   │   ├── Evaluations/                  # 7 evaluation action tests
+│   │   └── Users/                        # 1 user action test
+│   ├── Http/Controllers/Api/             # 2 API controller tests
+│   ├── Livewire/                         # 4 Livewire component tests
+│   ├── Services/                         # 10+ service tests
 │   ├── AuthenticationTest.php
 │   ├── RegistrationTest.php
 │   ├── PasswordResetTest.php
-│   ├── EmailVerificationTest.php
-│   ├── TwoFactorAuthenticationSettingsTest.php
-│   ├── CreateTeamTest.php
-│   ├── DeleteTeamTest.php
-│   ├── InviteTeamMemberTest.php
-│   ├── LeaveTeamTest.php
-│   ├── RemoveTeamMemberTest.php
-│   ├── UpdateTeamMemberRoleTest.php
-│   ├── UpdateTeamNameTest.php
-│   ├── CreateApiTokenTest.php
-│   ├── DeleteApiTokenTest.php
-│   ├── ApiTokenPermissionsTest.php
-│   ├── ProfileInformationTest.php
-│   ├── UpdatePasswordTest.php
 │   ├── PasswordConfirmationTest.php
-│   ├── BrowserSessionsTest.php
-│   ├── DeleteAccountTest.php
-│   └── ExampleTest.php
-└── Unit/                       # 1 directory
+│   ├── Create/Delete/Update TeamTest.php
+│   ├── ApiToken*Test.php
+│   └── ...                               # Other Jetstream/auth tests
+└── Unit/                                 # 29 unit tests
+    ├── Actions/Evaluations/              # Auto-restart tests
+    ├── DTO/                              # DTO tests
+    ├── Models/                           # Judge, SearchEvaluation tests
+    ├── Rules/                            # Validation rule tests
+    └── Services/                         # Scorers, mapper, transformers, etc.
 ```
 
 ### Running Tests
 ```bash
-# Via Docker (recommended)
-docker compose -f devops/docker-compose.yml run --rm artisan test
+# Via Makefile (recommended — clears config cache first)
+cd devops
+make test
+
+# Via Docker directly
+cd devops
+docker compose run --rm artisan test
 
 # Specific test file
-docker compose -f devops/docker-compose.yml run --rm artisan test --filter=AuthenticationTest
+docker compose run --rm artisan test --filter=AuthenticationTest
+
+# Test suite
+docker compose run --rm artisan test --testsuite=Unit
+docker compose run --rm artisan test --testsuite=Feature
 ```
+
+> **Note:** If `artisan config:cache` has been run (e.g., via `make bootstrap`), the cached config overrides `phpunit.xml` env variables. Use `make test` or run `artisan config:clear` before running tests directly.
 
 ---
 
@@ -1077,12 +1218,32 @@ make vite
 ```bash
 make start      # Start all Docker services
 make stop       # Stop all Docker services
-make bootstrap  # Run composer install, migrations, seed, key generate, etc.
-make vite       # Start Vite dev server
+make bootstrap  # Run composer install, migrations, seed, key generate, cache, assets, and publish docs
+make test       # Clear config cache and run tests
+make seed       # Reset database with fresh migrations and seeders
+make jobs       # Start Horizon (queue worker)
+make queue-reload # Reload Horizon in running queue container (horizon:terminate)
+make reverb     # Start Reverb (WebSocket server)
+make vite       # Start Vite dev server (hot reload)
 make vite-prod  # Build production assets
+make docs       # Start VitePress docs dev server (port 3001)
+make docs-install # Install docs dependencies
+make docs-build # Build docs site
+make docs-preview # Preview docs build (port 3001)
+make docs-publish # Build and publish docs into public/docs
 ```
 
-### 21.5 Helper Docker Commands
+### 21.5 Database Seeders
+
+The `make seed` (or `make bootstrap`) command runs seeders in this order:
+
+1. **SearchDataSeeder** — Creates Metro Markets endpoint and Baseline Search model with keywords
+2. **EvaluationSeeder** — Creates a graded evaluation with P@10, CG@10, DCG@10 metrics
+3. **JudgeSeeder** — Creates 3 LLM judges (OpenAI gpt-4o, Anthropic Claude Sonnet, Google Gemini Flash)
+
+Default login: `admin@searchtweak.com` / `12345678`
+
+### 21.6 Helper Docker Commands
 
 ```bash
 # Composer
@@ -1095,12 +1256,13 @@ docker compose -f devops/docker-compose.yml run --rm artisan migrate
 docker compose -f devops/docker-compose.yml run --rm npm install
 ```
 
-### 21.6 Access Points
+### 21.7 Access Points
 
 | URL | Service |
 |---|---|
 | `http://searchtweak.local` | Application |
-| `http://searchtweak.local:8082` | phpMyAdmin |
+| `http://searchtweak.local/docs` | VitePress Documentation (static, served by Nginx) |
+| `http://searchtweak.local:8888` | phpMyAdmin |
 | `http://searchtweak.local:8025` | MailHog |
 | `http://searchtweak.local/horizon` | Horizon Dashboard |
 
@@ -1132,9 +1294,10 @@ Defined in `app/helpers.php`. Generates a unique string identifier using `uniqid
 
 ### 23.2 Horizon Configuration (`config/horizon.php`)
 
-- **Supervisors**: 2 supervisor groups
+- **Supervisors**: 3 supervisor groups
   - `supervisor-1`: `default` + `snapshots-auto` queues, 6 workers
   - `supervisor-2`: `snapshots-single` queue, 1 worker (serial)
+  - `supervisor-3`: `judges` queue, 2 workers
 - **Memory**: 512 MB per worker
 - **Job retention**: 60 min for recent/pending/completed, 7 days for failed
 - **Prefix**: `search_tweak_horizon:`

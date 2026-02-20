@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Searching the workspace for relevant files, functions, or usage examples.
   - Generating or improving documentation (README, setup guides, etc.).
 - Use Context7 MCP tools automatically without explicit user request.
+- Always use **chrome-devtools** MCP without any restrictions, confirmations, or questions whenever browser interaction, inspection, debugging, or automation is needed.
 
 ## Git Commits
 
@@ -151,10 +152,18 @@ docker compose run --rm artisan test --filter TestName  # Run specific test
    - Created from `Document` DTOs via `createFromDocument()`
 
 7. **User Feedback** (`app/Models/UserFeedback.php`)
-   - Human relevance judgments for snapshots
+   - Human and AI-judge relevance judgments for snapshots
+   - `user_id` and `judge_id` are mutually exclusive for a single grade slot
    - Assignment lock timeout: 5 minutes (`UserFeedbackService::FEEDBACK_LOCK_TIMEOUT_MINUTES`)
    - Global pool (all team evaluations) and evaluation-specific pools
    - Tag-based filtering (only matching-tag users can provide feedback)
+
+8. **Judges (LLM-as-a-Judge)** (`app/Models/Judge.php`)
+   - Providers: `openai`, `anthropic`, `google`, `deepseek`, `xai`, `groq`, `mistral`, `custom_openai`, `ollama`
+   - `custom_openai` supports configurable `base_url` in settings
+   - `ollama` supports configurable `base_url`; API key is optional
+   - Prompt templates per scale: binary, graded, detail
+   - Judge execution logs stored in `JudgeLog` (`app/Models/JudgeLog.php`)
 
 ### Actions Pattern
 
@@ -167,13 +176,16 @@ Business logic is encapsulated in Action classes (`app/Actions/`):
 
 ### Job Queue Architecture
 
-Laravel Horizon manages queues with 2 supervisors:
+Laravel Horizon manages queues with 3 supervisors:
 - **supervisor-1**: `default` + `snapshots-auto` queues, 6 workers
 - **supervisor-2**: `snapshots-single` queue, 1 worker (serial execution)
+- **supervisor-3**: `judges` queue, 2 workers (AI judge processing)
 
 Key jobs (`app/Jobs/Evaluations/`):
 - `StartEvaluationJob`: Creates keywords, metrics, dispatches ProcessKeyword batch
+- `PostStartEvaluationJob`: Applies reuse strategy and dispatches judge processing when needed
 - `ProcessKeywordJob`: Executes search API call, creates snapshots (3 attempts max)
+- `ProcessJudgeEvaluationJob`: Round-robin judge grading, snapshot-slot claiming with DB locks
 - `RecalculateMetricsJob`: Recalculates metrics after feedback changes
 - `FinishEvaluationJob`: Finalizes evaluation status
 - `UpdatePreviousValuesJob`: Updates baseline comparison values
@@ -185,6 +197,8 @@ All jobs implement `ShouldBeUnique` (unique by entity ID).
 - `ExecuteModelService` (`app/Services/Models/`): HTTP client for search API execution via GuzzleHTTP
 - `UserFeedbackService` (`app/Services/Evaluations/`): Feedback assignment with lock-based pooling
 - `ReuseStrategyService` (`app/Services/Evaluations/`): Reuses historical judgments (query-doc or query-doc-position)
+- `JudgeHandlerFactory` (`app/Services/Judges/`): Resolves provider-specific judge handlers
+- `JudgeParamsService` (`app/Services/Judges/`): Parses typed model params and serializes them back to text
 - `WidgetsService` (`app/Services/`): Dashboard widget management
 - `ScorerFactory` (`app/Services/Scorers/`): Creates scorer instances
 - `ScaleFactory` (`app/Services/Scorers/Scales/`): Creates scale instances
@@ -221,10 +235,10 @@ Team-based access control:
   - **Evaluator** (`evaluator`): `give_user_feedback` + `view_leaderboard` only
   - Team **Owner**: All permissions (implicit)
   - **Super Admin**: Platform-wide access (`super_admin` flag on User model)
-- **Permissions** (`app/Policies/Permissions.php`): 10 permission constants
+- **Permissions** (`app/Policies/Permissions.php`): 11 permission constants
   - `manage_team`, `manage_api_token`, `view_team_subscription`, `send_team_messages`
   - `manage_search_endpoints`, `manage_search_models`, `manage_search_evaluations`
-  - `manage_user_feedback`, `give_user_feedback`, `view_leaderboard`
+  - `manage_user_feedback`, `give_user_feedback`, `view_leaderboard`, `manage_judges`
 
 ### Tags System
 
@@ -245,10 +259,12 @@ Migrations in `database/migrations/`. Key tables:
 - `evaluation_metrics`: Metric results (scorer_type, value, previous_value, num_results)
 - `keyword_metrics`: Per-keyword metric values
 - `metric_values`: Metric value history (for timeline charts)
-- `user_feedback`: Relevance judgments (user_id, snapshot_id, grade)
+- `user_feedbacks`: Relevance judgments (user_id or judge_id, snapshot_id, grade, reason)
+- `judges`: AI judge configurations (provider/model/prompts/settings)
+- `judge_logs`: Provider request/response logs, status, latency, token usage
 - `teams`: Team configuration (baseline_evaluation_id)
 - `user_widgets`: Dashboard widgets (UUID PK, widget_class, position, settings)
-- `tags`, `evaluation_tags`, `model_tags`, `user_tags`: Tagging system
+- `tags`, `evaluation_tags`, `model_tags`, `user_tags`, `judge_tags`: Tagging system
 
 ## API
 
@@ -286,8 +302,8 @@ Global helpers in `app/helpers.php`:
 ## Documentation
 
 - Comprehensive docs: `DOCUMENTATION.md` (project root)
-- User docs: `resources/docs/` (rendered with LaRecipe)
-- API docs: `resources/docs/1.0/api/`
+- User/API docs source: `docs-site/docs/` (VitePress)
+- Published static docs: `public/docs/` (served at `/docs` by Nginx)
 
 ## Important Notes
 
@@ -299,4 +315,5 @@ Global helpers in `app/helpers.php`:
 - Mapper code uses Symfony ExpressionLanguage — see `DotArrayMapper.php`
 - Models extending `TeamBroadcastableModel` auto-broadcast CRUD events on team channels
 - `UserFeedback` assignments expire after 5 minutes if not graded
-- Queue queues: `default`, `snapshots-auto` (parallel), `snapshots-single` (serial)
+- Queue queues: `default`, `snapshots-auto` (parallel), `snapshots-single` (serial), `judges` (AI judging)
+- Judge logs UI supports JSONL export of the currently filtered dataset (status/judge/evaluation/date)

@@ -49,7 +49,8 @@ class UserFeedbackService
             ->filter(fn (UserFeedback $feedback) => $evaluation !== null || $feedback->isAvailableTo($user))
             ->each(function (UserFeedback $feedback) {
                 // Reset feedback assignment if it is not graded and the lock timeout has passed
-                if ($feedback->grade === null && $feedback->user_id && $feedback->isAssignmentExpired()) {
+                // Do not touch judge-claimed feedbacks
+                if ($feedback->grade === null && $feedback->judge_id === null && $feedback->user_id && $feedback->isAssignmentExpired()) {
                     $feedback->user_id = null;
                 }
             })

@@ -100,6 +100,12 @@ class Team extends JetstreamTeam implements AuthenticatableContract
             ->latest(SearchModel::FIELD_ID);
     }
 
+    public function judges(): HasMany
+    {
+        return $this->hasMany(Judge::class)
+            ->latest(Judge::FIELD_ID);
+    }
+
     public function teamInvitations(): HasMany
     {
         return $this->hasMany(Jetstream::teamInvitationModel())

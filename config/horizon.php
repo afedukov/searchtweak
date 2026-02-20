@@ -205,6 +205,18 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        'supervisor-3' => [
+            'connection' => 'redis',
+            'queue' => ['judges'],
+            'balance' => 'simple',
+            'autoScalingStrategy' => 'time',
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 512,
+            'tries' => 3,
+            'timeout' => 300,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -221,6 +233,11 @@ return [
                 'minProcesses' => 1,
                 'maxProcesses' => 1,
             ],
+            'supervisor-3' => [
+                'balance' => 'simple',
+                'minProcesses' => 2,
+                'maxProcesses' => 2,
+            ],
         ],
 
         'local' => [
@@ -233,6 +250,11 @@ return [
                 'balance' => 'simple',
                 'minProcesses' => 1,
                 'maxProcesses' => 1,
+            ],
+            'supervisor-3' => [
+                'balance' => 'simple',
+                'minProcesses' => 2,
+                'maxProcesses' => 2,
             ],
         ],
     ],

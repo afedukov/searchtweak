@@ -4,6 +4,7 @@ namespace Tests\Feature\Actions\Evaluations;
 
 use App\Actions\Evaluations\GradeSearchSnapshot;
 use App\Models\EvaluationKeyword;
+use App\Models\Judge;
 use App\Models\SearchEndpoint;
 use App\Models\SearchEvaluation;
 use App\Models\SearchModel;
@@ -187,5 +188,30 @@ class GradeSearchSnapshotTest extends TestCase
         // Exactly one should be graded
         $gradedCount = collect([$fb1, $fb2])->whereNotNull('grade')->count();
         $this->assertEquals(1, $gradedCount);
+    }
+
+    public function test_grade_clears_judge_assignment_when_user_regrades_judge_feedback(): void
+    {
+        [$user, $evaluation, $keyword, $snapshot] = $this->createSetup();
+
+        $judge = Judge::factory()->create([
+            Judge::FIELD_USER_ID => $user->id,
+            Judge::FIELD_TEAM_ID => $user->currentTeam->id,
+        ]);
+
+        $feedback = UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_JUDGE_ID => $judge->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::IRRELEVANT,
+        ]);
+
+        $snapshot->load('feedbacks');
+        $this->action->grade($snapshot, $user, BinaryScale::RELEVANT);
+
+        $feedback->refresh();
+        $this->assertEquals($user->id, $feedback->user_id);
+        $this->assertNull($feedback->judge_id);
+        $this->assertEquals(BinaryScale::RELEVANT, $feedback->grade);
     }
 }

@@ -7,5 +7,5 @@
 	multi-dimensional array format and is flattened into a single-level array using "dot" notation, indicating depth.
 </p>
 <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-	For more information, refer to the <a href="/docs/1.0/mapper-code" target="_blank" class="text-blue-500 hover:underline">Mapper Code</a> documentation.
+	For more information, refer to the <a href="/docs/mapper-code" target="_blank" class="text-blue-500 hover:underline">Mapper Code</a> documentation.
 </p>

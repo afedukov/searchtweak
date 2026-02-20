@@ -1,5 +1,5 @@
 <div>
-	<div class="flex items-center gap-1">
+	<div class="flex items-center gap-1 whitespace-nowrap">
 
 		<x-scales.scale-switch :snapshot="$snapshot" :scale="$evaluation->getScale()" :selected="$grade" />
 
@@ -14,14 +14,38 @@
 		@endif
 	</div>
 	<div class="text-left">
-		<ul class="mt-4">
+		<ul class="mt-4 space-y-2">
 			@foreach ($feedbacks as $feedback)
-				<li class="flex items-center gap-1">
-					<x-dynamic-component :component="$evaluation->getScale()->getScaleBadgeComponent()" :grade="$feedback->grade" size="sm" />
-
-					<span class="text-xs whitespace-nowrap">
-						{{ $feedback->user?->name ?? 'Removed User' }}
-					</span>
+				<li class="py-0.5">
+					<div class="flex items-center gap-2">
+						<x-dynamic-component :component="$evaluation->getScale()->getScaleBadgeComponent()" :grade="$feedback->grade" size="sm" />
+						@if ($feedback->judge_id)
+							<x-block.judge-name
+								:judge="$feedback->judge"
+								icon-size="sm"
+								name-class="text-xs leading-none text-blue-500 dark:text-blue-400"
+								class="whitespace-nowrap"
+							/>
+						@else
+							<span class="text-xs whitespace-nowrap leading-none">
+								{{ $feedback->user?->name ?? 'Removed User' }}
+							</span>
+						@endif
+					</div>
+					@if ($feedback->reason)
+						@php($isLongReason = Str::length($feedback->reason) > 150)
+						<p x-data="{ expanded: false }" class="ml-12 mt-0.5 text-xs text-gray-400 dark:text-gray-500 italic max-w-[250px]">
+							<span
+								@if ($isLongReason)
+									@click="expanded = !expanded"
+								@endif
+								class="block text-left w-full"
+							>
+								<span x-show="!expanded">{{ $isLongReason ? Str::substr($feedback->reason, 0, 150) . '...' : $feedback->reason }}</span>
+								<span x-show="expanded" x-cloak>{{ $feedback->reason }}</span>
+							</span>
+						</p>
+					@endif
 				</li>
 			@endforeach
 		</ul>

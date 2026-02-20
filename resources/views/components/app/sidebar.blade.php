@@ -95,6 +95,24 @@
 						</div>
 					</li>
 
+					<!-- Judges -->
+					@if (Gate::check('view-judges'))
+					<li class="px-3 py-2 rounded-sm mb-0.5 last:mb-0 @if(in_array(Request::segment(1), ['judges'])){{ 'bg-slate-900' }}@endif">
+						<a class="block text-slate-200 hover:text-white truncate transition duration-150 @if(in_array(Request::segment(1), ['judges'])){{ 'hover:text-slate-200' }}@endif" href="{{ route('judges') }}">
+							<div class="flex items-center justify-between">
+								<div class="grow flex items-center">
+									<svg class="shrink-0 h-6 w-6" viewBox="0 0 24 24">
+										<path class="fill-current @if(in_array(Request::segment(1), ['judges'])){{ 'text-indigo-300' }}@else{{ 'text-slate-400' }}@endif" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z" />
+										<path class="fill-current @if(in_array(Request::segment(1), ['judges'])){{ 'text-indigo-500' }}@else{{ 'text-slate-600' }}@endif" d="M12 13c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+									</svg>
+									<span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-500 text-white ml-2">AI</span>
+									<span class="text-sm font-medium ml-1 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Judges</span>
+								</div>
+							</div>
+						</a>
+					</li>
+					@endif
+
 					<!-- Endpoints -->
 					@if (Gate::check('view-endpoints'))
 					<li class="px-3 py-2 rounded-sm mb-0.5 last:mb-0 @if(in_array(Request::segment(1), ['endpoints'])){{ 'bg-slate-900' }}@endif">

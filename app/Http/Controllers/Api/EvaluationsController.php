@@ -211,6 +211,8 @@ class EvaluationsController
     public function store(StoreEvaluationRequest $request): EvaluationResource
     {
         $team = Auth::guard('api')->user();
+        $validated = $request->validated();
+        $validated[SearchEvaluation::FIELD_DESCRIPTION] = (string) ($validated[SearchEvaluation::FIELD_DESCRIPTION] ?? '');
 
         $attributes = [
                 SearchEvaluation::FIELD_USER_ID => $team->user_id,
@@ -224,9 +226,7 @@ class EvaluationsController
                     SearchEvaluation::SETTING_SCORING_GUIDELINES => app(ScoringGuidelinesService::class)
                         ->prepareScoringGuidelinesForSave((string) $request->get('setting_scoring_guidelines')),
                 ],
-            ] + $request->validated() + [
-                SearchEvaluation::FIELD_DESCRIPTION => '',
-            ];
+            ] + $validated;
 
         $evaluation = SearchEvaluation::create($attributes);
 

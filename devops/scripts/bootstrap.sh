@@ -29,7 +29,7 @@ else
 fi
 
 echo -e ${ACTION}Running migrations ...
-docker compose run --rm artisan migrate --force
+docker compose run --rm artisan migrate:fresh --force --seed
 
 echo -e ${ACTION}Cleaning route cache ...
 docker compose run --rm artisan route:clear
@@ -57,5 +57,11 @@ docker compose run --rm npm install
 
 echo -e ${ACTION}Building app resources ...
 docker compose run --rm npm run build
+
+echo -e ${ACTION}Installing docs dependencies ...
+docker compose run --rm npm --prefix docs-site install
+
+echo -e ${ACTION}Publishing docs ...
+docker compose run --rm npm --prefix docs-site run docs:publish
 
 exit 0;

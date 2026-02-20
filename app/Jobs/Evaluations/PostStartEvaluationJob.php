@@ -4,6 +4,7 @@ namespace App\Jobs\Evaluations;
 
 use App\Models\EvaluationKeyword;
 use App\Models\EvaluationMetric;
+use App\Models\Judge;
 use App\Models\SearchEvaluation;
 use App\Services\Evaluations\ReuseStrategyService;
 use Illuminate\Bus\Queueable;
@@ -63,6 +64,25 @@ class PostStartEvaluationJob implements ShouldQueue, ShouldBeUnique
 
         if ($evaluation->getReuseStrategy() !== SearchEvaluation::REUSE_STRATEGY_NONE) {
             $reuseStrategyService->apply($evaluation);
+        }
+
+        // Dispatch judge processing if matching active judges exist
+        $this->dispatchJudgeProcessingIfNeeded($evaluation);
+    }
+
+    private function dispatchJudgeProcessingIfNeeded(SearchEvaluation $evaluation): void
+    {
+        $teamId = $evaluation->model->team_id;
+        $evaluation->loadMissing('tags');
+
+        $hasMatchingJudges = Judge::where(Judge::FIELD_TEAM_ID, $teamId)
+            ->active()
+            ->with('tags')
+            ->get()
+            ->contains(fn (Judge $judge) => Judge::matchesEvaluation($judge, $evaluation));
+
+        if ($hasMatchingJudges) {
+            ProcessJudgeEvaluationJob::dispatch($this->evaluationId);
         }
     }
 

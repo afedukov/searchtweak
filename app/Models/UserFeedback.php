@@ -13,13 +13,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int $id
- * @property int $user_id
+ * @property int|null $user_id
+ * @property int|null $judge_id
  * @property int $search_snapshot_id
- * @property int $grade
+ * @property int|null $grade
+ * @property string|null $reason
  * @property Carbon $created_at
  * @property Carbon $updated_at
  *
- * @property User $user
+ * @property User|null $user
+ * @property Judge|null $judge
  * @property SearchSnapshot $snapshot
  *
  * @method static Builder|static globalPool(User $user)
@@ -30,6 +33,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static Builder|static ungraded()
  * @method static Builder|static graded()
  * @method static Builder|static team(int $teamId)
+ * @method static Builder|static availableForJudge()
+ * @method static Builder|static claimedByJudge(int $judgeId)
  */
 class UserFeedback extends Model
 {
@@ -37,8 +42,10 @@ class UserFeedback extends Model
 
     public const string FIELD_ID = 'id';
     public const string FIELD_USER_ID = 'user_id';
+    public const string FIELD_JUDGE_ID = 'judge_id';
     public const string FIELD_SEARCH_SNAPSHOT_ID = 'search_snapshot_id';
     public const string FIELD_GRADE = 'grade';
+    public const string FIELD_REASON = 'reason';
     public const string FIELD_CREATED_AT = 'created_at';
     public const string FIELD_UPDATED_AT = 'updated_at';
 
@@ -46,12 +53,15 @@ class UserFeedback extends Model
 
     protected $fillable = [
         self::FIELD_USER_ID,
+        self::FIELD_JUDGE_ID,
         self::FIELD_SEARCH_SNAPSHOT_ID,
         self::FIELD_GRADE,
+        self::FIELD_REASON,
     ];
 
     protected $casts = [
         self::FIELD_USER_ID => 'int',
+        self::FIELD_JUDGE_ID => 'int',
         self::FIELD_SEARCH_SNAPSHOT_ID => 'int',
         self::FIELD_GRADE => 'int',
     ];
@@ -78,9 +88,24 @@ class UserFeedback extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function judge(): BelongsTo
+    {
+        return $this->belongsTo(Judge::class);
+    }
+
     public function snapshot(): BelongsTo
     {
         return $this->belongsTo(SearchSnapshot::class, self::FIELD_SEARCH_SNAPSHOT_ID);
+    }
+
+    public function isJudgeGraded(): bool
+    {
+        return $this->judge_id !== null && $this->grade !== null;
+    }
+
+    public function isHumanGraded(): bool
+    {
+        return $this->user_id !== null && $this->grade !== null;
     }
 
     public function scopeTeam(Builder $query, int $teamId): Builder
@@ -122,20 +147,26 @@ class UserFeedback extends Model
     public function scopeAssignedOrGraded(Builder $query): Builder
     {
         return $query->where(fn (Builder $query) => $query
+            // Human assignment (within lock window)
             ->where(fn (Builder $query) => $query
                 ->whereNotNull(UserFeedback::FIELD_USER_ID)
                 ->where(UserFeedback::FIELD_UPDATED_AT, '>=', Carbon::now()->subMinutes(UserFeedbackService::FEEDBACK_LOCK_TIMEOUT_MINUTES))
             )
+            // Any graded feedback (human or judge)
             ->orWhereNotNull(UserFeedback::FIELD_GRADE)
+            // Judge-claimed (processing or graded)
+            ->orWhereNotNull(UserFeedback::FIELD_JUDGE_ID)
         );
     }
 
     public function scopeUnassigned(Builder $query): Builder
     {
-        return $query->where(fn (Builder $query) => $query
-            ->whereNull(UserFeedback::FIELD_USER_ID)
-            ->orWhere(UserFeedback::FIELD_UPDATED_AT, '<', Carbon::now()->subMinutes(UserFeedbackService::FEEDBACK_LOCK_TIMEOUT_MINUTES))
-        );
+        return $query
+            ->whereNull(UserFeedback::FIELD_JUDGE_ID)
+            ->where(fn (Builder $query) => $query
+                ->whereNull(UserFeedback::FIELD_USER_ID)
+                ->orWhere(UserFeedback::FIELD_UPDATED_AT, '<', Carbon::now()->subMinutes(UserFeedbackService::FEEDBACK_LOCK_TIMEOUT_MINUTES))
+            );
     }
 
     public function scopeUngraded(Builder $query): Builder
@@ -146,6 +177,30 @@ class UserFeedback extends Model
     public function scopeGraded(Builder $query): Builder
     {
         return $query->whereNotNull(UserFeedback::FIELD_GRADE);
+    }
+
+    /**
+     * Feedbacks available for judge processing: ungraded, not assigned to any user or judge.
+     */
+    public function scopeAvailableForJudge(Builder $query): Builder
+    {
+        return $query
+            ->whereNull(self::FIELD_GRADE)
+            ->whereNull(self::FIELD_JUDGE_ID)
+            ->where(function (Builder $q) {
+                $q->whereNull(self::FIELD_USER_ID)
+                    ->orWhere(self::FIELD_UPDATED_AT, '<', Carbon::now()->subMinutes(UserFeedbackService::FEEDBACK_LOCK_TIMEOUT_MINUTES));
+            });
+    }
+
+    /**
+     * Feedbacks claimed by a specific judge but not yet graded.
+     */
+    public function scopeClaimedByJudge(Builder $query, int $judgeId): Builder
+    {
+        return $query
+            ->where(self::FIELD_JUDGE_ID, $judgeId)
+            ->whereNull(self::FIELD_GRADE);
     }
 
     public function isAssignmentExpired(): bool
@@ -160,7 +215,9 @@ class UserFeedback extends Model
 
     public function isUngradedUnassigned(): bool
     {
-        return $this->grade === null && ($this->user_id === null || $this->isAssignmentExpired());
+        return $this->grade === null
+            && $this->judge_id === null
+            && ($this->user_id === null || $this->isAssignmentExpired());
     }
 
     public function isAvailableTo(User $user): bool

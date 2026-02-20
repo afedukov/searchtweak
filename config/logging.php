@@ -65,6 +65,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'judges' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/judges.log'),
+            'level' => 'debug',
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
         'mail' => [
             'driver' => 'single',
             'path' => storage_path('logs/mail.log'),

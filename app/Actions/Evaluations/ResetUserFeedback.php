@@ -18,7 +18,9 @@ class ResetUserFeedback
 
         $feedback->update([
             UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_JUDGE_ID => null,
             UserFeedback::FIELD_GRADE => null,
+            UserFeedback::FIELD_REASON => null,
         ]);
     }
 }

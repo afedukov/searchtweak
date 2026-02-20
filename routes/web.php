@@ -9,6 +9,8 @@ use App\Livewire\Evaluation;
 use App\Livewire\Evaluations;
 use App\Livewire\GiveFeedback;
 use App\Livewire\Feedbacks;
+use App\Livewire\Judges;
+use App\Livewire\JudgeLogs;
 use App\Livewire\Leaderboard;
 use App\Livewire\Model;
 use App\Livewire\Models;
@@ -50,6 +52,21 @@ Route::middleware(['auth', config('jetstream.auth_session'), 'verified', UserOnl
     Route::name('models')
         ->get('/models', Models::class)
         ->middleware('can:view-models');
+
+    Route::name('judges')
+        ->get('/judges', Judges::class)
+        ->middleware('can:view-judges');
+
+    // Global log of all judge requests (must be before /{judge} routes)
+    Route::name('judge-logs')
+        ->get('/judges/logs', JudgeLogs::class)
+        ->middleware('can:view-judges');
+
+    // Per-judge log
+    Route::name('judge.logs')
+        ->get('/judges/{judge}/logs', JudgeLogs::class)
+        ->where('judge', '[0-9]+')
+        ->middleware('can:view-judges');
 
     Route::name('model')
         ->get('/models/{model}', Model::class)

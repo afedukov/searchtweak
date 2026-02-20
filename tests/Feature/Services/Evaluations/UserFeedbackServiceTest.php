@@ -266,4 +266,61 @@ class UserFeedbackServiceTest extends TestCase
         // Should be null since the feedback is not graded
         $this->assertNull($previous);
     }
+
+    public function test_fetch_does_not_assign_second_slot_of_same_snapshot_to_same_user_in_multiple_strategy(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $user->switchTeam($user->currentTeam);
+
+        $team = $user->currentTeam;
+        $endpoint = SearchEndpoint::factory()->create([
+            SearchEndpoint::FIELD_USER_ID => $user->id,
+            SearchEndpoint::FIELD_TEAM_ID => $team->id,
+        ]);
+        $model = SearchModel::factory()->create([
+            SearchModel::FIELD_USER_ID => $user->id,
+            SearchModel::FIELD_TEAM_ID => $team->id,
+            SearchModel::FIELD_ENDPOINT_ID => $endpoint->id,
+        ]);
+        $evaluation = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 3,
+            ],
+        ]);
+        $keyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+        ]);
+
+        $snapshot = new SearchSnapshot([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $keyword->id,
+            SearchSnapshot::FIELD_POSITION => 1,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-multi-1',
+            SearchSnapshot::FIELD_NAME => 'Multi Doc',
+            SearchSnapshot::FIELD_DOC => [],
+        ]);
+        $snapshot->saveQuietly();
+
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => $user->id,
+            UserFeedback::FIELD_GRADE => 1,
+        ]);
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_GRADE => null,
+        ]);
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_GRADE => null,
+        ]);
+
+        $feedback = $this->service->fetch($user, $evaluation);
+
+        // User already has feedback on this snapshot, so they must not get another slot of the same pair.
+        $this->assertNull($feedback);
+    }
 }

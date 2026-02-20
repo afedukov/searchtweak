@@ -7,6 +7,7 @@ use App\Actions\Endpoints\UpdateSearchEndpoint;
 use App\Livewire\Forms\EndpointForm;
 use App\Models\SearchEndpoint;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Auth;
 use Masmerise\Toaster\Toaster;
 
 trait EditEndpointModalTrait
@@ -26,6 +27,8 @@ trait EditEndpointModalTrait
 
     public function editEndpoint(SearchEndpoint $endpoint): void
     {
+        $endpoint = Auth::user()->currentTeam->endpoints()->findOrFail($endpoint->id);
+
         $this->endpointForm->reset();
         $this->endpointForm->resetErrorBag();
         $this->endpointForm->setEndpoint($endpoint);
@@ -34,6 +37,8 @@ trait EditEndpointModalTrait
 
     public function cloneEndpoint(SearchEndpoint $endpoint): void
     {
+        $endpoint = Auth::user()->currentTeam->endpoints()->findOrFail($endpoint->id);
+
         $this->endpointForm->reset();
         $this->endpointForm->resetErrorBag();
         $this->endpointForm->setEndpoint($endpoint, true);
