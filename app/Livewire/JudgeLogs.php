@@ -6,10 +6,12 @@ use App\Models\Judge;
 use App\Models\JudgeLog;
 use App\Models\SearchEvaluation;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class JudgeLogs extends Component
 {
@@ -49,47 +51,14 @@ class JudgeLogs extends Component
     {
         $teamId = Auth::user()->current_team_id;
 
-        $query = JudgeLog::query();
-
-        if ($this->judge !== null) {
-            // Per-judge mode: hard-scope to this judge
-            $query->where(JudgeLog::FIELD_JUDGE_ID, $this->judge->id);
-        } else {
-            // Global mode: scope to team (covers logs from deleted judges via team_id)
-            $query->where(JudgeLog::FIELD_TEAM_ID, $teamId);
-
-            if ($this->filterJudgeId > 0) {
-                $query->where(JudgeLog::FIELD_JUDGE_ID, $this->filterJudgeId);
-            }
-        }
-
-        // Evaluation filter
-        if ($this->filterEvaluationId > 0) {
-            $query->where(JudgeLog::FIELD_SEARCH_EVALUATION_ID, $this->filterEvaluationId);
-        }
-
-        // Date range filter
-        [$dateFrom, $dateTo] = $this->parseDateRange();
-        if ($dateFrom !== null) {
-            $query->where(JudgeLog::FIELD_CREATED_AT, '>=', $dateFrom);
-        }
-        if ($dateTo !== null) {
-            $query->where(JudgeLog::FIELD_CREATED_AT, '<=', $dateTo);
-        }
+        $query = $this->getFilteredLogsQuery(applyStatusFilter: false);
 
         // Compute status counts before applying the status filter so badge numbers
         // stay stable regardless of which tab is active (avoids layout shifts).
         $countSuccessful = (clone $query)->successful()->count();
         $countFailed = (clone $query)->failed()->count();
 
-        // Status filter
-        if ($this->filterStatus === 'success') {
-            $query->successful();
-        } elseif ($this->filterStatus === 'error') {
-            $query->failed();
-        }
-
-        $logs = $query
+        $logs = $this->getFilteredLogsQuery()
             ->with(['judge', 'evaluation'])
             ->orderByDesc(JudgeLog::FIELD_CREATED_AT)
             ->orderByDesc(JudgeLog::FIELD_ID)
@@ -122,6 +91,54 @@ class JudgeLogs extends Component
             ? sprintf('%s Logs', $this->judge->name)
             : 'Judge Logs'
         );
+    }
+
+    public function exportJsonl(): StreamedResponse
+    {
+        $fileName = sprintf('judge-logs_%s.jsonl', Carbon::now()->format('Y-m-d_H-i-s'));
+
+        $query = $this->getFilteredLogsQuery()
+            ->with(['judge', 'evaluation'])
+            ->orderByDesc(JudgeLog::FIELD_CREATED_AT)
+            ->orderByDesc(JudgeLog::FIELD_ID);
+
+        return response()->streamDownload(function () use ($query): void {
+            $stream = fopen('php://output', 'w');
+
+            foreach ($query->cursor() as $log) {
+                /** @var JudgeLog $log */
+                $payload = [
+                    JudgeLog::FIELD_ID => $log->id,
+                    JudgeLog::FIELD_JUDGE_ID => $log->judge_id,
+                    'judge_name' => $log->judge?->name,
+                    JudgeLog::FIELD_TEAM_ID => $log->team_id,
+                    JudgeLog::FIELD_SEARCH_EVALUATION_ID => $log->search_evaluation_id,
+                    'evaluation_name' => $log->evaluation?->name,
+                    JudgeLog::FIELD_PROVIDER => $log->provider,
+                    JudgeLog::FIELD_MODEL => $log->model,
+                    'status' => $log->isSuccessful() ? 'success' : 'error',
+                    JudgeLog::FIELD_HTTP_STATUS_CODE => $log->http_status_code,
+                    JudgeLog::FIELD_REQUEST_URL => $log->request_url,
+                    JudgeLog::FIELD_REQUEST_BODY => $log->request_body,
+                    JudgeLog::FIELD_RESPONSE_BODY => $log->response_body,
+                    JudgeLog::FIELD_ERROR_MESSAGE => $log->error_message,
+                    JudgeLog::FIELD_LATENCY_MS => $log->latency_ms,
+                    JudgeLog::FIELD_PROMPT_TOKENS => $log->prompt_tokens,
+                    JudgeLog::FIELD_COMPLETION_TOKENS => $log->completion_tokens,
+                    JudgeLog::FIELD_TOTAL_TOKENS => $log->total_tokens,
+                    JudgeLog::FIELD_BATCH_SIZE => $log->batch_size,
+                    JudgeLog::FIELD_SCALE_TYPE => $log->scale_type,
+                    JudgeLog::FIELD_CREATED_AT => $log->created_at?->toIso8601String(),
+                    JudgeLog::FIELD_UPDATED_AT => $log->updated_at?->toIso8601String(),
+                ];
+
+                fwrite($stream, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+            }
+
+            fclose($stream);
+        }, $fileName, [
+            'Content-Type' => 'application/x-ndjson; charset=UTF-8',
+        ]);
     }
 
     public function resetFilters(): void
@@ -175,5 +192,45 @@ class JudgeLogs extends Component
             Carbon::parse(trim($parts[0]))->startOfDay(),
             Carbon::parse(trim($parts[1]))->endOfDay(),
         ];
+    }
+
+    private function getFilteredLogsQuery(bool $applyStatusFilter = true): Builder
+    {
+        $teamId = Auth::user()->current_team_id;
+        $query = JudgeLog::query();
+
+        if ($this->judge !== null) {
+            // Per-judge mode: hard-scope to this judge
+            $query->where(JudgeLog::FIELD_JUDGE_ID, $this->judge->id);
+        } else {
+            // Global mode: scope to team (covers logs from deleted judges via team_id)
+            $query->where(JudgeLog::FIELD_TEAM_ID, $teamId);
+
+            if ($this->filterJudgeId > 0) {
+                $query->where(JudgeLog::FIELD_JUDGE_ID, $this->filterJudgeId);
+            }
+        }
+
+        if ($this->filterEvaluationId > 0) {
+            $query->where(JudgeLog::FIELD_SEARCH_EVALUATION_ID, $this->filterEvaluationId);
+        }
+
+        [$dateFrom, $dateTo] = $this->parseDateRange();
+        if ($dateFrom !== null) {
+            $query->where(JudgeLog::FIELD_CREATED_AT, '>=', $dateFrom);
+        }
+        if ($dateTo !== null) {
+            $query->where(JudgeLog::FIELD_CREATED_AT, '<=', $dateTo);
+        }
+
+        if ($applyStatusFilter) {
+            if ($this->filterStatus === 'success') {
+                $query->successful();
+            } elseif ($this->filterStatus === 'error') {
+                $query->failed();
+            }
+        }
+
+        return $query;
     }
 }
