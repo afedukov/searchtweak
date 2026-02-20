@@ -6,7 +6,6 @@ use App\Actions\Judges\DeleteJudge;
 use App\Actions\Judges\ToggleJudgeActive;
 use App\Livewire\Traits\Judges\EditJudgeModalTrait;
 use App\Models\Judge;
-use App\Models\SearchEvaluation;
 use App\Models\UserFeedback;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
@@ -82,7 +81,6 @@ class Judges extends Component
                 self::DEFAULT_FILTER_STATUS
             ),
             'judges' => $judges,
-            'workingJudgeIds' => $this->getWorkingJudgeIds($judges->items()),
         ])->title('Judges');
     }
 
@@ -110,42 +108,6 @@ class Judges extends Component
             $this->confirmingJudgeRemoval = false;
             $this->judgeIdBeingRemoved = null;
         }
-    }
-
-    /**
-     * Determine which judges are currently "working" (serving active evaluations).
-     *
-     * @param array<Judge> $judges
-     * @return array<int> Judge IDs that are actively working
-     */
-    private function getWorkingJudgeIds(array $judges): array
-    {
-        $activeJudges = collect($judges)->filter(fn (Judge $judge) => $judge->isActive());
-        if ($activeJudges->isEmpty()) {
-            return [];
-        }
-
-        $teamId = Auth::user()->current_team_id;
-        $activeEvaluations = SearchEvaluation::team($teamId)
-            ->active()
-            ->with('tags')
-            ->get();
-
-        if ($activeEvaluations->isEmpty()) {
-            return [];
-        }
-
-        $workingIds = [];
-        foreach ($activeJudges as $judge) {
-            foreach ($activeEvaluations as $evaluation) {
-                if (Judge::matchesEvaluation($judge, $evaluation)) {
-                    $workingIds[] = $judge->id;
-                    break;
-                }
-            }
-        }
-
-        return $workingIds;
     }
 
     public function toggleJudgeActive(ToggleJudgeActive $action, int $judgeId): void

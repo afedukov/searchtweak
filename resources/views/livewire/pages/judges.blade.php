@@ -157,12 +157,7 @@
 									<th scope="row" class="px-5 py-4 font-medium text-gray-900 dark:text-white align-baseline">
 										<div class="flex items-center gap-2">
 											{{ $judge->name }}
-											@if (in_array($judge->id, $workingJudgeIds))
-												<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full dark:bg-green-900 dark:text-green-300">
-													<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-													Working
-												</span>
-											@endif
+											<livewire:judges.judge-status-badge :judge-id="$judge->id" :team-id="Auth::user()->current_team_id" :key="'judge-status-'.$judge->id" />
 										</div>
 										<div class="text-sm text-gray-400 dark:text-gray-400">
 											{{ $judge->description }}
