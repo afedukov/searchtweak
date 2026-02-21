@@ -47,7 +47,7 @@ $$
 
 ### Precision@k (P@k)
 
-**In simple words:** What percentage of the top results are actually relevant? (e.g. if 4 out of 10 items are good, P@10 is 40% or 0.4).
+> **In simple words:** What percentage of the top results are actually relevant? (e.g. if 4 out of 10 items are good, P@10 is 40% or 0.4).
 
 $$
 P@k = \frac{\text{relevant\_graded}}{\text{graded\_count}}
@@ -62,7 +62,7 @@ Use `P@k` when you need a simple "share of relevant among judged".
 
 ### Average Precision@k (AP@k)
 
-**In simple words:** A smarter Precision. It rewards a search system much more if it places the relevant items at the very top of the list rather than at the bottom. The multi-keyword version of this is called MAP (Mean Average Precision).
+> **In simple words:** A smarter Precision. It rewards a search system much more if it places the relevant items at the very top of the list rather than at the bottom. The multi-keyword version of this is called MAP (Mean Average Precision).
 
 $$
 AP@k = \frac{1}{R} \sum_{i=1}^{k} r_i \cdot P@i
@@ -80,7 +80,7 @@ SearchTweak behavior:
 
 ### Reciprocal Rank@k (RR@k)
 
-**In simple words:** How deep do you have to scroll to find the *first* good result? If the 1st result is relevant, you get 1. If the 2nd is the first relevant one, you get 1/2. If the 3rd, 1/3, and so on. The multi-keyword version is called MRR.
+> **In simple words:** How deep do you have to scroll to find the *first* good result? If the 1st result is relevant, you get 1. If the 2nd is the first relevant one, you get 1/2. If the 3rd, 1/3, and so on. The multi-keyword version is called MRR.
 
 $$
 RR@k = \frac{1}{\text{rank}(first\_relevant)}
@@ -103,7 +103,7 @@ No positional discount.
 
 ### Discounted Cumulative Gain@k (DCG@k)
 
-**In simple words:** Similar to CG, but features a "discount" that severely punishes the system for putting good items at the bottom. A perfect match at rank 1 is worth much more than a perfect match at rank 10.
+> **In simple words:** Similar to CG, but features a "discount" that severely punishes the system for putting good items at the bottom. A perfect match at rank 1 is worth much more than a perfect match at rank 10.
 
 $$
 DCG@k = \sum_{i=1}^{k} \frac{g_i}{\log_2(i + 1)}
@@ -113,7 +113,7 @@ Earlier relevant documents contribute more.
 
 ### Normalized DCG@k (nDCG@k)
 
-**In simple words:** Since some queries naturally have many good answers and others have only one, DCG scores can be hard to compare. nDCG solves this by taking the DCG score and dividing it by the "perfect" possible score for that exact query. The result is always a percentage from 0 to 1, making it easy to compare quality across completely different queries.
+> **In simple words:** Since some queries naturally have many good answers and others have only one, DCG scores can be hard to compare. nDCG solves this by taking the DCG score and dividing it by the "perfect" possible score for that exact query. The result is always a percentage from 0 to 1, making it easy to compare quality across completely different queries.
 
 $$
 nDCG@k = \frac{DCG@k}{IDCG@k}
