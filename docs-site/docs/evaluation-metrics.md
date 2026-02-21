@@ -95,6 +95,8 @@ SearchTweak behavior:
 
 ### Cumulative Gain@k (CG@k)
 
+> **In simple words:** Just adds up all the grades in the top results. It tells you the total amount of "goodness" returned, but it doesn't care whether the best results are at the very top or at the very bottom.
+
 $$
 CG@k = \sum_{i=1}^{k} g_i
 $$
