@@ -11,7 +11,7 @@ SearchTweak is a platform for measuring and improving search relevance with **hu
 
 ## Core Concept
 
-SearchTweak helps you run repeatable relevance experiments:
+SearchTweak helps you run repeatable relevance experiments for traditional search, recommendation systems, and the "Retrieval" phase of RAG (Retrieval-Augmented Generation) applications:
 
 1. Define how to call your search API (`Search Endpoint`).
 2. Define request templates (`Search Model`).

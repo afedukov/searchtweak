@@ -32,9 +32,9 @@ Stage 2, metric computation:
 - Metrics are computed over aggregated snapshot values at ranks `1..k`.
 - For full evaluation, SearchTweak stores mean across keywords with non-null metric values.
 
-```text
-EvaluationMetric = (1 / Q) * sum_{q=1..Q}(Metric(q))
-```
+$$
+\text{EvaluationMetric} = \frac{1}{Q} \sum_{q=1}^{Q} \operatorname{Metric}(q)
+$$
 
 ## Missing Grades and `null` Handling
 
@@ -47,9 +47,11 @@ EvaluationMetric = (1 / Q) * sum_{q=1..Q}(Metric(q))
 
 ### Precision@k (P@k)
 
-```text
-P@k = relevant_graded / graded_count
-```
+**In simple words:** What percentage of the top results are actually relevant? (e.g. if 4 out of 10 items are good, P@10 is 40% or 0.4).
+
+$$
+P@k = \frac{\text{relevant\_graded}}{\text{graded\_count}}
+$$
 
 Where:
 
@@ -60,11 +62,16 @@ Use `P@k` when you need a simple "share of relevant among judged".
 
 ### Average Precision@k (AP@k)
 
-```text
-AP@k = (1 / R) * sum_{i=1..k}(r_i * P@i)
-```
+**In simple words:** A smarter Precision. It rewards a search system much more if it places the relevant items at the very top of the list rather than at the bottom. The multi-keyword version of this is called MAP (Mean Average Precision).
 
-Where `R` is number of relevant positions (`r_i = 1`) in top-`k`.
+$$
+AP@k = \frac{1}{R} \sum_{i=1}^{k} r_i \cdot P@i
+$$
+
+Where $R$ is number of relevant positions ($r_i = 1$) in top-$k$, and $P@i$ is the precision at rank $i$ calculated using the rank position $i$ as the denominator ($P@i = \text{relevant up to } i / i$).
+
+**Note on Missing Grades for AP@k (IMPORTANT):** 
+Unlike the standalone $P@k$ metric which ignores ungraded items in its denominator, $P@i$ *inside* the AP formula always uses the strict rank $i$. Therefore, an ungraded item acts effectively as an irrelevant item (0) during the $P@i$ calculation.
 
 SearchTweak behavior:
 
@@ -73,9 +80,11 @@ SearchTweak behavior:
 
 ### Reciprocal Rank@k (RR@k)
 
-```text
-RR@k = 1 / rank(first relevant)
-```
+**In simple words:** How deep do you have to scroll to find the *first* good result? If the 1st result is relevant, you get 1. If the 2nd is the first relevant one, you get 1/2. If the 3rd, 1/3, and so on. The multi-keyword version is called MRR.
+
+$$
+RR@k = \frac{1}{\text{rank}(first\_relevant)}
+$$
 
 SearchTweak behavior:
 
@@ -86,25 +95,29 @@ SearchTweak behavior:
 
 ### Cumulative Gain@k (CG@k)
 
-```text
-CG@k = sum_{i=1..k}(g_i)
-```
+$$
+CG@k = \sum_{i=1}^{k} g_i
+$$
 
 No positional discount.
 
 ### Discounted Cumulative Gain@k (DCG@k)
 
-```text
-DCG@k = sum_{i=1..k}(g_i / log2(i + 1))
-```
+**In simple words:** Similar to CG, but features a "discount" that severely punishes the system for putting good items at the bottom. A perfect match at rank 1 is worth much more than a perfect match at rank 10.
+
+$$
+DCG@k = \sum_{i=1}^{k} \frac{g_i}{\log_2(i + 1)}
+$$
 
 Earlier relevant documents contribute more.
 
 ### Normalized DCG@k (nDCG@k)
 
-```text
-nDCG@k = DCG@k / IDCG@k
-```
+**In simple words:** Since some queries naturally have many good answers and others have only one, DCG scores can be hard to compare. nDCG solves this by taking the DCG score and dividing it by the "perfect" possible score for that exact query. The result is always a percentage from 0 to 1, making it easy to compare quality across completely different queries.
+
+$$
+nDCG@k = \frac{DCG@k}{IDCG@k}
+$$
 
 `IDCG@k` is DCG for the same gains sorted descending.
 

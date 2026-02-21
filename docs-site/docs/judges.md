@@ -53,6 +53,12 @@ Judges page status filter uses segmented control:
 - `Active`
 - `Archived`
 
+## Security, Privacy & Costs
+
+- **API Key Storage**: All provider API keys are securely encrypted at rest in the database and are never sent to the client side.
+- **Costs (BYOK)**: You bring your own API keys, meaning you have complete transparency over costs and pay the LLM provider directly for the tokens you use. Token usage is logged per evaluation to help forecast expenses.
+- **Data Privacy (Local LLMs)**: If your search data is highly confidential, you can use local, self-hosted LLMs (via `ollama` or `custom_openai`) so that your evaluation data never leaves your internal network.
+
 ## Assignment and Safety Rules
 
 - One AI judge can grade at most one slot per snapshot.
