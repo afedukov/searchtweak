@@ -47,7 +47,9 @@ cd devops
 make              # Start and bootstrap (first time)
 make start        # Start containers
 make stop         # Stop containers
-make bootstrap    # Bootstrap application (migrations, cache, assets)
+make bootstrap    # Bootstrap application (destructive: fresh migrations + seed + assets/docs build)
+make bootstrap-up # Bootstrap without DB reset (migrate --seed)
+make bootstrap-fresh # Explicit destructive bootstrap (same as make bootstrap)
 ```
 
 ### Default Super Admin

@@ -92,7 +92,7 @@ Edit your `/etc/hosts` file (or `C:\Windows\System32\drivers\etc\hosts` on Windo
 make
 ```
 
-This will start all containers and bootstrap the application (migrations, cache, assets).
+This will start all containers and run `make bootstrap` (destructive bootstrap with fresh migrations + seed + assets/docs build).
 
 ### 5. Open in Browser
 
@@ -117,7 +117,9 @@ Log in at http://searchtweak.local with:
 cd devops
 make start        # Start the application
 make stop         # Stop the application
-make bootstrap    # Bootstrap the application
+make bootstrap    # Bootstrap (fresh DB reset + seed + assets/docs build)
+make bootstrap-up # Bootstrap without DB reset (safe migrate + seed)
+make bootstrap-fresh # Explicit destructive bootstrap (same as make bootstrap)
 make jobs         # Start Horizon (queue worker)
 make queue-reload # Reload Horizon workers in the running queue container
 make reverb       # Start Reverb (WebSocket server)
@@ -129,6 +131,8 @@ make docs-build   # Build documentation
 make docs-preview # Preview built documentation (http://localhost:3001/docs/overview)
 make docs-publish # Publish built docs to public/docs
 ```
+
+`make bootstrap` is intended for clean local setup. Use `make bootstrap-up` if you need to keep existing local data.
 
 ## Running Tests
 

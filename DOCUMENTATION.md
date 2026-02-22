@@ -1192,7 +1192,10 @@ cp .env.dist .env
 
 # 4. Start and bootstrap
 cd devops
-make                    # runs `make start` then `make bootstrap`
+make                    # runs `make start` then `make bootstrap` (destructive fresh bootstrap)
+
+# Alternative safe bootstrap (keeps existing local DB data)
+make bootstrap-up
 
 # 5. Start Vite dev server (separate terminal)
 make vite
@@ -1218,7 +1221,9 @@ make vite
 ```bash
 make start      # Start all Docker services
 make stop       # Stop all Docker services
-make bootstrap  # Run composer install, migrations, seed, key generate, cache, assets, and publish docs
+make bootstrap  # Destructive bootstrap: composer install, key generate, migrate:fresh --seed, assets/docs build
+make bootstrap-up # Safe bootstrap: composer install, key generate, migrate --seed, assets/docs build
+make bootstrap-fresh # Explicit destructive bootstrap (same as make bootstrap)
 make test       # Clear config cache and run tests
 make seed       # Reset database with fresh migrations and seeders
 make jobs       # Start Horizon (queue worker)
@@ -1233,9 +1238,13 @@ make docs-preview # Preview docs build (port 3001)
 make docs-publish # Build and publish docs into public/docs
 ```
 
+Bootstrap script behavior by environment:
+- In `APP_ENV=production`, Laravel caches are warmed (`route/config/view:cache`) and Horizon is terminated to reload workers.
+- In non-production environments, caches are cleared but not warmed, and Horizon terminate is skipped.
+
 ### 21.5 Database Seeders
 
-The `make seed` (or `make bootstrap`) command runs seeders in this order:
+The `make seed`, `make bootstrap`, and `make bootstrap-fresh` commands run seeders in this order:
 
 1. **SearchDataSeeder** — Creates Metro Markets endpoint and Baseline Search model with keywords
 2. **EvaluationSeeder** — Creates a graded evaluation with P@10, CG@10, DCG@10 metrics
