@@ -272,4 +272,57 @@ class DotArrayMapperTest extends TestCase
         $this->assertCount(1, $docs);
         $this->assertEquals('Acme Fridge', $docs[0]->getName());
     }
+
+    public function test_get_documents_supports_all_basic_arithmetic_operations(): void
+    {
+        $mapperCode = "id: data.items.*.id\n"
+            . "name: data.items.*.title\n"
+            . "sum: data.items.*.a + data.items.*.b\n"
+            . "difference: data.items.*.a - data.items.*.b\n"
+            . "product: data.items.*.a * data.items.*.b\n"
+            . "quotient: data.items.*.a / data.items.*.b";
+
+        $mapper = new DotArrayMapper($mapperCode);
+        $mapper->initialize();
+
+        $json = json_encode([
+            'items' => [
+                ['id' => '1', 'title' => 'Math', 'a' => 12, 'b' => 3],
+            ],
+        ]);
+
+        $docs = $mapper->getDocuments($json, 10);
+
+        $this->assertCount(1, $docs);
+        $attributes = $docs[0]->getAttributes();
+
+        $this->assertEquals(15, (float) $attributes['sum']);
+        $this->assertEquals(9, (float) $attributes['difference']);
+        $this->assertEquals(36, (float) $attributes['product']);
+        $this->assertEquals(4, (float) $attributes['quotient']);
+    }
+
+    public function test_get_documents_supports_complex_arithmetic_with_parentheses(): void
+    {
+        $mapperCode = "id: data.items.*.id\n"
+            . "name: data.items.*.title\n"
+            . "score: (data.items.*.price / 100) * data.items.*.qty - (data.items.*.discount + 1)";
+
+        $mapper = new DotArrayMapper($mapperCode);
+        $mapper->initialize();
+
+        $json = json_encode([
+            'items' => [
+                ['id' => '1', 'title' => 'Complex math', 'price' => 2500, 'qty' => 3, 'discount' => 4],
+            ],
+        ]);
+
+        $docs = $mapper->getDocuments($json, 10);
+
+        $this->assertCount(1, $docs);
+        $attributes = $docs[0]->getAttributes();
+
+        // (2500 / 100) * 3 - (4 + 1) = 70
+        $this->assertEquals(70, (float) $attributes['score']);
+    }
 }
