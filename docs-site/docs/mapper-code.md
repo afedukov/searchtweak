@@ -17,6 +17,15 @@ Optional but common:
 - `url`
 - any custom scalar or scalar-array fields
 
+### Type Rules
+
+- `id`: must evaluate to a string.
+- `name`: must evaluate to a string.
+- `image`: string or `null`.
+- custom attributes: `string | array`.
+
+If `id` or `name` is missing/empty after mapping, the document is dropped.
+
 ## Basic Syntax
 
 ```yaml
@@ -40,6 +49,20 @@ You can use simple arithmetic and concatenation:
 price: data.items.*.price / 100
 full_name: data.items.*.brand ~ ' ' ~ data.items.*.title
 ```
+
+## Arrays and Wildcards
+
+Both forms are supported:
+
+```yaml
+tags: data.items.*.tags
+```
+
+```yaml
+tags: data.items.*.tags.*
+```
+
+For list fields, both variants map to array values in output.
 
 ## End-to-End Example
 
@@ -78,13 +101,23 @@ Result snapshot payload:
   - Verify root path and wildcard section.
 - `id`/`name` missing:
   - Check mapper keys and source payload keys.
+- Some fields are silently missing:
+  - Check expression syntax; invalid expressions are skipped at runtime.
 - Type surprises:
   - Ensure expression outputs scalar values.
 - Inconsistent arrays:
   - Prefer defensive paths with existing indexes.
+
+## Runtime Notes
+
+- Mapper ignores non-JSON or non-object/array payloads.
+- Variable extraction skips empty source values (`null`, `''`, `0`, `false`, empty array).
+- Document list is limited after invalid documents are removed.
+- Positions are reassigned sequentially from `1`.
 
 ## Best Practices
 
 - Keep mapper minimal and deterministic.
 - Avoid business logic in mapper when possible.
 - Version mapper changes together with model/evaluation notes.
+- Test mapper against a real sample response before starting long evaluations.
