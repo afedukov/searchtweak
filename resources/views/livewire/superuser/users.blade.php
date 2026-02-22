@@ -84,12 +84,12 @@
 							</thead>
 							<tbody>
 							@forelse ($users as $user)
-								<tr wire:key="user-{{ $user->id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-									<th scope="row" class="px-5 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white align-baseline">
-										<div class="inline-flex justify-center items-center">
-											<x-block.user-name :user="$user" />
-										</div>
-									</th>
+									<tr wire:key="user-{{ $user->id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+										<th scope="row" class="px-5 py-4 font-medium text-gray-900 dark:text-white align-baseline">
+											<div class="inline-flex justify-center items-center max-w-[280px]">
+												<x-block.user-name :user="$user" />
+											</div>
+										</th>
 									<td class="px-5 py-4 align-baseline">
 										<span class="text-gray-500 dark:text-gray-400">
 											{{ $user->email }}

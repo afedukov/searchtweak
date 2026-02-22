@@ -1,12 +1,12 @@
 @props(['user', 'photo' => true])
 
-<div class="inline-flex justify-center items-center">
+<div class="inline-flex justify-center items-center min-w-0">
 	@if ($photo)
 		<div class="inline-block w-8 h-8">
 			<img class="w-8 h-8 rounded-full inline" src="{{ $user?->profile_photo_url ?? \App\Services\Helpers::getRemovedUserProfilePhotoUrl() }}" width="32" height="32" alt="{{ $user?->name ?? 'Removed User' }}">
 		</div>
 	@endif
-	<div class="flex items-center truncate">
+		<div class="flex items-center min-w-0 truncate">
 		<span class="truncate ml-2 text-sm font-medium dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-200">
 			{{ $user->name ?? 'Removed User' }}
 		</span>
