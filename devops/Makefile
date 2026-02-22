@@ -9,6 +9,12 @@ stop:
 bootstrap:
 	@bash scripts/bootstrap.sh
 
+bootstrap-up:
+	@bash scripts/bootstrap.sh up
+
+bootstrap-fresh:
+	@bash scripts/bootstrap.sh fresh
+
 test:
 	docker compose run --rm artisan config:clear
 	docker compose run --rm artisan test
