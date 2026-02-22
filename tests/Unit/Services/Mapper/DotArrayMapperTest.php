@@ -156,4 +156,120 @@ class DotArrayMapperTest extends TestCase
 
         $this->assertTrue($mapper->validate());
     }
+
+    public function test_get_documents_with_array_wildcard_attribute_returns_array_values(): void
+    {
+        $mapperCode = "id: data.items.*.id\nname: data.items.*.title\ntags: data.items.*.tags.*";
+        $mapper = new DotArrayMapper($mapperCode);
+        $mapper->initialize();
+
+        $json = json_encode([
+            'items' => [
+                ['id' => '1', 'title' => 'Product 1', 'tags' => ['a', 'b']],
+                ['id' => '2', 'title' => 'Product 2', 'tags' => ['c']],
+            ],
+        ]);
+
+        $docs = $mapper->getDocuments($json, 10);
+
+        $this->assertCount(2, $docs);
+        $this->assertEquals(['tags' => ['a', 'b']], $docs[0]->getAttributes());
+        $this->assertEquals(['tags' => ['c']], $docs[1]->getAttributes());
+    }
+
+    public function test_get_documents_ignores_invalid_expression_and_keeps_required_fields(): void
+    {
+        $mapperCode = "id: data.items.*.id\nname: data.items.*.title\nbroken: data.items.*.price +";
+        $mapper = new DotArrayMapper($mapperCode);
+        $mapper->initialize();
+
+        $json = json_encode([
+            'items' => [
+                ['id' => '1', 'title' => 'First', 'price' => '9.99'],
+            ],
+        ]);
+
+        $docs = $mapper->getDocuments($json, 10);
+
+        $this->assertCount(1, $docs);
+        $this->assertEquals('1', $docs[0]->getId());
+        $this->assertEquals('First', $docs[0]->getName());
+        $this->assertArrayNotHasKey('broken', $docs[0]->getAttributes());
+    }
+
+    public function test_get_documents_filters_out_invalid_id_and_name_types(): void
+    {
+        $mapperCode = "id: data.items.*.id\nname: data.items.*.title";
+        $mapper = new DotArrayMapper($mapperCode);
+        $mapper->initialize();
+
+        $json = json_encode([
+            'items' => [
+                ['id' => ['100'], 'title' => 'Array id'], // invalid id type
+                ['id' => '2', 'title' => ['200']], // invalid name type
+                ['id' => '3', 'title' => 'Valid'],
+            ],
+        ]);
+
+        $docs = $mapper->getDocuments($json, 10);
+
+        $this->assertCount(1, $docs);
+        $this->assertEquals('3', $docs[0]->getId());
+        $this->assertEquals('Valid', $docs[0]->getName());
+    }
+
+    public function test_get_documents_with_scalar_json_returns_empty(): void
+    {
+        $mapper = new DotArrayMapper("id: data.items.*.id\nname: data.items.*.title");
+        $mapper->initialize();
+
+        $docs = $mapper->getDocuments('123', 10);
+
+        $this->assertCount(0, $docs);
+    }
+
+    public function test_get_documents_isolated_between_calls(): void
+    {
+        $mapper = new DotArrayMapper("id: data.items.*.id\nname: data.items.*.title");
+        $mapper->initialize();
+
+        $firstJson = json_encode([
+            'items' => [
+                ['id' => '1', 'title' => 'First'],
+                ['id' => '2', 'title' => 'Second'],
+            ],
+        ]);
+
+        $secondJson = json_encode([
+            'items' => [
+                ['id' => '10', 'title' => 'Only one'],
+            ],
+        ]);
+
+        $firstDocs = $mapper->getDocuments($firstJson, 10);
+        $secondDocs = $mapper->getDocuments($secondJson, 10);
+
+        $this->assertCount(2, $firstDocs);
+        $this->assertCount(1, $secondDocs);
+        $this->assertEquals('10', $secondDocs[0]->getId());
+        $this->assertEquals(1, $secondDocs[0]->getPosition());
+    }
+
+    public function test_get_documents_with_expression_using_multiple_data_terms(): void
+    {
+        $mapperCode = "id: data.items.*.id\nname: data.items.*.brand ~ ' ' ~ data.items.*.title";
+        $mapper = new DotArrayMapper($mapperCode);
+        $mapper->initialize();
+
+        $json = json_encode([
+            'items' => [
+                ['id' => '1', 'brand' => 'Acme', 'title' => 'Fridge'],
+            ],
+        ]);
+
+        $docs = $mapper->getDocuments($json, 10);
+
+        $this->assertCount(1, $docs);
+        $this->assertEquals('Acme Fridge', $docs[0]->getName());
+    }
 }

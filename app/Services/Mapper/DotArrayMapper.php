@@ -155,6 +155,7 @@ class DotArrayMapper implements MapperInterface
         foreach ($this->vars as $varName => $term) {
             $pattern = $this->getPattern($term);
             $arrayPattern = $this->getPattern($term, true);
+            $collectAsList = Str::endsWith($term, '.*');
 
             foreach ($data as $key => $value) {
                 if (empty($value)) {
@@ -166,7 +167,15 @@ class DotArrayMapper implements MapperInterface
                     isset($matches[1]) &&
                     (is_string($value) || is_numeric($value))
                 ) {
-                    $evaluatedVars[$matches[1]][$varName] = $value;
+                    if ($collectAsList) {
+                        if (!isset($evaluatedVars[$matches[1]][$varName])) {
+                            $evaluatedVars[$matches[1]][$varName] = [];
+                        }
+
+                        $evaluatedVars[$matches[1]][$varName][] = $value;
+                    } else {
+                        $evaluatedVars[$matches[1]][$varName] = $value;
+                    }
                 }
 
                 // match arrays
@@ -227,4 +236,3 @@ class DotArrayMapper implements MapperInterface
         $this->documents = array_slice($this->documents, 0, $limit);
     }
 }
-
