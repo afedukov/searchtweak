@@ -58,6 +58,9 @@
 			<x-form.label.label-required for="judgeForm.api_key" value="API Key" />
 			<x-input type="password" wire:model="judgeForm.api_key" placeholder="{{ $isEditing ? '••••••••  (leave blank to keep current)' : '' }}" autocomplete="off" />
 			<x-input-error for="judgeForm.api_key" />
+			<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+				{{ __('Your API key is encrypted at rest and is never shown in plain text after saving.') }}
+			</p>
 			@if ($isEditing)
 				<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
 					{{ __('Leave blank to keep the current API key.') }}
