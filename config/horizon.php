@@ -243,8 +243,8 @@ return [
         'local' => [
             'supervisor-1' => [
                 'balance' => 'simple',
-                'minProcesses' => 6,
-                'maxProcesses' => 6,
+                'minProcesses' => 12,
+                'maxProcesses' => 12,
             ],
             'supervisor-2' => [
                 'balance' => 'simple',
