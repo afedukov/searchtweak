@@ -71,8 +71,22 @@ Input response:
 ```json
 {
   "items": [
-    {"id": "A1", "title": "Dyson V10", "price": 58830, "images": [{"url": "https://img/a1.webp"}]},
-    {"id": "A2", "title": "Dyson V8", "price": 45093, "images": [{"url": "https://img/a2.webp"}]}
+    {
+      "id": "A1",
+      "title": "Dyson V10",
+      "price": 58830,
+      "images": [
+        { "url": "https://img/a1.webp" }
+      ]
+    },
+    {
+      "id": "A2",
+      "title": "Dyson V8",
+      "price": 45093,
+      "images": [
+        { "url": "https://img/a2.webp" }
+      ]
+    }
   ]
 }
 ```
@@ -90,8 +104,18 @@ Result snapshot payload:
 
 ```json
 [
-  {"id": "A1", "name": "Dyson V10", "price": 588.3, "image": "https://img/a1.webp"},
-  {"id": "A2", "name": "Dyson V8", "price": 450.93, "image": "https://img/a2.webp"}
+  {
+    "id": "A1",
+    "name": "Dyson V10",
+    "price": 588.3,
+    "image": "https://img/a1.webp"
+  },
+  {
+    "id": "A2",
+    "name": "Dyson V8",
+    "price": 450.93,
+    "image": "https://img/a2.webp"
+  }
 ]
 ```
 
