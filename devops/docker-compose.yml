@@ -28,7 +28,7 @@ services:
 
   web:
     container_name: searchtweak-nginx
-    image: nginx:latest
+    image: nginx:1.27-alpine
     restart: unless-stopped
     labels:
       - traefik.enable=true
@@ -82,7 +82,7 @@ services:
 
   phpmyadmin:
     container_name: searchtweak-phpmyadmin
-    image: phpmyadmin
+    image: phpmyadmin:5.2
     restart: unless-stopped
     labels:
       - traefik.enable=true
@@ -102,7 +102,7 @@ services:
 
   redis:
     container_name: searchtweak-redis
-    image: redis:4.0.14-alpine
+    image: redis:7.4-alpine
     restart: unless-stopped
     networks:
       - searchtweak-network
