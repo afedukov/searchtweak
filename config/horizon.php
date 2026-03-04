@@ -223,8 +223,8 @@ return [
         'production' => [
             'supervisor-1' => [
                 'balance' => 'simple',
-                'minProcesses' => 6,
-                'maxProcesses' => 6,
+                'minProcesses' => (int) env('HORIZON_SUPERVISOR_1_MIN', 6),
+                'maxProcesses' => (int) env('HORIZON_SUPERVISOR_1_MAX', 6),
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
@@ -235,16 +235,16 @@ return [
             ],
             'supervisor-3' => [
                 'balance' => 'simple',
-                'minProcesses' => 2,
-                'maxProcesses' => 2,
+                'minProcesses' => (int) env('HORIZON_SUPERVISOR_3_MIN', 2),
+                'maxProcesses' => (int) env('HORIZON_SUPERVISOR_3_MAX', 2),
             ],
         ],
 
         'local' => [
             'supervisor-1' => [
                 'balance' => 'simple',
-                'minProcesses' => 12,
-                'maxProcesses' => 12,
+                'minProcesses' => (int) env('HORIZON_SUPERVISOR_1_MIN', 6),
+                'maxProcesses' => (int) env('HORIZON_SUPERVISOR_1_MAX', 6),
             ],
             'supervisor-2' => [
                 'balance' => 'simple',
@@ -253,8 +253,8 @@ return [
             ],
             'supervisor-3' => [
                 'balance' => 'simple',
-                'minProcesses' => 2,
-                'maxProcesses' => 2,
+                'minProcesses' => (int) env('HORIZON_SUPERVISOR_3_MIN', 2),
+                'maxProcesses' => (int) env('HORIZON_SUPERVISOR_3_MAX', 2),
             ],
         ],
     ],
