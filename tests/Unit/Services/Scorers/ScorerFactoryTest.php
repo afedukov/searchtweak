@@ -7,6 +7,8 @@ use App\Services\Scorers\CumulativeGainDetailScorer;
 use App\Services\Scorers\CumulativeGainScorer;
 use App\Services\Scorers\DiscountedCumulativeGainDetailScorer;
 use App\Services\Scorers\DiscountedCumulativeGainScorer;
+use App\Services\Scorers\Err018Scorer;
+use App\Services\Scorers\ErrScorer;
 use App\Services\Scorers\NormalizedDiscountedCumulativeGainDetailScorer;
 use App\Services\Scorers\NormalizedDiscountedCumulativeGainScorer;
 use App\Services\Scorers\PrecisionScorer;
@@ -29,6 +31,8 @@ class ScorerFactoryTest extends TestCase
             ['cg_d', CumulativeGainDetailScorer::class],
             ['dcg_d', DiscountedCumulativeGainDetailScorer::class],
             ['ndcg_d', NormalizedDiscountedCumulativeGainDetailScorer::class],
+            ['err', ErrScorer::class],
+            ['err_018', Err018Scorer::class],
         ];
     }
 
@@ -54,7 +58,7 @@ class ScorerFactoryTest extends TestCase
     {
         $scorers = ScorerFactory::getScorers();
 
-        $this->assertCount(9, $scorers);
+        $this->assertCount(11, $scorers);
 
         foreach ($scorers as $type => $scorer) {
             $this->assertInstanceOf(Scorer::class, $scorer);
