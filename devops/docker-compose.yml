@@ -179,6 +179,8 @@ services:
       - ./supervisord/supervisord.queue.conf:/etc/supervisor/conf.d/supervisord.conf
     working_dir: /var/www
     entrypoint: [ "/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf" ]
+    extra_hosts:
+      - host.docker.internal:host-gateway
     networks:
       - searchtweak-network
 
