@@ -36,6 +36,11 @@ class BinaryScale extends Scale
         ];
     }
 
+    public function getCssClasses(): string
+    {
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+    }
+
     /**
      * Return prevailing value from the given grades. E.g. if there are more 'Relevant' grades than 'Irrelevant' grades,
      * the prevailing value is 'Relevant'. If there are equal number of 'Relevant' and 'Irrelevant' grades, return null.

@@ -72,6 +72,7 @@ HTML;
 					metrics: $wire.entangle('evaluationForm.metrics'),
 					showSettings: false,
 					chooseScorer: false,
+					scaleFilter: 'all',
 					current: null,
 					num_results: 10
 				}"
@@ -97,9 +98,24 @@ HTML;
 						</x-slot>
 
 						<x-slot name="content">
+							<div class="flex gap-2 mb-4 px-2">
+								<button
+										@click.prevent="scaleFilter = 'all'"
+										:class="scaleFilter === 'all' ? 'ring-2 ring-offset-1 ring-gray-400 dark:ring-offset-gray-800' : 'opacity-60 hover:opacity-100'"
+										class="text-xs font-medium px-2.5 py-0.5 rounded bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300 transition-all"
+								>{{ __('All') }}</button>
+								@foreach ($scales as $scale)
+									<button
+											@click.prevent="scaleFilter = '{{ $scale->getType() }}'"
+											:class="scaleFilter === '{{ $scale->getType() }}' ? 'ring-2 ring-offset-1 ring-gray-400 dark:ring-offset-gray-800' : 'opacity-60 hover:opacity-100'"
+											class="text-xs font-medium px-2.5 py-0.5 rounded transition-all {{ $scale->getCssClasses() }}"
+									>{{ $scale->getName() }}</button>
+								@endforeach
+							</div>
 							<ul class="p-2 grid w-full gap-4 md:grid-cols-3">
 								@foreach ($scorers as $scorer)
 									<label
+											x-show="scaleFilter === 'all' || scorers['{{ $scorer->getType() }}'].scale.type === scaleFilter"
 											@click="
 													metrics.push({
 														scorer_type: '{{ $scorer->getType() }}',
