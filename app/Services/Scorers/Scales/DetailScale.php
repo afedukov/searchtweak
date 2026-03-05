@@ -60,6 +60,11 @@ class DetailScale extends Scale
         ];
     }
 
+    public function getCssClasses(): string
+    {
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+    }
+
     public function getValue(array $grades): ?float
     {
         if (empty($grades)) {

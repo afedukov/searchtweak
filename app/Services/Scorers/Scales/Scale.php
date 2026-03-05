@@ -63,6 +63,11 @@ abstract class Scale implements JsonSerializable
         return sprintf('components.scales.%s.scoring-guidelines', $this->getType());
     }
 
+    /**
+     * Returns CSS classes for badge styling.
+     */
+    abstract public function getCssClasses(): string;
+
     public function jsonSerialize(): array
     {
         return [

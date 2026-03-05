@@ -42,6 +42,11 @@ class GradedScale extends Scale
         ];
     }
 
+    public function getCssClasses(): string
+    {
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+    }
+
     public function getValue(array $grades): ?float
     {
         if (empty($grades)) {
