@@ -571,6 +571,8 @@ Factory for creating scorer instances by type string. Registered scorer types:
 | `cg` | `CumulativeGainScorer` | Graded | Cumulative Gain |
 | `dcg` | `DiscountedCumulativeGainScorer` | Graded | Discounted Cumulative Gain |
 | `ndcg` | `NormalizedDiscountedCumulativeGainScorer` | Graded | Normalized DCG |
+| `err` | `ErrScorer` | Graded | Expected Reciprocal Rank |
+| `err_018` | `Err018Scorer` | Graded | Expected Reciprocal Rank (0.18 exponent) |
 | `cg_d` | `CumulativeGainDetailScorer` | Detail | Cumulative Gain (Detail scale) |
 | `dcg_d` | `DiscountedCumulativeGainDetailScorer` | Detail | DCG (Detail scale) |
 | `ndcg_d` | `NormalizedDiscountedCumulativeGainDetailScorer` | Detail | NDCG (Detail scale) |

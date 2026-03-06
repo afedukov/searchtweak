@@ -17,7 +17,7 @@ class EvaluationMetricFactory extends Factory
     {
         return [
             EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => SearchEvaluation::factory(),
-            EvaluationMetric::FIELD_SCORER_TYPE => $this->faker->randomElement(['precision', 'ap', 'rr', 'cg', 'dcg', 'ndcg']),
+            EvaluationMetric::FIELD_SCORER_TYPE => $this->faker->randomElement(['precision', 'ap', 'rr', 'cg', 'dcg', 'ndcg', 'err', 'err_018']),
             EvaluationMetric::FIELD_NUM_RESULTS => 10,
             EvaluationMetric::FIELD_VALUE => 0,
             EvaluationMetric::FIELD_PREVIOUS_VALUE => null,

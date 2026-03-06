@@ -17,7 +17,7 @@ POST /api/v1/evaluations
 | `description` | string | no | max 4000 |
 | `scale_type` | string | yes | `binary`, `graded`, `detail` |
 | `metrics` | array | yes | Unique pairs of `scorer_type + num_results` are required |
-| `metrics[].scorer_type` | string | yes | `precision`, `ap`, `rr`, `cg`, `dcg`, `ndcg`, `cg_d`, `dcg_d`, `ndcg_d` |
+| `metrics[].scorer_type` | string | yes | `precision`, `ap`, `rr`, `cg`, `dcg`, `ndcg`, `err`, `err_018`, `cg_d`, `dcg_d`, `ndcg_d` |
 | `metrics[].num_results` | integer | yes | `1..50` |
 | `keywords` | array of strings | yes | `1..250` unique non-empty values |
 | `tags` | array | no | `[{ "id": <tag_id> }]` |

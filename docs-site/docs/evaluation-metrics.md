@@ -128,6 +128,42 @@ SearchTweak behavior:
 - returns `null` if nothing is graded
 - returns `0` if `IDCG@k = 0`
 
+### Expected Reciprocal Rank@k (ERR@k)
+
+> **In simple words:** ERR models a cascade user who scans search results from top to bottom and stops when they find a result that satisfies their information need. The metric measures the expected rank at which they will stop, accounting for the probability that each result is useful enough to stop at.
+
+$$
+ERR@k = \sum_{i=1}^{k} \frac{1}{i} \cdot P(\text{stop at } i)
+$$
+
+Where:
+
+$$
+P(\text{stop at } i) = \frac{2^{g_i} - 1}{2^{g_{\text{max}}}} \cdot \prod_{j=1}^{i-1} \left(1 - \frac{2^{g_j} - 1}{2^{g_{\text{max}}}}\right)
+$$
+
+The gain function `(2^grade - 1) / 2^maxGrade` converts graded relevance to a stop probability (0 to 1). The user continues down the list only if they haven't stopped at a previous position.
+
+SearchTweak behavior:
+
+- returns `null` if nothing is graded
+- returns `0` if no relevant results exist
+
+### Expected Reciprocal Rank with 0.18 Exponent@k (ERR-0.18@k)
+
+> **In simple words:** A variant of ERR that uses a different discount factor (rank^0.18 instead of 1/rank) to model users who don't stop scrolling as abruptly. This variant applies a gentler position discount, reflecting that users may continue viewing results even after finding something useful.
+
+$$
+ERR\text{-}0.18@k = \sum_{i=1}^{k} i^{-0.18} \cdot P(\text{stop at } i)
+$$
+
+Uses the same stop probability as ERR@k but with a different positional discount: `rank^0.18` instead of `1/rank`.
+
+SearchTweak behavior:
+
+- returns `null` if nothing is graded
+- returns `0` if no relevant results exist
+
 ## Detail-Scale Variants
 
 For detail scale (`1..10`), formulas are identical:
