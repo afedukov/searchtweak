@@ -48,4 +48,12 @@ class SearchModelPolicy
     {
         return $user->hasTeamPermission($searchModel->team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
     }
+
+    /**
+     * Determine whether the user can pin/unpin the model.
+     */
+    public function pin(User $user, SearchModel $searchModel): bool
+    {
+        return $user->hasTeamPermission($searchModel->team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
+    }
 }

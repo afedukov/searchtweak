@@ -6,7 +6,9 @@ use App\Actions\Models\DeleteSearchModel;
 use App\Livewire\Traits\Endpoints\EditEndpointModalTrait;
 use App\Livewire\Traits\Evaluations\EditEvaluationModalTrait;
 use App\Livewire\Traits\Models\EditModelModalTrait;
+use App\Livewire\Traits\Models\PinModelTrait;
 use App\Models\SearchEndpoint;
+use App\Models\SearchModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -22,6 +24,7 @@ class Models extends Component
     use EditModelModalTrait;
     use EditEvaluationModalTrait;
     use EditEndpointModalTrait;
+    use PinModelTrait;
 
     public const int PER_PAGE = 10;
 
@@ -56,6 +59,9 @@ class Models extends Component
                     $query->whereHas('tags', fn (Builder $query) => $query->whereKey($this->filterTagId))
                 )
                 ->with(['user', 'team', 'endpoint.team', 'tags'])
+                ->reorder()
+                ->orderByDesc(SearchModel::FIELD_PINNED)
+                ->orderByDesc(SearchModel::FIELD_ID)
                 ->paginate(self::PER_PAGE),
             'allModels' => Auth::user()->currentTeam
                 ->models()

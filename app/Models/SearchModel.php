@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $body
  * @property int $body_type
  * @property array $settings
+ * @property bool $pinned
  * @property Carbon $created_at
  * @property Carbon $updated_at
  *
@@ -48,6 +49,7 @@ class SearchModel extends TeamBroadcastableModel implements TaggableInterface
     public const string FIELD_BODY = 'body';
     public const string FIELD_BODY_TYPE = 'body_type';
     public const string FIELD_SETTINGS = 'settings';
+    public const string FIELD_PINNED = 'pinned';
     public const string FIELD_CREATED_AT = 'created_at';
     public const string FIELD_UPDATED_AT = 'updated_at';
 
@@ -76,6 +78,7 @@ class SearchModel extends TeamBroadcastableModel implements TaggableInterface
         self::FIELD_BODY,
         self::FIELD_BODY_TYPE,
         self::FIELD_SETTINGS,
+        self::FIELD_PINNED,
     ];
 
     protected $casts = [
@@ -86,6 +89,7 @@ class SearchModel extends TeamBroadcastableModel implements TaggableInterface
         self::FIELD_PARAMS => 'array',
         self::FIELD_BODY_TYPE => 'int',
         self::FIELD_SETTINGS => 'array',
+        self::FIELD_PINNED => 'bool',
     ];
 
     private ?array $metrics = null;
@@ -188,5 +192,15 @@ class SearchModel extends TeamBroadcastableModel implements TaggableInterface
     public function getKeywordsString(): string
     {
         return implode("\n", $this->getKeywords());
+    }
+
+    public function isPinnable(): bool
+    {
+        return !$this->pinned;
+    }
+
+    public function isUnpinnable(): bool
+    {
+        return $this->pinned;
     }
 }

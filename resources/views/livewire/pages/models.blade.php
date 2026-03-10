@@ -58,6 +58,7 @@
 						<table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
 							<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
 							<tr>
+								<th scope="col" class="pl-4 py-3"></th>
 								<th scope="col" class="px-4 py-3 min-w-52">
 									{{ __('Model') }}
 								</th>
@@ -84,7 +85,45 @@
 							</thead>
 							<tbody>
 							@forelse ($models as $model)
-								<tr wire:key="model-item-{{ $model->id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+								<tr
+										wire:key="model-item-{{ $model->id }}"
+										@class([
+											'bg-gray-50 dark:bg-gray-700' => $model->pinned,
+											'bg-white dark:bg-gray-800' => !$model->pinned,
+											'border-b dark:border-gray-700',
+										])
+								>
+									<td class="pl-4 py-4 align-baseline">
+										<!-- Model Pin Button -->
+										@if (Gate::check('pin', $model))
+											<div>
+												<button
+														data-popover-target="pin-model-{{ $model->id }}"
+														@class([
+															'rounded-full disabled:opacity-50 -mt-0.5',
+															'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300' => $model->pinned,
+															'text-slate-500 hover:text-slate-500 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-300' => !$model->pinned,
+														])
+														wire:click="pinModel('{{ $model->id }}', {{ $model->pinned ? 'false' : 'true' }})"
+														wire:loading.attr="disabled"
+												>
+													<div class="h-7 w-7 p-1">
+														<i class="fa-solid fa-thumbtack"></i>
+													</div>
+												</button>
+
+												<x-tooltip id="pin-model-{{ $model->id }}" with-arrow>
+													<span class="whitespace-nowrap">
+														@if ($model->pinned)
+															Unpin
+														@else
+															Pin to Top
+														@endif
+													</span>
+												</x-tooltip>
+											</div>
+										@endif
+									</td>
 									<th scope="row" class="px-4 py-4 font-medium text-gray-900 dark:text-white align-baseline">
 										<div class="w-44">
 											<a href="{{ route('model', $model->id) }}">
