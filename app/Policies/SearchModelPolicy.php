@@ -13,8 +13,7 @@ class SearchModelPolicy
      */
     public function view(User $user, SearchModel $searchModel): bool
     {
-        return $user->current_team_id === $searchModel->team_id &&
-            $user->hasTeamPermission($searchModel->team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
+        return $this->canManageModel($user, $searchModel);
     }
 
     /**
@@ -30,7 +29,8 @@ class SearchModelPolicy
      */
     public function create(User $user, Team $team): bool
     {
-        return $user->hasTeamPermission($team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
+        return $user->current_team_id === $team->id &&
+            $user->hasTeamPermission($team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
     }
 
     /**
@@ -38,7 +38,7 @@ class SearchModelPolicy
      */
     public function update(User $user, SearchModel $searchModel): bool
     {
-        return $user->hasTeamPermission($searchModel->team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
+        return $this->canManageModel($user, $searchModel);
     }
 
     /**
@@ -46,7 +46,7 @@ class SearchModelPolicy
      */
     public function delete(User $user, SearchModel $searchModel): bool
     {
-        return $user->hasTeamPermission($searchModel->team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
+        return $this->canManageModel($user, $searchModel);
     }
 
     /**
@@ -54,6 +54,12 @@ class SearchModelPolicy
      */
     public function pin(User $user, SearchModel $searchModel): bool
     {
-        return $user->hasTeamPermission($searchModel->team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
+        return $this->canManageModel($user, $searchModel);
+    }
+
+    private function canManageModel(User $user, SearchModel $searchModel): bool
+    {
+        return $user->current_team_id === $searchModel->team_id &&
+            $user->hasTeamPermission($searchModel->team, Permissions::PERMISSION_MANAGE_SEARCH_MODELS);
     }
 }

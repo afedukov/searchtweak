@@ -21,7 +21,8 @@ class JudgePolicy
      */
     public function create(User $user, Team $team): bool
     {
-        return $user->hasTeamPermission($team, Permissions::PERMISSION_MANAGE_JUDGES);
+        return $user->current_team_id === $team->id &&
+            $user->hasTeamPermission($team, Permissions::PERMISSION_MANAGE_JUDGES);
     }
 
     /**
@@ -29,7 +30,7 @@ class JudgePolicy
      */
     public function update(User $user, Judge $judge): bool
     {
-        return $user->hasTeamPermission($judge->team, Permissions::PERMISSION_MANAGE_JUDGES);
+        return $this->canManageJudge($user, $judge);
     }
 
     /**
@@ -37,11 +38,17 @@ class JudgePolicy
      */
     public function delete(User $user, Judge $judge): bool
     {
-        return $user->hasTeamPermission($judge->team, Permissions::PERMISSION_MANAGE_JUDGES);
+        return $this->canManageJudge($user, $judge);
     }
 
     public function toggle(User $user, Judge $judge): bool
     {
-        return $user->hasTeamPermission($judge->team, Permissions::PERMISSION_MANAGE_JUDGES);
+        return $this->canManageJudge($user, $judge);
+    }
+
+    private function canManageJudge(User $user, Judge $judge): bool
+    {
+        return $user->current_team_id === $judge->team_id &&
+            $user->hasTeamPermission($judge->team, Permissions::PERMISSION_MANAGE_JUDGES);
     }
 }
