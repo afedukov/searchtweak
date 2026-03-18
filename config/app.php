@@ -188,4 +188,8 @@ return [
         // 'Example' => App\Facades\Example::class,
     ])->toArray(),
 
+    // Comma-separated list of allowed hosts for Search Endpoint URLs.
+    // When empty, any URL is allowed (for local/dev environments).
+    'allowed_endpoint_hosts' => env('ALLOWED_ENDPOINT_HOSTS', ''),
+
 ];
