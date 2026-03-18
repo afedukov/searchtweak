@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Superuser;
 
+use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Jetstream\DeleteUser;
+use App\Livewire\Forms\UserForm;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +30,9 @@ class Users extends Component
 
     public bool $superAdminConfirmation = false;
     public int $superAdminUserId = 0;
+
+    public UserForm $userForm;
+    public bool $createUserModal = false;
 
     public function render(): View
     {
@@ -89,6 +94,37 @@ class Users extends Component
         } finally {
             $this->deleteConfirmation = false;
             $this->deleteUserId = 0;
+        }
+    }
+
+    public function createUser(): void
+    {
+        $this->userForm->reset();
+        $this->userForm->resetErrorBag();
+        $this->createUserModal = true;
+    }
+
+    public function saveUser(CreateNewUser $action): void
+    {
+        Gate::authorize('superuser', Auth::user());
+
+        $this->userForm->validate();
+
+        try {
+            $user = $action->create([
+                'name' => $this->userForm->name,
+                'email' => $this->userForm->email,
+                'password' => $this->userForm->password,
+                'password_confirmation' => $this->userForm->password,
+            ]);
+
+            $user->markEmailAsVerified();
+
+            $this->createUserModal = false;
+
+            Toaster::info('User created.');
+        } catch (\Throwable $e) {
+            Toaster::error($e->getMessage());
         }
     }
 
