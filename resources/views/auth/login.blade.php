@@ -32,16 +32,18 @@
                     </a>
                 </div>
             @endif
-            <x-button class="ml-3">
+            <x-button class="ml-auto">
                 {{ __('Sign in') }}
             </x-button>
         </div>
     </form>
     <x-validation-errors class="mt-4" />
     <!-- Footer -->
+    @if (Route::has('register'))
     <div class="pt-5 mt-6 border-t border-slate-200 dark:border-slate-700">
         <div class="text-sm">
             {{ __('Don\'t you have an account?') }} <a class="font-medium text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400" href="{{ route('register') }}">{{ __('Sign Up') }}</a>
         </div>
     </div>
+    @endif
 </x-authentication-layout>

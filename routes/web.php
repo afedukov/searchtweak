@@ -14,6 +14,7 @@ use App\Livewire\JudgeLogs;
 use App\Livewire\Leaderboard;
 use App\Livewire\Model;
 use App\Livewire\Models;
+use App\Livewire\Superuser\Settings;
 use App\Livewire\Superuser\Users;
 use App\Livewire\Teams;
 use App\Livewire\CurrentTeam;
@@ -111,6 +112,9 @@ Route::middleware(['auth', config('jetstream.auth_session'), 'verified', UserOnl
         ->group(function () {
             Route::name('users')
                 ->get('/users', Users::class);
+
+            Route::name('settings')
+                ->get('/settings', Settings::class);
 
             Route::name('impersonate')
                 ->get('/impersonate/{user}', [ImpersonateController::class, 'impersonate'])

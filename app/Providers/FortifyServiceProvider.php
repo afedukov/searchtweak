@@ -8,9 +8,12 @@ use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use App\Models\Setting;
 use Illuminate\Support\Facades\RateLimiter;
+use App\Services\SettingsService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -20,7 +23,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->overrideFortifyFeatures();
     }
 
     /**
@@ -42,5 +45,47 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
+    }
+
+    private function overrideFortifyFeatures(): void
+    {
+        try {
+            $settings = Setting::query()
+                ->pluck(Setting::FIELD_VALUE, Setting::FIELD_KEY);
+
+            if ($settings->isEmpty()) {
+                return;
+            }
+
+            $enabled = fn (string $key, bool $default) => filter_var(
+                $settings->get($key, $default ? 'true' : 'false'),
+                FILTER_VALIDATE_BOOLEAN,
+            );
+
+            $features = [
+                Features::updateProfileInformation(),
+                Features::updatePasswords(),
+                Features::emailVerification(),
+            ];
+
+            if ($enabled(SettingsService::FORTIFY_REGISTRATION, true)) {
+                $features[] = Features::registration();
+            }
+
+            if ($enabled(SettingsService::FORTIFY_RESET_PASSWORDS, true)) {
+                $features[] = Features::resetPasswords();
+            }
+
+            if ($enabled(SettingsService::FORTIFY_TWO_FACTOR_AUTHENTICATION, true)) {
+                $features[] = Features::twoFactorAuthentication([
+                    'confirm' => true,
+                    'confirmPassword' => true,
+                ]);
+            }
+
+            config(['fortify.features' => $features]);
+        } catch (\Throwable) {
+            // DB not available (migrations, fresh install) — keep config defaults
+        }
     }
 }
