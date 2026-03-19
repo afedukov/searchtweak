@@ -47,7 +47,8 @@ export default defineConfig({
           { text: 'Leaderboard', link: '/leaderboard' },
           { text: 'Evaluation Metrics', link: '/evaluation-metrics' },
           { text: 'Team Management', link: '/team-management' },
-          { text: 'Tags', link: '/tags' }
+          { text: 'Tags', link: '/tags' },
+          { text: 'Administration', link: '/administration' }
         ]
       },
       {

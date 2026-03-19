@@ -53,6 +53,7 @@ SearchTweak helps you run repeatable relevance experiments for traditional searc
 - [Evaluation Metrics](/evaluation-metrics): formulas, interpretation, and caveats.
 - [Team Management](/team-management): roles, membership, and permissions.
 - [Tags](/tags): routing and access segmentation.
+- [Administration](/administration): Super Admin user management and platform settings.
 - [API Reference](/api/overview): automate evaluations via HTTP API.
 
 ## Quick Start (Non-Technical)
