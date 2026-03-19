@@ -144,10 +144,12 @@ return [
     |
     */
 
+    // These are fallback defaults. At runtime, FortifyServiceProvider
+    // overrides this array with values from the `settings` DB table.
     'features' => [
         Features::registration(),
         Features::resetPasswords(),
-//        Features::emailVerification(),
+        Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),
         Features::twoFactorAuthentication([

@@ -3,6 +3,7 @@
 namespace App\Livewire\Forms;
 
 use App\Models\SearchEndpoint;
+use App\Rules\AllowedEndpointUrlRule;
 use App\Rules\MapperCodeRule;
 use App\Services\Endpoints\CustomHeadersService;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +45,7 @@ class EndpointForm extends Form
             ],
             'description' => ['nullable', 'string', 'max:255'],
             'method' => ['required', Rule::in(SearchEndpoint::VALID_METHODS)],
-            'url' => ['required', 'string', 'url', 'max:4096'],
+            'url' => ['required', 'string', 'url', 'max:4096', new AllowedEndpointUrlRule()],
             'type' => ['required', 'integer', Rule::in([SearchEndpoint::TYPE_SEARCH_API])],
             'mapper_type' => ['required', 'integer', Rule::in([SearchEndpoint::MAPPER_TYPE_DOT_ARRAY])],
             'mapper_code' => ['required', 'string', 'max:4096', new MapperCodeRule()],

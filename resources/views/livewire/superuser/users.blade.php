@@ -26,6 +26,12 @@
 
 						<!-- Right Column -->
 						<div class="flex flex-wrap gap-2">
+							<x-button wire:click="createUser" class="flex items-center">
+								<svg class="w-4 h-4 fill-current opacity-50 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 18">
+									<path d="M6.5 9a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9ZM8 10H5a5.006 5.006 0 0 0-5 5v2a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-2a5.006 5.006 0 0 0-5-5Zm11-3h-2V5a1 1 0 0 0-2 0v2h-2a1 1 0 1 0 0 2h2v2a1 1 0 0 0 2 0V9h2a1 1 0 1 0 0-2Z"/>
+								</svg>
+								<span class="ml-2">{{ __('Create User') }}</span>
+							</x-button>
 						</div>
 
 					</div>
@@ -59,6 +65,8 @@
 							verifyUserId: $wire.entangle('verifyUserId'),
 							deleteConfirmation: $wire.entangle('deleteConfirmation'),
 							deleteUserId: $wire.entangle('deleteUserId'),
+							superAdminConfirmation: $wire.entangle('superAdminConfirmation'),
+							superAdminUserId: $wire.entangle('superAdminUserId'),
 						}"
 					>
 						<!-- Table -->
@@ -86,8 +94,11 @@
 							@forelse ($users as $user)
 									<tr wire:key="user-{{ $user->id }}" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
 										<th scope="row" class="px-5 py-4 font-medium text-gray-900 dark:text-white align-baseline">
-											<div class="inline-flex justify-center items-center max-w-[280px]">
+											<div class="inline-flex items-center gap-2 max-w-[280px]">
 												<x-block.user-name :user="$user" />
+												@if ($user->super_admin)
+													<span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-indigo-900 dark:text-indigo-300">Super Admin</span>
+												@endif
 											</div>
 										</th>
 									<td class="px-5 py-4 align-baseline">
@@ -131,6 +142,15 @@
 											@if ($user->id !== Auth::id())
 												<x-block.context-menu-item :href="route('superuser.impersonate', $user)">
 													Impersonate
+												</x-block.context-menu-item>
+												<x-block.context-menu-item
+														@click="
+															superAdminUserId = {{ $user->id }};
+															superAdminConfirmation = true;
+															FlowbiteInstances.getInstance('Dropdown', 'dropdown-context-{{ $user->id }}').hide();
+														"
+												>
+													{{ $user->super_admin ? __('Revoke Super Admin') : __('Grant Super Admin') }}
 												</x-block.context-menu-item>
 												<x-block.context-menu-item
 														@click="
@@ -205,11 +225,35 @@
 							</x-slot>
 						</x-modals.confirmation-modal-alpine>
 
+						<!-- Super Admin Confirmation Modal -->
+						<x-modals.confirmation-modal-alpine var="superAdminConfirmation" x-cloak>
+							<x-slot name="title">
+								Toggle Super Admin
+							</x-slot>
+
+							<x-slot name="content">
+								Are you sure you want to change this user's super admin status?
+							</x-slot>
+
+							<x-slot name="footer">
+								<x-secondary-button @click.prevent="superAdminConfirmation = false" wire:loading.attr="disabled">
+									{{ __('Cancel') }}
+								</x-secondary-button>
+
+								<x-button class="ms-3" wire:click="toggleSuperAdmin" wire:loading.attr="disabled">
+									Confirm
+								</x-button>
+							</x-slot>
+						</x-modals.confirmation-modal-alpine>
+
 					</div>
 
 				</div>
 			</div>
 		</div>
 	</div>
+
+	<!-- Create User Modal -->
+	<x-modals.user-create />
 
 </div>

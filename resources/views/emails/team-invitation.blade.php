@@ -1,11 +1,13 @@
 @component('mail::message')
 {{ __('You have been invited to join the team :team as an :role.', ['team' => $invitation->team->name, 'role' => $invitation->getRole()->name]) }}
 
+@if (Route::has('register'))
 {{ __('If you do not have an account, you may create one by clicking the button below. After creating an account, you may click the invitation acceptance button in this email to accept the team invitation:') }}
 
 @component('mail::button', ['url' => route('register')])
 {{ __('Create Account') }}
 @endcomponent
+@endif
 
 {{ __('If you already have an account, you may accept this invitation by clicking the button below:') }}
 

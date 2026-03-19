@@ -1302,6 +1302,7 @@ Defined in `app/helpers.php`. Generates a unique string identifier using `uniqid
 | `SESSION_DRIVER` | `redis` | Session driver |
 | `REVERB_HOST` | `reverb` | WebSocket server host |
 | `REVERB_PORT` | `8080` | WebSocket port |
+| `ALLOWED_ENDPOINT_HOSTS` | _(empty)_ | Comma-separated list of allowed hosts for endpoint URLs (SSRF protection). Empty = all allowed. |
 
 ### 23.2 Horizon Configuration (`config/horizon.php`)
 

@@ -49,7 +49,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Collection<SearchEvaluation> $evaluations
  * @property Collection<NotificationUnsubscription> $notificationUnsubscriptions
  */
-class User extends Authenticatable implements TaggableInterface
+class User extends Authenticatable implements MustVerifyEmail, TaggableInterface
 {
     use HasApiTokens;
     use HasFactory;

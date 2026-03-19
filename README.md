@@ -208,6 +208,18 @@ In `config/fortify.php`, uncomment:
 - API reference: http://searchtweak.local/docs/api/overview
 - Project meta docs: [DOCUMENTATION.md](DOCUMENTATION.md)
 
+## Security
+
+### Endpoint URL Allowlist
+
+To prevent SSRF attacks, restrict which hosts can be used in Search Endpoint URLs by setting:
+
+```dotenv
+ALLOWED_ENDPOINT_HOSTS=api.example.com,search.example.com
+```
+
+When set, only endpoints pointing to the listed hosts will be accepted. When empty (default), any URL is allowed — suitable for local development.
+
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request with your enhancements or bug fixes.
