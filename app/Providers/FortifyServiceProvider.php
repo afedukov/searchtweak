@@ -9,6 +9,7 @@ use App\Actions\Fortify\UpdateUserProfileInformation;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use App\Models\Setting;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Services\SettingsService;
 use Illuminate\Support\ServiceProvider;
@@ -20,6 +21,10 @@ class FortifyServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
+     *
+     * Override Fortify features from DB before Fortify's boot()
+     * registers routes. The 'booting' callback runs after all
+     * providers are registered (DB available) but before boot().
      */
     public function register(): void
     {
@@ -50,7 +55,7 @@ class FortifyServiceProvider extends ServiceProvider
     private function overrideFortifyFeatures(): void
     {
         try {
-            $settings = Setting::query()
+            $settings = DB::table('settings')
                 ->pluck(Setting::FIELD_VALUE, Setting::FIELD_KEY);
 
             if ($settings->isEmpty()) {
