@@ -11,7 +11,9 @@
 
 				<x-theme-toggle />
 
-				@if (Route::has('register'))
+				@inject('settingsService', 'App\Services\SettingsService')
+
+			@if (Route::has('register') && !$settingsService->isSsoOnlyMode())
 				<!-- Log In -->
 				<a href="{{ route('login') }}" class="ml-2 text-gray-800 dark:text-white hover:bg-gray-100 font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 sm:mr-2 dark:hover:bg-gray-700 focus:outline-none">
 					Log In

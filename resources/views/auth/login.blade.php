@@ -5,6 +5,46 @@
             {{ session('status') }}
         </div>
     @endif
+
+    @inject('settingsService', 'App\Services\SettingsService')
+
+    @php
+        $ssoEnabled = $settingsService->isSsoEnabled();
+        $ssoOnlyMode = $settingsService->isSsoOnlyMode();
+        $fallback = request()->has('fallback');
+        $showForm = !$ssoOnlyMode || $fallback;
+    @endphp
+
+    @if ($ssoEnabled)
+        <!-- SSO Button -->
+        <a href="{{ route('oidc.redirect') }}"
+           class="w-full inline-flex items-center justify-center px-4 py-2.5 mb-2 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg text-sm focus:outline-none transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            {{ config('services.keycloak.button_label') }}
+        </a>
+
+        @if ($ssoOnlyMode && !$fallback)
+            <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+                {{ __('Use your corporate account to sign in.') }}
+            </p>
+        @endif
+
+        @if ($showForm)
+            <!-- Divider -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-slate-200 dark:border-slate-700"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white dark:bg-slate-900 text-gray-500 dark:text-gray-400">{{ __('or') }}</span>
+                </div>
+            </div>
+        @endif
+    @endif
+
+    @if ($showForm)
     <!-- Form -->
     <form method="POST" action="{{ route('login') }}">
         @csrf
@@ -45,5 +85,6 @@
             {{ __('Don\'t you have an account?') }} <a class="font-medium text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400" href="{{ route('register') }}">{{ __('Sign Up') }}</a>
         </div>
     </div>
+    @endif
     @endif
 </x-authentication-layout>
