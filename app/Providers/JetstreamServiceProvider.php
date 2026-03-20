@@ -9,6 +9,7 @@ use App\Actions\Jetstream\DeleteUser;
 use App\Actions\Jetstream\InviteTeamMember;
 use App\Actions\Jetstream\RemoveTeamMember;
 use App\Actions\Jetstream\UpdateTeamName;
+use App\Http\Responses\OidcLogoutResponse;
 use App\Livewire\DeleteTeamForm;
 use App\Livewire\TeamMemberManager;
 use App\Livewire\UpdateProfileInformationForm;
@@ -22,6 +23,7 @@ use App\Policies\SearchModelPolicy;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Fortify\Contracts\LogoutResponse as LogoutResponseContract;
 use Laravel\Jetstream\Jetstream;
 
 class JetstreamServiceProvider extends ServiceProvider
@@ -38,6 +40,8 @@ class JetstreamServiceProvider extends ServiceProvider
         $loader->alias('Laravel\Jetstream\Http\Livewire\DeleteUserForm', DeleteUserForm::class);
         $loader->alias('Laravel\Jetstream\Http\Livewire\TeamMemberManager', TeamMemberManager::class);
         $loader->alias('Laravel\Jetstream\Http\Livewire\UpdateProfileInformationForm', UpdateProfileInformationForm::class);
+
+        $this->app->singleton(LogoutResponseContract::class, OidcLogoutResponse::class);
     }
 
     /**

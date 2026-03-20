@@ -11,13 +11,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 class OidcLogoutResponse implements LogoutResponseContract
 {
+    public function __construct(private readonly SettingsService $settings)
+    {
+    }
+
     public function toResponse($request): Response
     {
         $user = $request->attributes->get('logout_user');
 
-        if ($user instanceof User && $user->oidc_id && $this->isSsoEnabled()) {
+        if ($user instanceof User && $user->oidc_id && $this->settings->isSsoEnabled()) {
             $logoutUrl = Socialite::driver('keycloak')->getLogoutUrl(
-                redirectUri: url('/login'),
+                redirectUri: route('login'),
                 clientId: config('services.keycloak.client_id'),
             );
 
@@ -28,15 +32,6 @@ class OidcLogoutResponse implements LogoutResponseContract
 
         return $request->wantsJson()
             ? new JsonResponse('', 204)
-            : redirect('/login');
-    }
-
-    private function isSsoEnabled(): bool
-    {
-        $settings = app(SettingsService::class);
-
-        return $settings->getBoolean(SettingsService::SSO_ENABLED)
-            && !empty(config('services.keycloak.client_id'))
-            && !empty(config('services.keycloak.base_url'));
+            : redirect(route('login'));
     }
 }

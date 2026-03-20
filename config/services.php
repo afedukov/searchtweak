@@ -31,4 +31,13 @@ return [
         'region' => env('AWS_SES_REGION', 'us-east-1'),
     ],
 
+    'keycloak' => [
+        'client_id' => env('OIDC_CLIENT_ID'),
+        'client_secret' => env('OIDC_CLIENT_SECRET'),
+        'base_url' => env('OIDC_BASE_URL'),
+        'realms' => env('OIDC_REALM', 'master'),
+        'redirect' => '/auth/oidc/callback',
+        'button_label' => env('OIDC_BUTTON_LABEL', '') ?: 'Sign in with SSO',
+    ],
+
 ];

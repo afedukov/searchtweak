@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\OidcController;
 use App\Http\Controllers\ImpersonateController;
 use App\Http\Controllers\TeamInvitationController;
 use App\Http\Middleware\UserOnline;
@@ -32,6 +33,11 @@ use App\Http\Controllers\CurrentTeamController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+Route::middleware('guest')->group(function () {
+    Route::get('/auth/oidc/redirect', [OidcController::class, 'redirect'])->name('oidc.redirect');
+    Route::get('/auth/oidc/callback', [OidcController::class, 'callback'])->name('oidc.callback');
+});
 
 Route::middleware(['auth', config('jetstream.auth_session'), 'verified', UserOnline::class])->group(function () {
 

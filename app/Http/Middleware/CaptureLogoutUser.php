@@ -15,7 +15,7 @@ class CaptureLogoutUser
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->isMethod('POST') && $request->is('logout') && Auth::check()) {
+        if ($request->routeIs('logout') && Auth::check()) {
             $request->attributes->set('logout_user', Auth::user());
         }
 

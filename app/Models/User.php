@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
@@ -32,6 +33,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $two_factor_recovery_codes
  * @property Carbon $two_factor_confirmed_at
  * @property string $remember_token
+ * @property string|null $oidc_id
  * @property int $current_team_id
  * @property string $profile_photo_path
  * @property bool $newsletter
@@ -68,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail, TaggableInterface
     public const string FIELD_TWO_FACTOR_RECOVERY_CODES = 'two_factor_recovery_codes';
     public const string FIELD_TWO_FACTOR_CONFIRMED_AT = 'two_factor_confirmed_at';
     public const string FIELD_REMEMBER_TOKEN = 'remember_token';
+    public const string FIELD_OIDC_ID = 'oidc_id';
     public const string FIELD_CURRENT_TEAM_ID = 'current_team_id';
     public const string FIELD_PROFILE_PHOTO_PATH = 'profile_photo_path';
     public const string FIELD_NEWSLETTER = 'newsletter';
@@ -84,6 +87,7 @@ class User extends Authenticatable implements MustVerifyEmail, TaggableInterface
         self::FIELD_EMAIL,
         self::FIELD_PASSWORD,
         self::FIELD_NEWSLETTER,
+        self::FIELD_OIDC_ID,
     ];
 
     /**
@@ -131,6 +135,17 @@ class User extends Authenticatable implements MustVerifyEmail, TaggableInterface
     public function isOwner(Team $team): bool
     {
         return $this->id === $team->user_id;
+    }
+
+    /**
+     * Create a personal team for the user.
+     */
+    public function createPersonalTeam(): void
+    {
+        $this->ownedTeams()->create([
+            Team::FIELD_NAME => Str::before($this->name, ' ') . "'s Team",
+            Team::FIELD_PERSONAL_TEAM => true,
+        ]);
     }
 
     public function widgets(): HasMany

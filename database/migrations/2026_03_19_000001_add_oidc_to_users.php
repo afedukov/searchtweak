@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string(User::FIELD_OIDC_ID)->nullable()->after(User::FIELD_REMEMBER_TOKEN);
+            $table->string(User::FIELD_OIDC_ID)->nullable()->unique()->after(User::FIELD_REMEMBER_TOKEN);
         });
 
         Setting::query()
