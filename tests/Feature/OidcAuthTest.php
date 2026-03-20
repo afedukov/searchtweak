@@ -8,6 +8,7 @@ use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Livewire\Livewire;
 use Mockery;
 use Tests\TestCase;
 
@@ -172,7 +173,7 @@ class OidcAuthTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee(route('oidc.redirect'));
         $response->assertSee('Use your corporate account to sign in.');
-        $response->assertDontSee('name="password"');
+        $response->assertDontSee('name="password"', false);
     }
 
     public function test_fallback_param_shows_form_in_sso_only_mode(): void
@@ -185,7 +186,7 @@ class OidcAuthTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee(route('oidc.redirect'));
-        $response->assertSee('name="password"');
+        $response->assertSee('name="password"', false);
     }
 
     public function test_login_page_unchanged_when_sso_disabled(): void
@@ -194,7 +195,145 @@ class OidcAuthTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertDontSee(route('oidc.redirect'));
-        $response->assertSee('name="password"');
+        $response->assertSee('name="password"', false);
+    }
+
+    public function test_logout_oidc_user_redirects_to_idp_logout(): void
+    {
+        $this->enableSso();
+        $this->configureOidc();
+
+        $user = User::factory()->create([
+            'oidc_id' => 'oidc-logout-test',
+        ]);
+
+        $provider = Mockery::mock(\Laravel\Socialite\Two\AbstractProvider::class);
+        $provider->shouldReceive('getLogoutUrl')
+            ->once()
+            ->andReturn('https://idp.example.com/logout?redirect_uri=http%3A%2F%2Flocalhost%2Flogin');
+
+        Socialite::shouldReceive('driver')
+            ->with('keycloak')
+            ->andReturn($provider);
+
+        $response = $this->actingAs($user)->post('/logout');
+
+        $response->assertRedirect('https://idp.example.com/logout?redirect_uri=http%3A%2F%2Flocalhost%2Flogin');
+        $this->assertGuest();
+    }
+
+    public function test_logout_non_oidc_user_redirects_to_login(): void
+    {
+        $user = User::factory()->create([
+            'oidc_id' => null,
+        ]);
+
+        $response = $this->actingAs($user)->post('/logout');
+
+        $response->assertRedirect('/login');
+        $this->assertGuest();
+    }
+
+    public function test_callback_returns_404_when_disabled(): void
+    {
+        $response = $this->get('/auth/oidc/callback');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_callback_uses_email_as_name_when_name_is_null(): void
+    {
+        $this->enableSso();
+        $this->configureOidc();
+        $this->mockSocialiteUser('oidc-no-name', null, 'noname@example.com');
+
+        $response = $this->get('/auth/oidc/callback');
+
+        $response->assertRedirect(route('dashboard'));
+
+        $user = User::where(User::FIELD_EMAIL, 'noname@example.com')->first();
+        $this->assertNotNull($user);
+        $this->assertEquals('noname@example.com', $user->name);
+        $this->assertEquals("noname@example.com's Team", $user->ownedTeams->first()->name);
+    }
+
+    public function test_authenticated_user_cannot_access_sso_redirect(): void
+    {
+        $this->enableSso();
+        $this->configureOidc();
+
+        $user = User::factory()->withPersonalTeam()->create();
+
+        $response = $this->actingAs($user)->get('/auth/oidc/redirect');
+
+        $response->assertRedirect(route('dashboard'));
+    }
+
+    public function test_authenticated_user_cannot_access_sso_callback(): void
+    {
+        $this->enableSso();
+        $this->configureOidc();
+
+        $user = User::factory()->withPersonalTeam()->create();
+
+        $response = $this->actingAs($user)->get('/auth/oidc/callback');
+
+        $response->assertRedirect(route('dashboard'));
+    }
+
+    public function test_front_header_hides_registration_in_sso_only_mode(): void
+    {
+        $this->enableSso();
+        $this->enableSsoOnlyMode();
+        $this->configureOidc();
+
+        $response = $this->get('/login');
+
+        $response->assertStatus(200);
+        $response->assertDontSee('Get Started');
+    }
+
+    public function test_front_header_shows_registration_when_sso_disabled(): void
+    {
+        $response = $this->get('/login');
+
+        $response->assertStatus(200);
+        $response->assertSee('Get Started');
+    }
+
+    public function test_settings_sso_only_mode_cannot_enable_when_sso_disabled(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(\App\Livewire\Superuser\Settings::class)
+            ->assertSet('ssoOnlyMode', false)
+            ->set('ssoOnlyMode', true)
+            ->assertSet('ssoOnlyMode', false);
+
+        $this->assertEquals('false', app(SettingsService::class)->get(SettingsService::SSO_ONLY_MODE));
+    }
+
+    public function test_settings_disabling_sso_also_disables_sso_only_mode(): void
+    {
+        $this->enableSso();
+        $this->enableSsoOnlyMode();
+
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(\App\Livewire\Superuser\Settings::class)
+            ->assertSet('ssoEnabled', true)
+            ->assertSet('ssoOnlyMode', true)
+            ->set('ssoEnabled', false)
+            ->assertSet('ssoEnabled', false)
+            ->assertSet('ssoOnlyMode', false);
+
+        $this->assertEquals('false', app(SettingsService::class)->get(SettingsService::SSO_ONLY_MODE));
     }
 
     // --- Helpers ---
@@ -218,7 +357,7 @@ class OidcAuthTest extends TestCase
         ]);
     }
 
-    private function mockSocialiteUser(string $id, string $name, string $email): void
+    private function mockSocialiteUser(string $id, ?string $name, string $email): void
     {
         $socialiteUser = Mockery::mock(SocialiteUser::class);
         $socialiteUser->shouldReceive('getId')->andReturn($id);
