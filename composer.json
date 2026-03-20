@@ -21,6 +21,7 @@
         "laravel/jetstream": "^5.0",
         "laravel/reverb": "@beta",
         "laravel/sanctum": "^4.0",
+        "laravel/socialite": "^5.25",
         "laravel/tinker": "^2.8",
         "league/commonmark": "^2.6",
         "league/flysystem-aws-s3-v3": "^3.0",
@@ -28,6 +29,7 @@
         "masmerise/livewire-toaster": "^2.1",
         "maxbanton/cwh": "^2.0",
         "predis/predis": "^2.2",
+        "socialiteproviders/keycloak": "^5.3",
         "stevebauman/purify": "^6.2",
         "symfony/expression-language": "^7.0"
     },
