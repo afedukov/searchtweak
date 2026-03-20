@@ -34,6 +34,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon $two_factor_confirmed_at
  * @property string $remember_token
  * @property string|null $oidc_id
+ * @property Carbon|null $last_active_at
  * @property int $current_team_id
  * @property string $profile_photo_path
  * @property bool $newsletter
@@ -71,6 +72,7 @@ class User extends Authenticatable implements MustVerifyEmail, TaggableInterface
     public const string FIELD_TWO_FACTOR_CONFIRMED_AT = 'two_factor_confirmed_at';
     public const string FIELD_REMEMBER_TOKEN = 'remember_token';
     public const string FIELD_OIDC_ID = 'oidc_id';
+    public const string FIELD_LAST_ACTIVE_AT = 'last_active_at';
     public const string FIELD_CURRENT_TEAM_ID = 'current_team_id';
     public const string FIELD_PROFILE_PHOTO_PATH = 'profile_photo_path';
     public const string FIELD_NEWSLETTER = 'newsletter';
@@ -110,6 +112,7 @@ class User extends Authenticatable implements MustVerifyEmail, TaggableInterface
     protected $casts = [
         self::FIELD_SUPER_ADMIN => 'bool',
         self::FIELD_EMAIL_VERIFIED_AT => 'datetime',
+        self::FIELD_LAST_ACTIVE_AT => 'datetime',
         self::FIELD_NEWSLETTER => 'bool',
     ];
 
@@ -180,6 +183,12 @@ class User extends Authenticatable implements MustVerifyEmail, TaggableInterface
     public function isOnline(): bool
     {
         return Cache::has(UserOnline::getCacheKey($this->id));
+    }
+
+    public function wasRecentlyActive(): bool
+    {
+        return $this->last_active_at !== null
+            && $this->last_active_at->gt(now()->subMinutes(UserOnline::CACHE_MINUTES));
     }
 
     public function attachWidget(string $widgetClass, array $settings = []): UserWidget
