@@ -19,6 +19,7 @@ Use it to benchmark search configurations, label training data for ML models, an
 - **IR Metrics** — Precision, MAP, MRR, CG, DCG, nDCG with support for Binary, Graded, and Detail grading scales
 - **Metrics Over Time** — track how search quality changes across evaluations with historical charts
 - **Feedback Management** — assign grading tasks to team members, reuse judgments (human and AI) across evaluations, scoring guidelines
+- **SSO / OpenID Connect** — enterprise authentication via Keycloak, Azure AD, Okta, or any OIDC provider with SSO Only Mode
 - **Team Collaboration** — role-based access (Admin, Evaluator), team invitations, tag-based organization
 - **Real-time Updates** — live progress via WebSockets as evaluations run and grades come in
 - **REST API** — manage evaluations and models programmatically with token-based authentication
@@ -57,7 +58,7 @@ Use it to benchmark search configurations, label training data for ML models, an
 | Database | MySQL |
 | Cache/Queue/Sessions | Redis |
 | Infrastructure | Docker Compose, Traefik, Nginx, PHP-FPM |
-| Auth | Jetstream + Sanctum + Fortify |
+| Auth | Jetstream + Sanctum + Fortify + Socialite (SSO/OIDC) |
 
 ## Requirements
 
@@ -219,6 +220,26 @@ ALLOWED_ENDPOINT_HOSTS=api.example.com,search.example.com
 ```
 
 When set, only endpoints pointing to the listed hosts will be accepted. When empty (default), any URL is allowed — suitable for local development.
+
+### SSO / OpenID Connect
+
+SearchTweak supports Single Sign-On via any OIDC-compatible identity provider (Keycloak, Azure AD, Okta, etc.) using Laravel Socialite with the Keycloak provider.
+
+To enable SSO, configure the following environment variables in your `.env` file:
+
+```dotenv
+OIDC_CLIENT_ID=your-client-id
+OIDC_CLIENT_SECRET=your-client-secret
+OIDC_BASE_URL=https://your-idp.example.com
+OIDC_REALM=your-realm
+OIDC_BUTTON_LABEL="Sign in with SSO"
+```
+
+Then enable SSO in **Admin > Settings > Single Sign-On**.
+
+**SSO Only Mode** hides the email/password login form, requiring all users to authenticate via SSO. Super admins can still access the login form via `?fallback=1` in case the IdP is unavailable.
+
+SSO users are matched by email address. On first SSO login, if no matching account exists, a new user with a personal team is created automatically.
 
 ## Contributing
 

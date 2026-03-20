@@ -59,3 +59,59 @@ When **Registration** is disabled, you can still add users via the **Create User
 ::: warning
 Enabling **Email Verification** will immediately require all unverified users to verify their email before they can access the platform. Make sure existing users have verified emails before turning this on.
 :::
+
+### Single Sign-On (SSO)
+
+SearchTweak supports authentication via an external OpenID Connect identity provider (Keycloak, Azure AD, Okta, or any OIDC-compatible service) using the `socialiteproviders/keycloak` package.
+
+#### Configuration
+
+Before enabling SSO, set the following environment variables in your `.env` file:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `OIDC_CLIENT_ID` | OAuth client ID from your identity provider | `searchtweak-app` |
+| `OIDC_CLIENT_SECRET` | OAuth client secret | `your-secret` |
+| `OIDC_BASE_URL` | Base URL of your identity provider (without `/realms/...`) | `https://idp.example.com` |
+| `OIDC_REALM` | Realm name (Keycloak-specific, defaults to `master`) | `searchtweak` |
+| `OIDC_BUTTON_LABEL` | Label for the SSO button on the login page | `Sign in with SSO` |
+
+If `OIDC_CLIENT_ID` and `OIDC_BASE_URL` are not configured, the SSO toggles in Settings will be disabled with a warning message.
+
+#### SSO Settings
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **SSO (OpenID Connect)** | Enable the "Sign in with SSO" button on the login page. Users can authenticate via the configured identity provider. | Disabled |
+| **SSO Only Mode** | Hide the email/password login form entirely. Users must authenticate via SSO. Can only be enabled when SSO is on. | Disabled |
+
+#### How SSO Login Works
+
+1. User clicks **Sign in with SSO** on the login page.
+2. User is redirected to the identity provider for authentication.
+3. After successful authentication, the user is redirected back to SearchTweak.
+4. If a user with the same email already exists, they are logged in and their account is linked to the OIDC provider.
+5. If no user exists with that email, a new account is created automatically with a verified email and a personal team.
+
+::: tip
+SSO users receive a random password on creation and cannot use the email/password login form. They must always authenticate via the identity provider.
+:::
+
+#### SSO Only Mode
+
+When **SSO Only Mode** is enabled:
+
+- The email/password form is hidden from the login page.
+- The registration page and "Get Started" links are hidden.
+- Only the SSO button is displayed.
+
+**Fallback access**: Super Admins can always access the email/password form by appending `?fallback=1` to the login URL (e.g., `https://your-domain.com/login?fallback=1`). This is useful if the identity provider is temporarily unavailable.
+
+#### Logout Behavior
+
+- **SSO users** are redirected to the identity provider's logout endpoint, which ends both the SearchTweak session and the IdP session.
+- **Non-SSO users** are redirected to the standard login page.
+
+::: warning
+Disabling **SSO** automatically disables **SSO Only Mode** to prevent users from being locked out of the platform.
+:::

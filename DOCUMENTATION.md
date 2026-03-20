@@ -61,6 +61,7 @@ The platform supports three relevance grading scales (Binary, Graded, Detail) an
 | **Laravel Livewire** | 3.x — reactive server-rendered UI components |
 | **Laravel Sanctum** | API token authentication |
 | **Laravel Fortify** | Authentication backend (registration, password reset, 2FA) |
+| **Laravel Socialite** | SSO/OIDC authentication via external identity providers |
 | **GuzzleHTTP** | HTTP client for executing search endpoint requests |
 | **Predis** | Redis client |
 | **MySQL** | Primary database |
@@ -413,6 +414,7 @@ All judge requests are logged in `judge_logs` with:
 Standard Laravel user table with additional fields:
 - `super_admin` (bool) — platform-wide admin flag
 - `current_team_id` (FK) — currently active team
+- `oidc_id` (varchar, nullable) — external OpenID Connect user identifier for SSO
 
 #### `user_widgets`
 | Column | Type | Description |
@@ -692,6 +694,21 @@ Creates provider handlers for judge API requests:
 - Parses text params (`key: value`) into typed arrays (`int`, `float`, `bool`, `null`, `string`)
 - Converts params arrays back to textarea format for the UI
 
+### 7.9 SSO / OIDC (`app/Http/Controllers/Auth/`)
+
+#### `OidcController`
+Handles SSO authentication flow via OpenID Connect:
+- `redirect()` — validates SSO is enabled and OIDC is configured, then redirects to the identity provider via Socialite
+- `callback()` — receives the OIDC callback, finds or creates a user by email, links `oidc_id`, creates a personal team for new users, and logs in
+- SSO availability is controlled by the `sso.enabled` setting and `OIDC_*` environment variables
+
+#### `OidcLogoutResponse`
+Custom Fortify `LogoutResponse` that terminates the IdP session on logout for OIDC users. Non-OIDC users are redirected to `/login` as usual.
+
+#### `SettingsService` SSO Constants
+- `SSO_ENABLED` (`sso.enabled`) — toggle SSO on/off
+- `SSO_ONLY_MODE` (`sso.only_mode`) — hide email/password form, require SSO (fallback via `?fallback=1`)
+
 ---
 
 ## 8. Actions
@@ -878,7 +895,10 @@ API requests require an `Authorization: Bearer {token}` header. Tokens are manag
 | `/teams` | `Teams` | Team management |
 | `/teams/current` | `CurrentTeam` | Team settings |
 | `/admin/users` | `Users` | Superuser admin panel |
+| `/admin/settings` | `Settings` | Superuser settings (auth, SSO) |
 | `/user/profile` | `UserProfile` | User profile settings |
+| `/auth/oidc/redirect` | — | SSO: redirect to OIDC identity provider |
+| `/auth/oidc/callback` | — | SSO: OIDC callback (creates/links user) |
 
 ### 12.2 Key Livewire Components (`app/Livewire/`)
 
@@ -1303,6 +1323,11 @@ Defined in `app/helpers.php`. Generates a unique string identifier using `uniqid
 | `REVERB_HOST` | `reverb` | WebSocket server host |
 | `REVERB_PORT` | `8080` | WebSocket port |
 | `ALLOWED_ENDPOINT_HOSTS` | _(empty)_ | Comma-separated list of allowed hosts for endpoint URLs (SSRF protection). Empty = all allowed. |
+| `OIDC_CLIENT_ID` | _(empty)_ | OIDC client ID from your identity provider |
+| `OIDC_CLIENT_SECRET` | _(empty)_ | OIDC client secret |
+| `OIDC_BASE_URL` | _(empty)_ | OIDC provider base URL (e.g., `https://idp.example.com`) |
+| `OIDC_REALM` | `master` | OIDC realm name (Keycloak-specific) |
+| `OIDC_BUTTON_LABEL` | `Sign in with SSO` | Label for the SSO button on the login page |
 
 ### 23.2 Horizon Configuration (`config/horizon.php`)
 
@@ -1315,7 +1340,8 @@ Defined in `app/helpers.php`. Generates a unique string identifier using `uniqid
 - **Prefix**: `search_tweak_horizon:`
 
 ### 23.3 Key Laravel Configuration
-- **Auth**: Jetstream with Fortify (email verification, 2FA, profile photos)
+- **Auth**: Jetstream with Fortify (email verification, 2FA, profile photos) + Socialite (SSO/OIDC)
+- **SSO**: OpenID Connect via `socialiteproviders/keycloak` (compatible with Keycloak, Azure AD, Okta, and other OIDC providers). Configurable via Admin Settings with SSO Only Mode and fallback access.
 - **Broadcasting**: Laravel Reverb (native WebSocket server)
 - **API**: Sanctum token-based authentication
 - **File storage**: Public disk for profile photos
