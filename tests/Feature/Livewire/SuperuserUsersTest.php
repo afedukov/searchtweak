@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Livewire;
 
+use App\Http\Middleware\UserOnline;
 use App\Livewire\Superuser\Users;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -175,5 +178,254 @@ class SuperuserUsersTest extends TestCase
             ->call('saveUser');
 
         $this->assertNull(User::where('email', 'newuser@example.com')->first());
+    }
+
+    public function test_filter_role_super_admin(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+        ]);
+
+        $regularUser = User::factory()->create([
+            User::FIELD_SUPER_ADMIN => false,
+            User::FIELD_NAME => 'Regular Joe',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->set('filterRole', 'super_admin')
+            ->assertSee($admin->name)
+            ->assertDontSee('Regular Joe');
+    }
+
+    public function test_filter_role_regular(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+            User::FIELD_NAME => 'Admin User',
+        ]);
+
+        $regularUser = User::factory()->create([
+            User::FIELD_SUPER_ADMIN => false,
+            User::FIELD_NAME => 'Regular Joe',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->set('filterRole', 'regular')
+            ->assertSee('Regular Joe')
+            ->assertDontSee('Admin User');
+    }
+
+    public function test_filter_role_all(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+            User::FIELD_NAME => 'Admin User',
+        ]);
+
+        $regularUser = User::factory()->create([
+            User::FIELD_SUPER_ADMIN => false,
+            User::FIELD_NAME => 'Regular Joe',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->set('filterRole', '')
+            ->assertSee('Admin User')
+            ->assertSee('Regular Joe');
+    }
+
+    public function test_filter_verified(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+            User::FIELD_EMAIL_VERIFIED_AT => now(),
+            User::FIELD_NAME => 'Verified User',
+        ]);
+
+        $unverifiedUser = User::factory()->create([
+            User::FIELD_EMAIL_VERIFIED_AT => null,
+            User::FIELD_NAME => 'Unverified User',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->set('filterVerified', 'verified')
+            ->assertSee('Verified User')
+            ->assertDontSee('Unverified User');
+    }
+
+    public function test_filter_not_verified(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+            User::FIELD_EMAIL_VERIFIED_AT => now(),
+            User::FIELD_NAME => 'Verified User',
+        ]);
+
+        $unverifiedUser = User::factory()->create([
+            User::FIELD_EMAIL_VERIFIED_AT => null,
+            User::FIELD_NAME => 'Unverified User',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->set('filterVerified', 'not_verified')
+            ->assertSee('Unverified User')
+            ->assertDontSee('Verified User');
+    }
+
+    public function test_filter_online(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+            User::FIELD_LAST_ACTIVE_AT => now(),
+            User::FIELD_NAME => 'Online User',
+        ]);
+
+        $offlineUser = User::factory()->create([
+            User::FIELD_LAST_ACTIVE_AT => now()->subMinutes(10),
+            User::FIELD_NAME => 'Offline User',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->set('filterOnline', 'online')
+            ->assertSee('Online User')
+            ->assertDontSee('Offline User');
+    }
+
+    public function test_filter_offline(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+            User::FIELD_LAST_ACTIVE_AT => now(),
+            User::FIELD_NAME => 'Online User',
+        ]);
+
+        $offlineUser = User::factory()->create([
+            User::FIELD_LAST_ACTIVE_AT => now()->subMinutes(10),
+            User::FIELD_NAME => 'Offline User',
+        ]);
+
+        $neverUser = User::factory()->create([
+            User::FIELD_LAST_ACTIVE_AT => null,
+            User::FIELD_NAME => 'Never User',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->set('filterOnline', 'offline')
+            ->assertDontSee('Online User')
+            ->assertSee('Offline User')
+            ->assertSee('Never User');
+    }
+
+    public function test_combined_filters(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+            User::FIELD_EMAIL_VERIFIED_AT => now(),
+            User::FIELD_LAST_ACTIVE_AT => now(),
+            User::FIELD_NAME => 'Admin Online Verified',
+        ]);
+
+        $regularOnline = User::factory()->create([
+            User::FIELD_SUPER_ADMIN => false,
+            User::FIELD_EMAIL_VERIFIED_AT => now(),
+            User::FIELD_LAST_ACTIVE_AT => now(),
+            User::FIELD_NAME => 'Regular Online Verified',
+        ]);
+
+        $regularOffline = User::factory()->create([
+            User::FIELD_SUPER_ADMIN => false,
+            User::FIELD_EMAIL_VERIFIED_AT => null,
+            User::FIELD_LAST_ACTIVE_AT => now()->subHour(),
+            User::FIELD_NAME => 'Regular Offline Unverified',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->set('filterRole', 'regular')
+            ->set('filterVerified', 'verified')
+            ->set('filterOnline', 'online')
+            ->assertSee('Regular Online Verified')
+            ->assertDontSee('Admin Online Verified')
+            ->assertDontSee('Regular Offline Unverified');
+    }
+
+    public function test_online_count_in_render_data(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+            User::FIELD_LAST_ACTIVE_AT => now(),
+        ]);
+
+        User::factory()->create([User::FIELD_LAST_ACTIVE_AT => now()]);
+        User::factory()->create([User::FIELD_LAST_ACTIVE_AT => now()->subMinutes(10)]);
+        User::factory()->create([User::FIELD_LAST_ACTIVE_AT => null]);
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->assertViewHas('onlineCount', 2);
+    }
+
+    public function test_middleware_updates_last_active_at(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create([
+            User::FIELD_LAST_ACTIVE_AT => null,
+        ]);
+
+        Auth::login($user);
+
+        $middleware = new UserOnline();
+        $request = Request::create('/test', 'GET');
+        $request->setLaravelSession(app('session.store'));
+
+        $middleware->handle($request, fn ($r) => $r);
+
+        $user->refresh();
+        $this->assertNotNull($user->last_active_at);
+    }
+
+    public function test_middleware_throttles_last_active_at_update(): void
+    {
+        $recentTime = now()->subMinutes(2);
+
+        $user = User::factory()->withPersonalTeam()->create([
+            User::FIELD_LAST_ACTIVE_AT => $recentTime,
+        ]);
+
+        Auth::login($user);
+
+        $middleware = new UserOnline();
+        $request = Request::create('/test', 'GET');
+        $request->setLaravelSession(app('session.store'));
+
+        $middleware->handle($request, fn ($r) => $r);
+
+        $user->refresh();
+        // Should NOT have been updated because less than 5 minutes passed
+        $this->assertEquals(
+            $recentTime->format('Y-m-d H:i:s'),
+            $user->last_active_at->format('Y-m-d H:i:s')
+        );
+    }
+
+    public function test_filter_resets_pagination(): void
+    {
+        $admin = User::factory()->withPersonalTeam()->create([
+            User::FIELD_SUPER_ADMIN => true,
+        ]);
+
+        // Create enough users to have multiple pages
+        User::factory()->count(15)->create();
+
+        Livewire::actingAs($admin)
+            ->test(Users::class)
+            ->call('gotoPage', 2)
+            ->set('filterRole', 'regular')
+            ->assertNotSet('paginators.page', 2);
     }
 }

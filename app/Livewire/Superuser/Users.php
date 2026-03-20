@@ -4,6 +4,7 @@ namespace App\Livewire\Superuser;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Jetstream\DeleteUser;
+use App\Http\Middleware\UserOnline;
 use App\Livewire\Forms\UserForm;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +23,10 @@ class Users extends Component
 
     public string $query = '';
 
+    public string $filterRole = '';
+    public string $filterVerified = '';
+    public string $filterOnline = '';
+
     public bool $verifyConfirmation = false;
     public int $verifyUserId = 0;
 
@@ -34,25 +39,46 @@ class Users extends Component
     public UserForm $userForm;
     public bool $createUserModal = false;
 
+    public function updated($property): void
+    {
+        if (in_array($property, ['query', 'filterRole', 'filterVerified', 'filterOnline'])) {
+            $this->resetPage();
+        }
+    }
+
     public function render(): View
     {
+        $onlineThreshold = now()->subMinutes(UserOnline::CACHE_MINUTES);
+
         $query = User::query();
 
         return view('livewire.superuser.users', [
-            'users' => $this->applyFilters($query)
+            'users' => $this->applyFilters($query, $onlineThreshold)
                 ->orderByDesc(User::FIELD_ID)
                 ->paginate(self::PER_PAGE),
+            'onlineCount' => User::where(User::FIELD_LAST_ACTIVE_AT, '>', $onlineThreshold)->count(),
             ])
             ->title('Admin: Users');
     }
 
-    private function applyFilters(Builder $query): Builder
+    private function applyFilters(Builder $query, \Carbon\Carbon $onlineThreshold): Builder
     {
         if ($this->query) {
-            $query->where(fn (Builder $query) => $query
-                ->where(User::FIELD_NAME, 'like', '%' . $this->query . '%'))
-                ->orWhere(User::FIELD_EMAIL, 'like', '%' . $this->query . '%');
+            $query->where(fn (Builder $q) => $q
+                ->where(User::FIELD_NAME, 'like', '%' . $this->query . '%')
+                ->orWhere(User::FIELD_EMAIL, 'like', '%' . $this->query . '%'));
         }
+
+        $query->when($this->filterRole === 'super_admin', fn (Builder $q) => $q->where(User::FIELD_SUPER_ADMIN, true))
+            ->when($this->filterRole === 'regular', fn (Builder $q) => $q->where(User::FIELD_SUPER_ADMIN, false));
+
+        $query->when($this->filterVerified === 'verified', fn (Builder $q) => $q->whereNotNull(User::FIELD_EMAIL_VERIFIED_AT))
+            ->when($this->filterVerified === 'not_verified', fn (Builder $q) => $q->whereNull(User::FIELD_EMAIL_VERIFIED_AT));
+
+        $query->when($this->filterOnline === 'online', fn (Builder $q) => $q->where(User::FIELD_LAST_ACTIVE_AT, '>', $onlineThreshold))
+            ->when($this->filterOnline === 'offline', fn (Builder $q) => $q->where(fn (Builder $q2) => $q2
+                ->whereNull(User::FIELD_LAST_ACTIVE_AT)
+                ->orWhere(User::FIELD_LAST_ACTIVE_AT, '<=', $onlineThreshold)));
 
         return $query;
     }
