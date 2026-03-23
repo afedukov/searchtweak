@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\UserFeedback;
 use App\Services\Superuser\DashboardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class DashboardServiceTest extends TestCase
@@ -31,6 +32,10 @@ class DashboardServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->travelTo(now()->startOfDay()->addHours(12));
+
+        Cache::flush();
 
         $this->service = new DashboardService();
 
@@ -50,18 +55,14 @@ class DashboardServiceTest extends TestCase
         ]);
     }
 
-    // -------------------------------------------------------------------------
-    // getOverviewStats
-    // -------------------------------------------------------------------------
-
     public function test_overview_stats_returns_correct_user_counts(): void
     {
-        // setUp already created 1 user
+        $baseCount = User::count();
         User::factory()->count(3)->create();
 
         $stats = $this->service->getOverviewStats();
 
-        $this->assertEquals(4, $stats['users_total']);
+        $this->assertEquals($baseCount + 3, $stats['users_total']);
     }
 
     public function test_overview_stats_counts_online_users(): void
@@ -88,13 +89,12 @@ class DashboardServiceTest extends TestCase
 
     public function test_overview_stats_counts_teams(): void
     {
-        // setUp creates 1 personal team + 1 non-personal team
+        $baseCount = Team::count();
         Team::factory()->create([Team::FIELD_PERSONAL_TEAM => false]);
 
         $stats = $this->service->getOverviewStats();
 
-        // personal team from withPersonalTeam() + $this->team + new team
-        $this->assertEquals(3, $stats['teams_total']);
+        $this->assertEquals($baseCount + 1, $stats['teams_total']);
     }
 
     public function test_overview_stats_counts_evaluations_by_status(): void
@@ -161,13 +161,11 @@ class DashboardServiceTest extends TestCase
         $this->assertEquals(0, $stats['evaluations_active']);
         $this->assertEquals(0, $stats['evaluations_pending']);
         $this->assertEquals(0, $stats['evaluations_finished']);
+        $this->assertEquals(0, $stats['feedback_graded']);
+        $this->assertEquals(0, $stats['feedback_judge_count']);
         $this->assertEquals(0, $stats['judges_active']);
         $this->assertEquals(0, $stats['judges_providers_count']);
     }
-
-    // -------------------------------------------------------------------------
-    // getUserRegistrations
-    // -------------------------------------------------------------------------
 
     public function test_user_registrations_returns_date_keyed_array(): void
     {
@@ -181,6 +179,7 @@ class DashboardServiceTest extends TestCase
     public function test_user_registrations_counts_users_per_day(): void
     {
         $today = now()->startOfDay();
+        $baseTodayCount = User::whereDate(User::FIELD_CREATED_AT, $today)->count();
 
         User::factory()->create([User::FIELD_CREATED_AT => $today->copy()->addHours(2)]);
         User::factory()->create([User::FIELD_CREATED_AT => $today->copy()->addHours(5)]);
@@ -188,20 +187,19 @@ class DashboardServiceTest extends TestCase
 
         $result = $this->service->getUserRegistrations(7);
 
-        // +1 because setUp user is also created today
-        $this->assertEquals(3, $result[$today->format('Y-m-d')]);
+        $this->assertEquals($baseTodayCount + 2, $result[$today->format('Y-m-d')]);
         $this->assertEquals(1, $result[now()->subDays(2)->format('Y-m-d')]);
     }
 
     public function test_user_registrations_excludes_data_outside_period(): void
     {
+        $baseTotal = array_sum($this->service->getUserRegistrations(7));
+
         User::factory()->create([User::FIELD_CREATED_AT => now()->subDays(10)]);
 
         $result = $this->service->getUserRegistrations(7);
 
-        // Only the setUp user counts (created today)
-        $totalInPeriod = array_sum($result);
-        $this->assertEquals(1, $totalInPeriod);
+        $this->assertEquals($baseTotal, array_sum($result));
     }
 
     public function test_user_registrations_fills_gaps_with_zeros(): void
@@ -217,10 +215,6 @@ class DashboardServiceTest extends TestCase
         // setUp user was created today, so yesterday should be 0
         $this->assertEquals(0, $result[$yesterday]);
     }
-
-    // -------------------------------------------------------------------------
-    // getFeedbacksGraded
-    // -------------------------------------------------------------------------
 
     public function test_feedbacks_graded_returns_date_keyed_array(): void
     {
@@ -257,10 +251,6 @@ class DashboardServiceTest extends TestCase
         $this->assertEquals(1, $result[$today]);
     }
 
-    // -------------------------------------------------------------------------
-    // getEvaluationsByScale
-    // -------------------------------------------------------------------------
-
     public function test_evaluations_by_scale_groups_correctly(): void
     {
         $this->createEvaluation(SearchEvaluation::STATUS_PENDING, 'binary');
@@ -268,7 +258,7 @@ class DashboardServiceTest extends TestCase
         $this->createEvaluation(SearchEvaluation::STATUS_PENDING, 'graded');
         $this->createEvaluation(SearchEvaluation::STATUS_PENDING, 'detail');
 
-        $result = $this->service->getEvaluationsByScale();
+        $result = $this->service->getEvaluationsByScale(30);
 
         $this->assertEquals(2, $result['binary']);
         $this->assertEquals(1, $result['graded']);
@@ -277,39 +267,36 @@ class DashboardServiceTest extends TestCase
 
     public function test_evaluations_by_scale_returns_empty_array_with_no_data(): void
     {
-        $result = $this->service->getEvaluationsByScale();
+        $result = $this->service->getEvaluationsByScale(30);
 
         $this->assertEmpty($result);
     }
 
-    // -------------------------------------------------------------------------
-    // getMetricsDistribution
-    // -------------------------------------------------------------------------
-
     public function test_metrics_distribution_returns_display_names_with_counts(): void
     {
-        $evaluation = $this->createEvaluation(SearchEvaluation::STATUS_FINISHED);
+        // Each (evaluation_id, scorer_type, num_results) must be unique
+        $eval1 = $this->createEvaluation(SearchEvaluation::STATUS_FINISHED);
+        $eval2 = $this->createEvaluation(SearchEvaluation::STATUS_FINISHED);
 
         EvaluationMetric::withoutEvents(fn () => EvaluationMetric::factory()->create([
-            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $eval1->id,
             EvaluationMetric::FIELD_SCORER_TYPE => 'ndcg',
             EvaluationMetric::FIELD_NUM_RESULTS => 10,
         ]));
         EvaluationMetric::withoutEvents(fn () => EvaluationMetric::factory()->create([
-            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $eval2->id,
             EvaluationMetric::FIELD_SCORER_TYPE => 'ndcg',
             EvaluationMetric::FIELD_NUM_RESULTS => 10,
         ]));
         EvaluationMetric::withoutEvents(fn () => EvaluationMetric::factory()->create([
-            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $eval1->id,
             EvaluationMetric::FIELD_SCORER_TYPE => 'precision',
             EvaluationMetric::FIELD_NUM_RESULTS => 5,
         ]));
 
-        $result = $this->service->getMetricsDistribution();
+        $result = $this->service->getMetricsDistribution(30);
 
         $this->assertNotEmpty($result);
-        // Keys are display names like "nDCG@10", "P@5"
         $this->assertArrayHasKey('nDCG@10', $result);
         $this->assertEquals(2, $result['nDCG@10']);
         $this->assertArrayHasKey('P@5', $result);
@@ -318,38 +305,38 @@ class DashboardServiceTest extends TestCase
 
     public function test_metrics_distribution_returns_empty_with_no_metrics(): void
     {
-        $result = $this->service->getMetricsDistribution();
+        $result = $this->service->getMetricsDistribution(30);
 
         $this->assertEmpty($result);
     }
 
     public function test_metrics_distribution_ordered_by_count_desc(): void
     {
-        $evaluation = $this->createEvaluation(SearchEvaluation::STATUS_FINISHED);
-
-        // Create 3 ndcg metrics and 1 precision
+        // Create 3 ndcg@10 metrics across different evaluations
+        $evals = [];
         for ($i = 0; $i < 3; $i++) {
+            $evals[] = $this->createEvaluation(SearchEvaluation::STATUS_FINISHED);
+        }
+
+        foreach ($evals as $eval) {
             EvaluationMetric::withoutEvents(fn () => EvaluationMetric::factory()->create([
-                EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+                EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $eval->id,
                 EvaluationMetric::FIELD_SCORER_TYPE => 'ndcg',
                 EvaluationMetric::FIELD_NUM_RESULTS => 10,
             ]));
         }
+        // 1 precision metric
         EvaluationMetric::withoutEvents(fn () => EvaluationMetric::factory()->create([
-            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evals[0]->id,
             EvaluationMetric::FIELD_SCORER_TYPE => 'precision',
             EvaluationMetric::FIELD_NUM_RESULTS => 10,
         ]));
 
-        $result = $this->service->getMetricsDistribution();
+        $result = $this->service->getMetricsDistribution(30);
 
         $keys = array_keys($result);
         $this->assertEquals('nDCG@10', $keys[0]);
     }
-
-    // -------------------------------------------------------------------------
-    // getFeedbackStats
-    // -------------------------------------------------------------------------
 
     public function test_feedback_stats_counts_graded_human_and_judge(): void
     {
@@ -383,7 +370,7 @@ class DashboardServiceTest extends TestCase
             UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $snapshot->id,
         ]);
 
-        $result = $this->service->getFeedbackStats();
+        $result = $this->service->getFeedbackStats(30);
 
         $this->assertEquals(3, $result['graded']);
         $this->assertEquals(2, $result['human_count']);
@@ -392,16 +379,12 @@ class DashboardServiceTest extends TestCase
 
     public function test_feedback_stats_returns_zeros_with_no_data(): void
     {
-        $result = $this->service->getFeedbackStats();
+        $result = $this->service->getFeedbackStats(30);
 
         $this->assertEquals(0, $result['graded']);
         $this->assertEquals(0, $result['human_count']);
         $this->assertEquals(0, $result['judge_count']);
     }
-
-    // -------------------------------------------------------------------------
-    // getJudgeSuccessRateByProvider
-    // -------------------------------------------------------------------------
 
     public function test_judge_success_rate_groups_by_provider(): void
     {
@@ -414,7 +397,7 @@ class DashboardServiceTest extends TestCase
         $this->createJudgeLog($judge, 200);
         $this->createJudgeLog($judge, 500);
 
-        $result = $this->service->getJudgeSuccessRateByProvider();
+        $result = $this->service->getJudgeSuccessRateByProvider(30);
 
         $this->assertArrayHasKey('openai', $result);
         $this->assertEquals(2, $result['openai']['success']);
@@ -430,7 +413,7 @@ class DashboardServiceTest extends TestCase
 
         $this->createJudgeLog($judge, null);
 
-        $result = $this->service->getJudgeSuccessRateByProvider();
+        $result = $this->service->getJudgeSuccessRateByProvider(30);
 
         $this->assertEquals(0, $result['anthropic']['success']);
         $this->assertEquals(1, $result['anthropic']['failed']);
@@ -451,7 +434,7 @@ class DashboardServiceTest extends TestCase
         $this->createJudgeLog($anthropicJudge, 200);
         $this->createJudgeLog($anthropicJudge, 429);
 
-        $result = $this->service->getJudgeSuccessRateByProvider();
+        $result = $this->service->getJudgeSuccessRateByProvider(30);
 
         $this->assertCount(2, $result);
         $this->assertEquals(1, $result['openai']['success']);
@@ -462,14 +445,10 @@ class DashboardServiceTest extends TestCase
 
     public function test_judge_success_rate_returns_empty_with_no_logs(): void
     {
-        $result = $this->service->getJudgeSuccessRateByProvider();
+        $result = $this->service->getJudgeSuccessRateByProvider(30);
 
         $this->assertEmpty($result);
     }
-
-    // -------------------------------------------------------------------------
-    // getAvgLatencyByDay
-    // -------------------------------------------------------------------------
 
     public function test_avg_latency_by_day_returns_date_keyed_array(): void
     {
@@ -527,10 +506,6 @@ class DashboardServiceTest extends TestCase
         $this->assertEquals(0, array_sum($result));
     }
 
-    // -------------------------------------------------------------------------
-    // getTokenUsageStats
-    // -------------------------------------------------------------------------
-
     public function test_token_usage_stats_sums_tokens(): void
     {
         $judge = Judge::factory()->create([Judge::FIELD_TEAM_ID => $this->team->id]);
@@ -538,7 +513,7 @@ class DashboardServiceTest extends TestCase
         $this->createJudgeLog($judge, 200, ['total_tokens' => 1000]);
         $this->createJudgeLog($judge, 200, ['total_tokens' => 3000]);
 
-        $result = $this->service->getTokenUsageStats();
+        $result = $this->service->getTokenUsageStats(30);
 
         $this->assertEquals(4000, $result['total_tokens']);
         $this->assertEquals(2000, $result['avg_per_request']);
@@ -558,23 +533,35 @@ class DashboardServiceTest extends TestCase
         $this->createJudgeLog($openaiJudge, 200, ['total_tokens' => 5000]);
         $this->createJudgeLog($anthropicJudge, 200, ['total_tokens' => 1000]);
 
-        $result = $this->service->getTokenUsageStats();
+        $result = $this->service->getTokenUsageStats(30);
 
         $this->assertEquals('openai', $result['top_provider']);
     }
 
+    public function test_token_usage_stats_ignores_null_tokens_in_avg(): void
+    {
+        $judge = Judge::factory()->create([Judge::FIELD_TEAM_ID => $this->team->id]);
+
+        $this->createJudgeLog($judge, 200, ['total_tokens' => 1000]);
+        $this->createJudgeLog($judge, 200, ['total_tokens' => 3000]);
+        $this->createJudgeLog($judge, 500, ['total_tokens' => null]);
+
+        $result = $this->service->getTokenUsageStats(30);
+
+        // SUM should ignore null: 1000 + 3000 = 4000
+        $this->assertEquals(4000, $result['total_tokens']);
+        // AVG should ignore null: (1000 + 3000) / 2 = 2000 (not 4000/3)
+        $this->assertEquals(2000, $result['avg_per_request']);
+    }
+
     public function test_token_usage_stats_returns_defaults_with_no_data(): void
     {
-        $result = $this->service->getTokenUsageStats();
+        $result = $this->service->getTokenUsageStats(30);
 
         $this->assertEquals(0, $result['total_tokens']);
         $this->assertEquals(0, $result['avg_per_request']);
         $this->assertEquals('—', $result['top_provider']);
     }
-
-    // -------------------------------------------------------------------------
-    // getTopTeams
-    // -------------------------------------------------------------------------
 
     public function test_top_teams_excludes_personal_teams(): void
     {
@@ -584,6 +571,39 @@ class DashboardServiceTest extends TestCase
         foreach ($result as $team) {
             $this->assertFalse((bool) $team->personal_team);
         }
+    }
+
+    public function test_top_teams_excludes_personal_teams_even_with_many_evaluations(): void
+    {
+        $personalTeam = $this->user->personalTeam();
+        $personalEndpoint = SearchEndpoint::factory()->create([
+            SearchEndpoint::FIELD_USER_ID => $this->user->id,
+            SearchEndpoint::FIELD_TEAM_ID => $personalTeam->id,
+        ]);
+        $personalModel = SearchModel::factory()->create([
+            SearchModel::FIELD_USER_ID => $this->user->id,
+            SearchModel::FIELD_TEAM_ID => $personalTeam->id,
+            SearchModel::FIELD_ENDPOINT_ID => $personalEndpoint->id,
+        ]);
+
+        // Give personal team 10 evaluations
+        for ($i = 0; $i < 10; $i++) {
+            SearchEvaluation::factory()->create([
+                SearchEvaluation::FIELD_USER_ID => $this->user->id,
+                SearchEvaluation::FIELD_MODEL_ID => $personalModel->id,
+                SearchEvaluation::FIELD_STATUS => SearchEvaluation::STATUS_FINISHED,
+            ]);
+        }
+
+        // Give non-personal team 1 evaluation
+        $this->createEvaluation(SearchEvaluation::STATUS_FINISHED);
+
+        $result = $this->service->getTopTeams();
+
+        // Personal team must not appear, only non-personal team
+        $this->assertCount(1, $result);
+        $this->assertEquals($this->team->id, $result->first()->id);
+        $this->assertEquals(1, $result->first()->evaluations_count);
     }
 
     public function test_top_teams_ordered_by_evaluation_count_desc(): void
@@ -648,10 +668,6 @@ class DashboardServiceTest extends TestCase
         $this->assertCount(2, $result);
     }
 
-    // -------------------------------------------------------------------------
-    // getRecentEvaluations
-    // -------------------------------------------------------------------------
-
     public function test_recent_evaluations_ordered_by_created_at_desc(): void
     {
         $old = $this->createEvaluation(SearchEvaluation::STATUS_FINISHED, 'binary', [
@@ -697,10 +713,6 @@ class DashboardServiceTest extends TestCase
         $this->assertCount(0, $result);
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
     private function createEvaluation(
         int $status,
         string $scaleType = 'binary',
@@ -716,14 +728,21 @@ class DashboardServiceTest extends TestCase
 
     private function createJudgeLog(Judge $judge, ?int $statusCode, array $overrides = []): JudgeLog
     {
-        return JudgeLog::create(array_merge([
+        $attributes = array_merge([
             JudgeLog::FIELD_JUDGE_ID => $judge->id,
             JudgeLog::FIELD_TEAM_ID => $judge->team_id,
             JudgeLog::FIELD_PROVIDER => $judge->provider,
             JudgeLog::FIELD_MODEL => $judge->model_name,
             JudgeLog::FIELD_HTTP_STATUS_CODE => $statusCode,
+            JudgeLog::FIELD_REQUEST_URL => 'https://api.example.com/v1/chat',
+            JudgeLog::FIELD_REQUEST_BODY => '{}',
             JudgeLog::FIELD_BATCH_SIZE => 1,
             JudgeLog::FIELD_SCALE_TYPE => 'binary',
-        ], $overrides));
+        ], $overrides);
+
+        $log = new JudgeLog();
+        $log->forceFill($attributes)->save();
+
+        return $log;
     }
 }
