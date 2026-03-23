@@ -15,6 +15,7 @@ use App\Livewire\JudgeLogs;
 use App\Livewire\Leaderboard;
 use App\Livewire\Model;
 use App\Livewire\Models;
+use App\Livewire\Superuser\Dashboard as SuperuserDashboard;
 use App\Livewire\Superuser\Settings;
 use App\Livewire\Superuser\Users;
 use App\Livewire\Teams;
@@ -116,6 +117,9 @@ Route::middleware(['auth', config('jetstream.auth_session'), 'verified', UserOnl
         ->prefix('admin')
         ->middleware('can:superuser')
         ->group(function () {
+            Route::name('dashboard')
+                ->get('/dashboard', SuperuserDashboard::class);
+
             Route::name('users')
                 ->get('/users', Users::class);
 

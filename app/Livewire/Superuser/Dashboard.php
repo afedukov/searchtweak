@@ -17,16 +17,18 @@ class Dashboard extends Component
 
     public function render(DashboardService $service): View
     {
+        $days = $this->period;
+
         return view('livewire.superuser.dashboard', [
             'overview' => $service->getOverviewStats(),
-            'userRegistrations' => $service->getUserRegistrations($this->period),
-            'evaluationsCreated' => $service->getEvaluationsCreated($this->period),
-            'evaluationsByStatus' => $service->getEvaluationsByStatus(),
-            'evaluationsByScale' => $service->getEvaluationsByScale(),
-            'feedbackStats' => $service->getFeedbackStats(),
-            'judgeSuccessRate' => $service->getJudgeSuccessRateByProvider(),
-            'avgLatency' => $service->getAvgLatencyByDay($this->period),
-            'tokenUsage' => $service->getTokenUsageStats(),
+            'userRegistrations' => $service->getUserRegistrations($days),
+            'feedbacksGraded' => $service->getFeedbacksGraded($days),
+            'metricsDistribution' => $service->getMetricsDistribution($days),
+            'evaluationsByScale' => $service->getEvaluationsByScale($days),
+            'feedbackStats' => $service->getFeedbackStats($days),
+            'judgeSuccessRate' => $service->getJudgeSuccessRateByProvider($days),
+            'avgLatency' => $service->getAvgLatencyByDay($days),
+            'tokenUsage' => $service->getTokenUsageStats($days),
             'topTeams' => $service->getTopTeams(),
             'recentEvaluations' => $service->getRecentEvaluations(),
         ])->title('Admin: Dashboard');

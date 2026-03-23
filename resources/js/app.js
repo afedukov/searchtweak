@@ -23,6 +23,7 @@ import {metricCards, metricCard} from './components/metric-card';
 import {modelMetricCards, modelMetricCard} from "./components/model-metric-card.js";
 import {modelMetricsCards, modelMetricsCard} from "./components/model-metrics-card.js";
 import {leaderboardChart, leaderboardCharts} from "./components/leaderboard-chart.js";
+import {adminDashboardCharts, adminDashboardChart} from "./components/admin-dashboard-charts.js";
 
 mediumZoom('[data-zoomable]', {
     margin: 100,
@@ -97,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
   modelMetricCards();
   modelMetricsCards();
   leaderboardCharts();
+  adminDashboardCharts();
 });
 
 Livewire.hook('morph.added', ({ el }) => {
@@ -149,4 +151,20 @@ Livewire.hook('morph.added', ({ el }) => {
             leaderboardChart(child);
         }
     }
+
+    // Admin Dashboard Charts
+    ['data-admin-simple-bar-chart', 'data-admin-line-chart', 'data-admin-doughnut-chart', 'data-admin-bar-chart'].forEach(attr => {
+        if (el.hasAttribute(attr)) {
+            adminDashboardChart(el);
+        } else {
+            const child = el.querySelector(`[${attr}]`);
+            if (child) {
+                adminDashboardChart(child);
+            }
+        }
+    });
+})
+
+Livewire.on('period-changed', () => {
+    requestAnimationFrame(() => adminDashboardCharts());
 })

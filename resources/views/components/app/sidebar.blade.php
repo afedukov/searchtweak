@@ -267,6 +267,11 @@
 						<div class="lg:hidden lg:sidebar-expanded:block 2xl:block">
 							<ul class="pl-9 mt-1 @if(!in_array(Request::segment(1), ['admin'])){{ 'hidden' }}@endif" :class="open ? '!block' : 'hidden'">
 								<li class="mb-1 last:mb-0">
+									<a class="block text-slate-400 hover:text-slate-200 transition duration-150 truncate @if(Route::is('superuser.dashboard')){{ '!text-indigo-500' }}@endif" href="{{ route('superuser.dashboard') }}">
+										<span class="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Dashboard</span>
+									</a>
+								</li>
+								<li class="mb-1 last:mb-0">
 									<a class="block text-slate-400 hover:text-slate-200 transition duration-150 truncate @if(Route::is('superuser.users')){{ '!text-indigo-500' }}@endif" href="{{ route('superuser.users') }}">
 										<span class="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Users</span>
 									</a>

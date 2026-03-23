@@ -1,5 +1,6 @@
 import {
     Chart, LineController, LineElement, Filler, PointElement,
+    BarController, BarElement,
     LinearScale, CategoryScale, Tooltip, Legend,
     DoughnutController, ArcElement,
 } from 'chart.js';
@@ -7,6 +8,7 @@ import {tailwindConfig, hexToRGB} from '../utils';
 
 Chart.register(
     LineController, LineElement, Filler, PointElement,
+    BarController, BarElement,
     LinearScale, CategoryScale, Tooltip, Legend,
     DoughnutController, ArcElement,
 );
@@ -39,6 +41,75 @@ function destroyExisting(canvas) {
     if (ctx.chart) {
         ctx.chart.destroy();
     }
+}
+
+// Simple bar chart (single dataset)
+function initSimpleBarChart(canvas) {
+    destroyExisting(canvas);
+
+    const labels = JSON.parse(canvas.getAttribute('data-labels'));
+    const values = JSON.parse(canvas.getAttribute('data-values'));
+    const colorName = canvas.getAttribute('data-color') || 'indigo';
+    const color = (colorMap[colorName] || colorMap.indigo)();
+    const theme = getThemeColors();
+    const ctx = canvas.getContext('2d');
+
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.map(d => {
+                const date = new Date(d + 'T00:00:00');
+                return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+            }),
+            datasets: [{
+                data: values,
+                backgroundColor: `rgba(${hexToRGB(color)}, 0.75)`,
+                hoverBackgroundColor: color,
+                barPercentage: 0.7,
+                categoryPercentage: 0.8,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {padding: {top: 12, bottom: 12, left: 12, right: 12}},
+            scales: {
+                y: {
+                    border: {display: false},
+                    beginAtZero: true,
+                    ticks: {
+                        maxTicksLimit: 5,
+                        color: theme.text,
+                        precision: 0,
+                    },
+                    grid: {color: theme.grid},
+                },
+                x: {
+                    border: {display: false},
+                    grid: {display: false},
+                    ticks: {
+                        autoSkipPadding: 48,
+                        maxRotation: 0,
+                        color: theme.text,
+                    },
+                },
+            },
+            plugins: {
+                legend: {display: false},
+                tooltip: {
+                    titleFont: {weight: '600'},
+                    titleColor: theme.tooltipTitle,
+                    bodyColor: theme.tooltipBody,
+                    backgroundColor: theme.tooltipBg,
+                    borderColor: theme.tooltipBorder,
+                },
+            },
+            animation: false,
+        },
+    });
+
+    ctx.chart = chart;
+    return chart;
 }
 
 // Line chart
@@ -129,6 +200,8 @@ function initDoughnutChart(canvas) {
     const theme = getThemeColors();
     const ctx = canvas.getContext('2d');
 
+    const total = values.reduce((a, b) => a + b, 0);
+
     const chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -152,7 +225,9 @@ function initDoughnutChart(canvas) {
                         color: theme.text,
                         padding: 16,
                         usePointStyle: true,
-                        pointStyleWidth: 10,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
                     },
                 },
                 tooltip: {
@@ -160,6 +235,14 @@ function initDoughnutChart(canvas) {
                     bodyColor: theme.tooltipBody,
                     backgroundColor: theme.tooltipBg,
                     borderColor: theme.tooltipBorder,
+                    callbacks: {
+                        title: (items) => items[0]?.label || '',
+                        label: (context) => {
+                            const value = context.parsed;
+                            const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return ` ${value} (${pct}%)`;
+                        },
+                    },
                 },
             },
             animation: false,
@@ -230,7 +313,9 @@ function initBarChart(canvas) {
                         color: theme.text,
                         padding: 16,
                         usePointStyle: true,
-                        pointStyleWidth: 10,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
                     },
                 },
                 tooltip: {
@@ -238,6 +323,18 @@ function initBarChart(canvas) {
                     bodyColor: theme.tooltipBody,
                     backgroundColor: theme.tooltipBg,
                     borderColor: theme.tooltipBorder,
+                    callbacks: {
+                        label: (context) => {
+                            const datasetIndex = context.datasetIndex;
+                            const index = context.dataIndex;
+                            const s = success[index] || 0;
+                            const f = failed[index] || 0;
+                            const total = s + f;
+                            const value = context.parsed.y;
+                            const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return ` ${context.dataset.label}: ${value} (${pct}%)`;
+                        },
+                    },
                 },
             },
             animation: false,
@@ -250,6 +347,7 @@ function initBarChart(canvas) {
 
 // Initialize all admin dashboard charts
 export function adminDashboardCharts() {
+    document.querySelectorAll('canvas[data-admin-simple-bar-chart]').forEach(initSimpleBarChart);
     document.querySelectorAll('canvas[data-admin-line-chart]').forEach(initLineChart);
     document.querySelectorAll('canvas[data-admin-doughnut-chart]').forEach(initDoughnutChart);
     document.querySelectorAll('canvas[data-admin-bar-chart]').forEach(initBarChart);
@@ -257,7 +355,9 @@ export function adminDashboardCharts() {
 
 // Initialize a single chart element (for morph.added)
 export function adminDashboardChart(el) {
-    if (el.hasAttribute('data-admin-line-chart')) {
+    if (el.hasAttribute('data-admin-simple-bar-chart')) {
+        initSimpleBarChart(el);
+    } else if (el.hasAttribute('data-admin-line-chart')) {
         initLineChart(el);
     } else if (el.hasAttribute('data-admin-doughnut-chart')) {
         initDoughnutChart(el);

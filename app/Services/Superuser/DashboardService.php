@@ -3,17 +3,24 @@
 namespace App\Services\Superuser;
 
 use App\Http\Middleware\UserOnline;
+use App\Models\EvaluationMetric;
 use App\Models\Judge;
+use App\Services\Scorers\ScorerFactory;
 use App\Models\JudgeLog;
 use App\Models\SearchEvaluation;
+use App\Models\SearchModel;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\UserFeedback;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
+    private const int CACHE_TTL_SECONDS = 300;
+
     /**
      * Get overview statistics for the platform dashboard.
      */
@@ -21,20 +28,40 @@ class DashboardService
     {
         $onlineThreshold = now()->subMinutes(UserOnline::CACHE_MINUTES);
 
+        $userStats = User::query()->selectRaw(
+            'COUNT(*) as total, SUM(CASE WHEN ' . User::FIELD_LAST_ACTIVE_AT . ' > ? THEN 1 ELSE 0 END) as online',
+            [$onlineThreshold],
+        )->first();
+
+        $evalStats = SearchEvaluation::query()->selectRaw(
+            'COUNT(*) as total, '
+            . 'SUM(CASE WHEN ' . SearchEvaluation::FIELD_STATUS . ' = ? THEN 1 ELSE 0 END) as pending, '
+            . 'SUM(CASE WHEN ' . SearchEvaluation::FIELD_STATUS . ' = ? THEN 1 ELSE 0 END) as active, '
+            . 'SUM(CASE WHEN ' . SearchEvaluation::FIELD_STATUS . ' = ? THEN 1 ELSE 0 END) as finished',
+            [SearchEvaluation::STATUS_PENDING, SearchEvaluation::STATUS_ACTIVE, SearchEvaluation::STATUS_FINISHED],
+        )->first();
+
+        $judgeStats = Judge::active()->selectRaw(
+            'COUNT(*) as total, COUNT(DISTINCT ' . Judge::FIELD_PROVIDER . ') as providers',
+        )->first();
+
+        $feedbackStats = UserFeedback::query()->selectRaw(
+            'SUM(CASE WHEN ' . UserFeedback::FIELD_GRADE . ' IS NOT NULL THEN 1 ELSE 0 END) as graded, '
+            . 'SUM(CASE WHEN ' . UserFeedback::FIELD_GRADE . ' IS NOT NULL AND ' . UserFeedback::FIELD_JUDGE_ID . ' IS NOT NULL THEN 1 ELSE 0 END) as judge_count',
+        )->first();
+
         return [
-            'users_total' => User::count(),
-            'users_online' => User::where(User::FIELD_LAST_ACTIVE_AT, '>', $onlineThreshold)->count(),
+            'users_total' => (int) $userStats->total,
+            'users_online' => (int) $userStats->online,
             'teams_total' => Team::count(),
-            'teams_personal' => Team::where(Team::FIELD_PERSONAL_TEAM, true)->count(),
-            'teams_shared' => Team::where(Team::FIELD_PERSONAL_TEAM, false)->count(),
-            'evaluations_total' => SearchEvaluation::count(),
-            'evaluations_active' => SearchEvaluation::active()->count(),
-            'evaluations_pending' => SearchEvaluation::pending()->count(),
-            'evaluations_finished' => SearchEvaluation::finished()->count(),
-            'judges_active' => Judge::active()->count(),
-            'judges_providers_count' => Judge::active()
-                ->distinct(Judge::FIELD_PROVIDER)
-                ->count(Judge::FIELD_PROVIDER),
+            'evaluations_total' => (int) $evalStats->total,
+            'evaluations_active' => (int) $evalStats->active,
+            'evaluations_pending' => (int) $evalStats->pending,
+            'evaluations_finished' => (int) $evalStats->finished,
+            'feedback_graded' => (int) $feedbackStats->graded,
+            'feedback_judge_count' => (int) $feedbackStats->judge_count,
+            'judges_active' => (int) $judgeStats->total,
+            'judges_providers_count' => (int) $judgeStats->providers,
         ];
     }
 
@@ -47,31 +74,24 @@ class DashboardService
     }
 
     /**
-     * Get evaluations created grouped by date.
+     * Get graded feedbacks grouped by date.
      */
-    public function getEvaluationsCreated(int $days): array
+    public function getFeedbacksGraded(int $days): array
     {
-        return $this->getCountByDate(SearchEvaluation::query(), SearchEvaluation::FIELD_CREATED_AT, $days);
-    }
-
-    /**
-     * Get evaluations count by status.
-     */
-    public function getEvaluationsByStatus(): array
-    {
-        return [
-            'Pending' => SearchEvaluation::pending()->count(),
-            'Active' => SearchEvaluation::active()->count(),
-            'Finished' => SearchEvaluation::finished()->count(),
-        ];
+        return $this->getCountByDate(
+            UserFeedback::query()->whereNotNull(UserFeedback::FIELD_GRADE),
+            UserFeedback::FIELD_UPDATED_AT,
+            $days,
+        );
     }
 
     /**
      * Get evaluations count by scale type.
      */
-    public function getEvaluationsByScale(): array
+    public function getEvaluationsByScale(int $days): array
     {
         return SearchEvaluation::query()
+            ->where(SearchEvaluation::FIELD_CREATED_AT, '>=', now()->subDays($days)->startOfDay())
             ->select(SearchEvaluation::FIELD_SCALE_TYPE, DB::raw('COUNT(*) as count'))
             ->groupBy(SearchEvaluation::FIELD_SCALE_TYPE)
             ->pluck('count', SearchEvaluation::FIELD_SCALE_TYPE)
@@ -79,50 +99,72 @@ class DashboardService
     }
 
     /**
+     * Get metrics distribution (scorer_type + num_results label => count).
+     */
+    public function getMetricsDistribution(int $days): array
+    {
+        return EvaluationMetric::query()
+            ->where(EvaluationMetric::FIELD_CREATED_AT, '>=', now()->subDays($days)->startOfDay())
+            ->select(
+                EvaluationMetric::FIELD_SCORER_TYPE,
+                EvaluationMetric::FIELD_NUM_RESULTS,
+                DB::raw('COUNT(*) as count'),
+            )
+            ->groupBy(EvaluationMetric::FIELD_SCORER_TYPE, EvaluationMetric::FIELD_NUM_RESULTS)
+            ->orderByDesc('count')
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                ScorerFactory::create($row->scorer_type)->getDisplayName($row->num_results) => (int) $row->count,
+            ])
+            ->toArray();
+    }
+
+    /**
      * Get feedback statistics.
      */
-    public function getFeedbackStats(): array
+    public function getFeedbackStats(int $days): array
     {
-        $total = UserFeedback::count();
-        $graded = UserFeedback::whereNotNull(UserFeedback::FIELD_GRADE)->count();
-        $humanCount = UserFeedback::whereNotNull(UserFeedback::FIELD_USER_ID)
-            ->whereNotNull(UserFeedback::FIELD_GRADE)
-            ->count();
-        $judgeCount = UserFeedback::whereNotNull(UserFeedback::FIELD_JUDGE_ID)
-            ->whereNotNull(UserFeedback::FIELD_GRADE)
-            ->count();
+        $stats = UserFeedback::query()
+            ->where(UserFeedback::FIELD_UPDATED_AT, '>=', now()->subDays($days)->startOfDay())
+            ->selectRaw(
+                'SUM(CASE WHEN ' . UserFeedback::FIELD_GRADE . ' IS NOT NULL THEN 1 ELSE 0 END) as graded, '
+                . 'SUM(CASE WHEN ' . UserFeedback::FIELD_GRADE . ' IS NOT NULL AND ' . UserFeedback::FIELD_USER_ID . ' IS NOT NULL THEN 1 ELSE 0 END) as human_count, '
+                . 'SUM(CASE WHEN ' . UserFeedback::FIELD_GRADE . ' IS NOT NULL AND ' . UserFeedback::FIELD_JUDGE_ID . ' IS NOT NULL THEN 1 ELSE 0 END) as judge_count',
+            )->first();
 
         return [
-            'total' => $total,
-            'graded_pct' => $total > 0 ? round(($graded / $total) * 100, 1) : 0,
-            'human_count' => $humanCount,
-            'judge_count' => $judgeCount,
+            'graded' => (int) $stats->graded,
+            'human_count' => (int) $stats->human_count,
+            'judge_count' => (int) $stats->judge_count,
         ];
     }
 
     /**
      * Get judge success rate grouped by provider.
      */
-    public function getJudgeSuccessRateByProvider(): array
+    public function getJudgeSuccessRateByProvider(int $days): array
     {
-        $results = JudgeLog::query()
-            ->select(
-                JudgeLog::FIELD_PROVIDER,
-                DB::raw('SUM(CASE WHEN http_status_code BETWEEN 200 AND 299 THEN 1 ELSE 0 END) as success_count'),
-                DB::raw('SUM(CASE WHEN http_status_code < 200 OR http_status_code >= 300 OR http_status_code IS NULL THEN 1 ELSE 0 END) as failed_count'),
-            )
-            ->groupBy(JudgeLog::FIELD_PROVIDER)
-            ->get();
+        return Cache::remember("dashboard:judge_success_rate:{$days}", self::CACHE_TTL_SECONDS, function () use ($days) {
+            $results = JudgeLog::query()
+                ->where(JudgeLog::FIELD_CREATED_AT, '>=', now()->subDays($days)->startOfDay())
+                ->select(
+                    JudgeLog::FIELD_PROVIDER,
+                    DB::raw('SUM(CASE WHEN ' . JudgeLog::FIELD_HTTP_STATUS_CODE . ' BETWEEN 200 AND 299 THEN 1 ELSE 0 END) as success_count'),
+                    DB::raw('SUM(CASE WHEN ' . JudgeLog::FIELD_HTTP_STATUS_CODE . ' < 200 OR ' . JudgeLog::FIELD_HTTP_STATUS_CODE . ' >= 300 OR ' . JudgeLog::FIELD_HTTP_STATUS_CODE . ' IS NULL THEN 1 ELSE 0 END) as failed_count'),
+                )
+                ->groupBy(JudgeLog::FIELD_PROVIDER)
+                ->get();
 
-        $data = [];
-        foreach ($results as $row) {
-            $data[$row->provider] = [
-                'success' => (int) $row->success_count,
-                'failed' => (int) $row->failed_count,
-            ];
-        }
+            $data = [];
+            foreach ($results as $row) {
+                $data[$row->provider] = [
+                    'success' => (int) $row->success_count,
+                    'failed' => (int) $row->failed_count,
+                ];
+            }
 
-        return $data;
+            return $data;
+        });
     }
 
     /**
@@ -149,27 +191,33 @@ class DashboardService
     /**
      * Get token usage statistics.
      */
-    public function getTokenUsageStats(): array
+    public function getTokenUsageStats(int $days): array
     {
-        $stats = JudgeLog::query()
-            ->select(
-                DB::raw('COALESCE(SUM(' . JudgeLog::FIELD_TOTAL_TOKENS . '), 0) as total_tokens'),
-                DB::raw('COALESCE(ROUND(AVG(' . JudgeLog::FIELD_TOTAL_TOKENS . ')), 0) as avg_per_request'),
-            )
-            ->first();
+        return Cache::remember("dashboard:token_usage:{$days}", self::CACHE_TTL_SECONDS, function () use ($days) {
+            $startDate = now()->subDays($days)->startOfDay();
 
-        $topProvider = JudgeLog::query()
-            ->select(JudgeLog::FIELD_PROVIDER, DB::raw('SUM(' . JudgeLog::FIELD_TOTAL_TOKENS . ') as total'))
-            ->whereNotNull(JudgeLog::FIELD_TOTAL_TOKENS)
-            ->groupBy(JudgeLog::FIELD_PROVIDER)
-            ->orderByDesc('total')
-            ->first();
+            $stats = JudgeLog::query()
+                ->where(JudgeLog::FIELD_CREATED_AT, '>=', $startDate)
+                ->select(
+                    DB::raw('COALESCE(SUM(' . JudgeLog::FIELD_TOTAL_TOKENS . '), 0) as total_tokens'),
+                    DB::raw('COALESCE(ROUND(AVG(' . JudgeLog::FIELD_TOTAL_TOKENS . ')), 0) as avg_per_request'),
+                )
+                ->first();
 
-        return [
-            'total_tokens' => (int) $stats->total_tokens,
-            'avg_per_request' => (int) $stats->avg_per_request,
-            'top_provider' => $topProvider?->provider ?? '—',
-        ];
+            $topProvider = JudgeLog::query()
+                ->where(JudgeLog::FIELD_CREATED_AT, '>=', $startDate)
+                ->select(JudgeLog::FIELD_PROVIDER, DB::raw('SUM(' . JudgeLog::FIELD_TOTAL_TOKENS . ') as total'))
+                ->whereNotNull(JudgeLog::FIELD_TOTAL_TOKENS)
+                ->groupBy(JudgeLog::FIELD_PROVIDER)
+                ->orderByDesc('total')
+                ->first();
+
+            return [
+                'total_tokens' => (int) $stats->total_tokens,
+                'avg_per_request' => (int) $stats->avg_per_request,
+                'top_provider' => $topProvider?->provider ?? '—',
+            ];
+        });
     }
 
     /**
@@ -179,8 +227,19 @@ class DashboardService
     {
         return Team::query()
             ->where(Team::FIELD_PERSONAL_TEAM, false)
-            ->withCount(['searchEvaluations', 'users'])
-            ->orderByDesc('search_evaluations_count')
+            ->withCount('users')
+            ->addSelect([
+                'evaluations_count' => SearchEvaluation::query()
+                    ->selectRaw('COUNT(*)')
+                    ->join(
+                        'search_models',
+                        'search_evaluations.' . SearchEvaluation::FIELD_MODEL_ID,
+                        '=',
+                        'search_models.' . SearchModel::FIELD_ID,
+                    )
+                    ->whereColumn('search_models.' . SearchModel::FIELD_TEAM_ID, 'teams.' . Team::FIELD_ID),
+            ])
+            ->orderByDesc('evaluations_count')
             ->limit($limit)
             ->get();
     }
@@ -191,7 +250,7 @@ class DashboardService
     public function getRecentEvaluations(int $limit = 5): Collection
     {
         return SearchEvaluation::query()
-            ->with(['team', 'user'])
+            ->with(['model.team', 'user', 'model.endpoint'])
             ->orderByDesc(SearchEvaluation::FIELD_CREATED_AT)
             ->limit($limit)
             ->get();
@@ -200,7 +259,7 @@ class DashboardService
     /**
      * Get record counts grouped by date for a given model query.
      */
-    private function getCountByDate($query, string $dateField, int $days): array
+    private function getCountByDate(Builder $query, string $dateField, int $days): array
     {
         $startDate = now()->subDays($days)->startOfDay();
 
