@@ -126,6 +126,7 @@ make queue-reload # Reload Horizon workers in the running queue container
 make reverb       # Start Reverb (WebSocket server)
 make vite         # Start Vite development server
 make vite-prod    # Build Vite for production
+make seed-demo    # Reset DB + default seeders + DemoMarketplaceSeeder
 make docs-install # Install docs dependencies
 make docs         # Run docs dev server (http://localhost:3001/docs/overview)
 make docs-build   # Build documentation
