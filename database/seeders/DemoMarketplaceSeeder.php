@@ -19,6 +19,7 @@ use App\Models\UserFeedback;
 use App\Services\Evaluations\ScoringGuidelinesService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -44,7 +45,7 @@ class DemoMarketplaceSeeder extends Seeder
     // Demo marketplace domain data
     // -------------------------------------------------------------------------
 
-    private const DEMO_KEYWORDS = [
+    private const array DEMO_KEYWORDS = [
         // Kitchen equipment
         'commercial refrigerator', 'industrial dishwasher', 'convection oven', 'salamander grill',
         'spiral mixer', 'planetary mixer', 'blast chiller', 'combi steamer', 'deep fryer',
@@ -71,35 +72,28 @@ class DemoMarketplaceSeeder extends Seeder
         'patio heater', 'umbrella parasol', 'buffet furniture',
     ];
 
-    private const SCORER_TYPES = ['precision', 'ap', 'rr', 'cg', 'dcg', 'ndcg', 'err'];
-    private const NUM_RESULTS   = [5, 10, 20];
-    private const SCALE_TYPES   = ['binary', 'graded', 'detail'];
-    private const PROVIDERS     = [
-        Judge::PROVIDER_OPENAI, Judge::PROVIDER_ANTHROPIC,
-        Judge::PROVIDER_GOOGLE, Judge::PROVIDER_DEEPSEEK, Judge::PROVIDER_MISTRAL,
-    ];
-
-    private const MARKETS = [
+    private const array MARKETS = [
         'de' => ['name' => 'Germany', 'lang' => 'de', 'flag' => '🇩🇪'],
-        'fr' => ['name' => 'France',  'lang' => 'fr', 'flag' => '🇫🇷'],
-        'it' => ['name' => 'Italy',   'lang' => 'it', 'flag' => '🇮🇹'],
-        'es' => ['name' => 'Spain',   'lang' => 'es', 'flag' => '🇪🇸'],
+        'fr' => ['name' => 'France', 'lang' => 'fr', 'flag' => '🇫🇷'],
+        'it' => ['name' => 'Italy', 'lang' => 'it', 'flag' => '🇮🇹'],
+        'es' => ['name' => 'Spain', 'lang' => 'es', 'flag' => '🇪🇸'],
     ];
 
-    private const JUDGE_CONFIGS = [
-        ['provider' => 'openai',    'model' => 'gpt-4o',                    'batch' => 10],
-        ['provider' => 'openai',    'model' => 'gpt-4o-mini',               'batch' => 20],
+    private const array JUDGE_CONFIGS = [
+        ['provider' => 'openai', 'model' => 'gpt-4o', 'batch' => 10],
+        ['provider' => 'openai', 'model' => 'gpt-4o-mini', 'batch' => 20],
         ['provider' => 'anthropic', 'model' => 'claude-3-5-sonnet-20241022','batch' => 5],
-        ['provider' => 'anthropic', 'model' => 'claude-3-haiku-20240307',   'batch' => 15],
-        ['provider' => 'google',    'model' => 'gemini-2.0-flash',          'batch' => 10],
-        ['provider' => 'deepseek',  'model' => 'deepseek-chat',             'batch' => 8],
-        ['provider' => 'mistral',   'model' => 'mistral-large-latest',      'batch' => 5],
+        ['provider' => 'anthropic', 'model' => 'claude-3-haiku-20240307', 'batch' => 15],
+        ['provider' => 'google', 'model' => 'gemini-2.0-flash', 'batch' => 10],
+        ['provider' => 'deepseek', 'model' => 'deepseek-chat', 'batch' => 8],
+        ['provider' => 'mistral', 'model' => 'mistral-large-latest', 'batch' => 5],
     ];
-
-    private array $tagColors = ['blue', 'green', 'red', 'yellow', 'purple', 'pink', 'orange', 'indigo', 'teal', 'cyan'];
 
     // Seeded entities per team (populated during run)
     private array $teamData = [];
+
+    // Cached demo products pool (generated once, reused across evaluations)
+    private ?array $demoProducts = null;
 
     // -------------------------------------------------------------------------
     // Entry point
@@ -107,18 +101,21 @@ class DemoMarketplaceSeeder extends Seeder
 
     public function run(): void
     {
-        $this->command->info('🛒  Starting Demo Marketplace seeder...');
+        if (App::environment('production')) {
+            $this->command->error('DemoMarketplaceSeeder cannot run in production!');
 
-        // Disable model observers to avoid triggering jobs/events during seeding
-        $this->withoutObservers(function () {
-            $this->seedTeamsAndUsers();
-            $this->seedTagsPerTeam();
-            $this->seedEndpointsAndModels();
-            $this->seedJudges();
-            $this->seedEvaluations();
-        });
+            return;
+        }
 
-        $this->command->info('✅  Demo Marketplace seeder finished!');
+        $this->command->info('Starting Demo Marketplace seeder...');
+
+        $this->seedTeamsAndUsers();
+        $this->seedTagsPerTeam();
+        $this->seedEndpointsAndModels();
+        $this->seedJudges();
+        $this->seedEvaluations();
+
+        $this->command->info('Demo Marketplace seeder finished!');
     }
 
     // -------------------------------------------------------------------------
@@ -127,7 +124,7 @@ class DemoMarketplaceSeeder extends Seeder
 
     private function seedTeamsAndUsers(): void
     {
-        $this->command->info('  👥  Seeding teams & users...');
+        $this->command->info('  Seeding teams & users...');
 
         foreach (self::MARKETS as $code => $market) {
             // ---------------------------------------------------------------
@@ -139,13 +136,13 @@ class DemoMarketplaceSeeder extends Seeder
             $owner = User::firstOrCreate(
                 ['email' => $ownerEmail],
                 [
-                    'name'              => "{$market['flag']} {$market['name']} Owner",
-                    'password'          => Hash::make('password'),
+                    'name' => "{$market['name']} Owner",
+                    'password' => Hash::make('password'),
                     'email_verified_at' => $ownerRegisteredAt->copy()->addMinutes(rand(5, 60)),
-                    'last_active_at'    => now()->subMinutes(rand(5, 120)),
-                    'newsletter'        => true,
-                    'created_at'        => $ownerRegisteredAt,
-                    'updated_at'        => $ownerRegisteredAt,
+                    'last_active_at' => now()->subMinutes(rand(5, 120)),
+                    'newsletter' => true,
+                    'created_at' => $ownerRegisteredAt,
+                    'updated_at' => $ownerRegisteredAt,
                 ]
             );
             // Ensure timestamps are set even if record already existed
@@ -194,13 +191,13 @@ class DemoMarketplaceSeeder extends Seeder
                 $admin = User::firstOrCreate(
                     ['email' => $adminEmail],
                     [
-                        'name'              => "Admin {$i} ({$market['name']})",
-                        'password'          => Hash::make('password'),
+                        'name' => $this->pickAdminName($i),
+                        'password' => Hash::make('password'),
                         'email_verified_at' => $adminRegisteredAt->copy()->addMinutes(rand(5, 120)),
-                        'last_active_at'    => now()->subHours(rand(1, 48)),
-                        'newsletter'        => (bool) rand(0, 1),
-                        'created_at'        => $adminRegisteredAt,
-                        'updated_at'        => $adminRegisteredAt,
+                        'last_active_at' => now()->subHours(rand(1, 48)),
+                        'newsletter' => (bool) rand(0, 1),
+                        'created_at' => $adminRegisteredAt,
+                        'updated_at' => $adminRegisteredAt,
                     ]
                 );
                 $admin->forceFill([
@@ -225,15 +222,19 @@ class DemoMarketplaceSeeder extends Seeder
             // Evaluators — gradually join over the following 0-50 days
             // ---------------------------------------------------------------
             $evaluatorCount = rand(4, 6);
-            $evaluatorNames = [
+            $evaluatorFirstNames = [
                 'Anna', 'Marco', 'Sophie', 'Carlos', 'Lena', 'Tomás',
                 'Giulia', 'Pierre', 'Elena', 'Dmitri', 'Marie', 'Hans',
             ];
+            $evaluatorLastNames = [
+                'Müller', 'Rossi', 'Dubois', 'García', 'Schmidt', 'Ferrari',
+                'Bernard', 'López', 'Weber', 'Bianchi', 'Martin', 'Sánchez',
+            ];
             $usedNames = [];
             for ($i = 0; $i < $evaluatorCount; $i++) {
-                $namePick = $evaluatorNames[array_rand($evaluatorNames)];
+                $namePick = $evaluatorFirstNames[array_rand($evaluatorFirstNames)];
                 while (in_array($namePick, $usedNames)) {
-                    $namePick = $evaluatorNames[array_rand($evaluatorNames)];
+                    $namePick = $evaluatorFirstNames[array_rand($evaluatorFirstNames)];
                 }
                 $usedNames[] = $namePick;
 
@@ -244,13 +245,13 @@ class DemoMarketplaceSeeder extends Seeder
                 $evaluator = User::firstOrCreate(
                     ['email' => $evalEmail],
                     [
-                        'name'              => "{$namePick} ({$market['name']})",
-                        'password'          => Hash::make('password'),
-                        'email_verified_at' => $evalRegisteredAt->copy()->addMinutes(rand(5, 180)),
-                        'last_active_at'    => now()->subMinutes(rand(10, 600)),
-                        'newsletter'        => (bool) rand(0, 1),
-                        'created_at'        => $evalRegisteredAt,
-                        'updated_at'        => $evalRegisteredAt,
+                        'name' => $namePick . ' ' . $evaluatorLastNames[array_rand($evaluatorLastNames)],
+                        'password' => Hash::make('password'),
+                        'email_verified_at' => rand(0, 100) < 85 ? $evalRegisteredAt->copy()->addMinutes(rand(5, 180)) : null,
+                        'last_active_at' => now()->subMinutes(rand(10, 600)),
+                        'newsletter' => (bool) rand(0, 1),
+                        'created_at' => $evalRegisteredAt,
+                        'updated_at' => $evalRegisteredAt,
                     ]
                 );
                 $evaluator->forceFill([
@@ -272,15 +273,15 @@ class DemoMarketplaceSeeder extends Seeder
             }
 
             $this->teamData[$code] = [
-                'team'        => $team,
-                'owner'       => $owner,
-                'admins'      => $admins,
-                'evaluators'  => $evaluators,
-                'market'      => $market,
-                'tags'        => [],
-                'endpoints'   => [],
-                'models'      => [],
-                'judges'      => [],
+                'team' => $team,
+                'owner' => $owner,
+                'admins' => $admins,
+                'evaluators' => $evaluators,
+                'market' => $market,
+                'tags' => [],
+                'endpoints' => [],
+                'models' => [],
+                'judges' => [],
                 'evaluations' => [],
             ];
         }
@@ -292,19 +293,19 @@ class DemoMarketplaceSeeder extends Seeder
 
     private function seedTagsPerTeam(): void
     {
-        $this->command->info('  🏷️   Seeding tags...');
+        $this->command->info('  Seeding tags...');
 
         $tagSets = [
-            ['name' => 'Kitchen Equipment',  'color' => 'red'],
-            ['name' => 'Tableware',          'color' => 'blue'],
-            ['name' => 'Beverages',          'color' => 'cyan'],
-            ['name' => 'Disposables',        'color' => 'yellow'],
-            ['name' => 'Hotel Supplies',     'color' => 'purple'],
-            ['name' => 'High Priority',      'color' => 'orange'],
-            ['name' => 'Regression Test',    'color' => 'pink'],
-            ['name' => 'A/B Test',           'color' => 'indigo'],
-            ['name' => 'Production',         'color' => 'green'],
-            ['name' => 'Experimental',       'color' => 'teal'],
+            ['name' => 'Kitchen Equipment', 'color' => 'red'],
+            ['name' => 'Tableware', 'color' => 'blue'],
+            ['name' => 'Beverages', 'color' => 'cyan'],
+            ['name' => 'Disposables', 'color' => 'yellow'],
+            ['name' => 'Hotel Supplies', 'color' => 'purple'],
+            ['name' => 'High Priority', 'color' => 'orange'],
+            ['name' => 'Regression Test', 'color' => 'pink'],
+            ['name' => 'A/B Test', 'color' => 'indigo'],
+            ['name' => 'Production', 'color' => 'green'],
+            ['name' => 'Experimental', 'color' => 'teal'],
         ];
 
         foreach ($this->teamData as $code => &$data) {
@@ -318,6 +319,19 @@ class DemoMarketplaceSeeder extends Seeder
                 $tags[$tagDef['name']] = $tag;
             }
             $data['tags'] = $tags;
+
+            // Assign random tags to evaluators
+            foreach ($data['evaluators'] as $evaluator) {
+                $userTags = $this->pickRandom(array_values($tags), rand(1, 3));
+                foreach ($userTags as $tag) {
+                    DB::table('user_tags')->insertOrIgnore([
+                        'user_id' => $evaluator->id,
+                        'tag_id' => $tag->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
         }
     }
 
@@ -327,15 +341,15 @@ class DemoMarketplaceSeeder extends Seeder
 
     private function seedEndpointsAndModels(): void
     {
-        $this->command->info('  🔌  Seeding endpoints & search models...');
+        $this->command->info('  Seeding endpoints & search models...');
 
         $endpointDefs = [
             [
-                'name_tpl'   => 'Demo Search API v2 ({country})',
-                'desc_tpl'   => 'Primary demo marketplace search API for {country} market (v2)',
-                'url_tpl'    => 'https://search-api.demo-marketplace.com/v2/{lang}/search',
-                'method'     => 'GET',
-                'mapper'     => implode("\n", [
+                'name_tpl' => 'Demo Search API v2 ({country})',
+                'desc_tpl' => 'Primary demo marketplace search API for {country} market (v2)',
+                'url_tpl' => 'https://search-api.demo-marketplace.com/v2/{lang}/search',
+                'method' => 'GET',
+                'mapper' => implode("\n", [
                     'id: data.items.*.productId',
                     'name: data.items.*.title',
                     'image: data.items.*.thumbnailUrl',
@@ -347,11 +361,11 @@ class DemoMarketplaceSeeder extends Seeder
                 'active' => true,
             ],
             [
-                'name_tpl'   => 'Demo Search API v3 ({country})',
-                'desc_tpl'   => 'Next-gen semantic search endpoint for {country} — experimental',
-                'url_tpl'    => 'https://search-api.demo-marketplace.com/v3/{lang}/semantic',
-                'method'     => 'POST',
-                'mapper'     => implode("\n", [
+                'name_tpl' => 'Demo Search API v3 ({country})',
+                'desc_tpl' => 'Next-gen semantic search endpoint for {country} — experimental',
+                'url_tpl' => 'https://search-api.demo-marketplace.com/v3/{lang}/semantic',
+                'method' => 'POST',
+                'mapper' => implode("\n", [
                     'id: results.*.id',
                     'name: results.*.name',
                     'image: results.*.media.primaryImage',
@@ -361,11 +375,11 @@ class DemoMarketplaceSeeder extends Seeder
                 'active' => true,
             ],
             [
-                'name_tpl'   => 'Legacy Catalog API ({country})',
-                'desc_tpl'   => 'Legacy catalog search — to be deprecated after v3 goes live',
-                'url_tpl'    => 'https://catalog-legacy.demo-marketplace.com/{lang}/find',
-                'method'     => 'GET',
-                'mapper'     => implode("\n", [
+                'name_tpl' => 'Legacy Catalog API ({country})',
+                'desc_tpl' => 'Legacy catalog search — to be deprecated after v3 goes live',
+                'url_tpl' => 'https://catalog-legacy.demo-marketplace.com/{lang}/find',
+                'method' => 'GET',
+                'mapper' => implode("\n", [
                     'id: catalog.hits.*.id',
                     'name: catalog.hits.*.label',
                     'image: catalog.hits.*.image',
@@ -377,38 +391,38 @@ class DemoMarketplaceSeeder extends Seeder
 
         $modelDefs = [
             [
-                'name_tpl'  => 'Baseline BM25 ({country})',
-                'desc'      => 'Standard BM25 keyword search — current production baseline',
-                'params'    => ['q' => '#query#', 'algorithm' => 'bm25', 'size' => '20'],
-                'pinned'    => true,
+                'name_tpl' => 'Baseline BM25 ({country})',
+                'desc' => 'Standard BM25 keyword search — current production baseline',
+                'params' => ['q' => '#query#', 'algorithm' => 'bm25', 'size' => '20'],
+                'pinned' => true,
                 'keywordSet'=> 'kitchen',
             ],
             [
-                'name_tpl'  => 'LTR v2 ({country})',
-                'desc'      => 'Learning-to-rank model trained on 6 months of click data',
-                'params'    => ['q' => '#query#', 'model' => 'ltr_v2', 'size' => '20'],
-                'pinned'    => true,
+                'name_tpl' => 'LTR v2 ({country})',
+                'desc' => 'Learning-to-rank model trained on 6 months of click data',
+                'params' => ['q' => '#query#', 'model' => 'ltr_v2', 'size' => '20'],
+                'pinned' => true,
                 'keywordSet'=> 'mixed',
             ],
             [
-                'name_tpl'  => 'Semantic Dense ({country})',
-                'desc'      => 'ANN dense retrieval via text embeddings (ada-002)',
-                'params'    => ['q' => '#query#', 'mode' => 'semantic', 'size' => '20'],
-                'pinned'    => false,
+                'name_tpl' => 'Semantic Dense ({country})',
+                'desc' => 'ANN dense retrieval via text embeddings (ada-002)',
+                'params' => ['q' => '#query#', 'mode' => 'semantic', 'size' => '20'],
+                'pinned' => false,
                 'keywordSet'=> 'mixed',
             ],
             [
-                'name_tpl'  => 'Hybrid Search ({country})',
-                'desc'      => 'Combination of BM25 + semantic with RRF fusion',
-                'params'    => ['q' => '#query#', 'mode' => 'hybrid', 'alpha' => '0.7'],
-                'pinned'    => false,
+                'name_tpl' => 'Hybrid Search ({country})',
+                'desc' => 'Combination of BM25 + semantic with RRF fusion',
+                'params' => ['q' => '#query#', 'mode' => 'hybrid', 'alpha' => '0.7'],
+                'pinned' => false,
                 'keywordSet'=> 'full',
             ],
             [
-                'name_tpl'  => 'Personalised Rerank ({country})',
-                'desc'      => 'Cross-encoder reranking with user-behaviour personalisation layer',
-                'params'    => ['q' => '#query#', 'mode' => 'personalised', 'depth' => '100'],
-                'pinned'    => false,
+                'name_tpl' => 'Personalised Rerank ({country})',
+                'desc' => 'Cross-encoder reranking with user-behaviour personalisation layer',
+                'params' => ['q' => '#query#', 'mode' => 'personalised', 'depth' => '100'],
+                'pinned' => false,
                 'keywordSet'=> 'full',
             ],
         ];
@@ -442,20 +456,20 @@ class DemoMarketplaceSeeder extends Seeder
                 $endpoint = SearchEndpoint::firstOrCreate(
                     ['team_id' => $team->id, 'name' => $endpointName],
                     [
-                        'user_id'      => $allUsers[array_rand($allUsers)]->id,
-                        'type'         => SearchEndpoint::TYPE_SEARCH_API,
-                        'url'          => $url,
-                        'method'       => $def['method'],
-                        'description'  => str_replace('{country}', $market['name'], $def['desc_tpl']),
-                        'headers'      => [
+                        'user_id' => $allUsers[array_rand($allUsers)]->id,
+                        'type' => SearchEndpoint::TYPE_SEARCH_API,
+                        'url' => $url,
+                        'method' => $def['method'],
+                        'description' => str_replace('{country}', $market['name'], $def['desc_tpl']),
+                        'headers' => [
                             'Accept-Language' => $market['lang'],
-                            'X-Market'        => strtoupper($code),
-                            'Authorization'   => 'Bearer ' . Str::random(32),
+                            'X-Market' => strtoupper($code),
+                            'Authorization' => 'Bearer ' . Str::random(32),
                         ],
-                        'mapper_type'  => SearchEndpoint::MAPPER_TYPE_DOT_ARRAY,
-                        'mapper_code'  => $def['mapper'],
-                        'settings'     => [],
-                        'archived_at'  => $def['active'] ? null : now()->subMonths(rand(1, 3)),
+                        'mapper_type' => SearchEndpoint::MAPPER_TYPE_DOT_ARRAY,
+                        'mapper_code' => $def['mapper'],
+                        'settings' => [],
+                        'archived_at' => $def['active'] ? null : now()->subMonths(rand(1, 3)),
                     ]
                 );
                 $endpoints[] = $endpoint;
@@ -477,17 +491,30 @@ class DemoMarketplaceSeeder extends Seeder
                 $model = SearchModel::firstOrCreate(
                     ['team_id' => $team->id, 'name' => $modelName],
                     [
-                        'user_id'     => $allUsers[array_rand($allUsers)]->id,
+                        'user_id' => $allUsers[array_rand($allUsers)]->id,
                         'endpoint_id' => $endpoint->id,
                         'description' => $mDef['desc'],
-                        'headers'     => [],
-                        'params'      => $mDef['params'],
-                        'body'        => '',
-                        'body_type'   => SearchModel::BODY_TYPE_JSON,
-                        'settings'    => [SearchModel::SETTING_KEYWORDS => $keywords],
-                        'pinned'      => $mDef['pinned'],
+                        'headers' => [],
+                        'params' => $mDef['params'],
+                        'body' => '',
+                        'body_type' => SearchModel::BODY_TYPE_JSON,
+                        'settings' => [SearchModel::SETTING_KEYWORDS => $keywords],
+                        'pinned' => $mDef['pinned'],
                     ]
                 );
+                // Assign random tags to model
+                if (!empty($data['tags'])) {
+                    $modelTags = $this->pickRandom(array_values($data['tags']), rand(1, 3));
+                    foreach ($modelTags as $tag) {
+                        DB::table('model_tags')->insertOrIgnore([
+                            'model_id' => $model->id,
+                            'tag_id' => $tag->id,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+
                 $models[] = $model;
             }
             $data['models'] = $models;
@@ -500,7 +527,7 @@ class DemoMarketplaceSeeder extends Seeder
 
     private function seedJudges(): void
     {
-        $this->command->info('  🤖  Seeding AI judges...');
+        $this->command->info('  Seeding AI judges...');
 
         foreach ($this->teamData as $code => &$data) {
             $team     = $data['team'];
@@ -514,16 +541,16 @@ class DemoMarketplaceSeeder extends Seeder
                 $judge = Judge::firstOrCreate(
                     ['team_id' => $team->id, 'name' => $judgeName],
                     [
-                        'user_id'       => $allUsers[array_rand($allUsers)]->id,
-                        'description'   => 'Automated relevance judge using ' . $cfg['model'] . ' for demo marketplace search quality assessment in ' . $data['market']['name'],
-                        'provider'      => $cfg['provider'],
-                        'model_name'    => $cfg['model'],
-                        'api_key'       => 'seed-fake-key-' . Str::random(20),
+                        'user_id' => $allUsers[array_rand($allUsers)]->id,
+                        'description' => 'Automated relevance judge using ' . $cfg['model'] . ' for demo marketplace search quality assessment in ' . $data['market']['name'],
+                        'provider' => $cfg['provider'],
+                        'model_name' => $cfg['model'],
+                        'api_key' => 'seed-fake-key-' . Str::random(20),
                         'prompt_binary' => Judge::getDefaultPrompt('binary'),
                         'prompt_graded' => Judge::getDefaultPrompt('graded'),
                         'prompt_detail' => Judge::getDefaultPrompt('detail'),
-                        'settings'      => [Judge::SETTING_BATCH_SIZE => $cfg['batch']],
-                        'archived_at'   => ($idx === count($configs) - 1) ? now()->subWeeks(rand(1, 4)) : null,
+                        'settings' => [Judge::SETTING_BATCH_SIZE => $cfg['batch']],
+                        'archived_at' => ($idx === count($configs) - 1) ? now()->subWeeks(rand(1, 4)) : null,
                     ]
                 );
 
@@ -532,8 +559,8 @@ class DemoMarketplaceSeeder extends Seeder
                     $judgeTags = $this->pickRandom(array_values($data['tags']), rand(1, 3));
                     foreach ($judgeTags as $tag) {
                         DB::table('judge_tags')->insertOrIgnore([
-                            'judge_id'   => $judge->id,
-                            'tag_id'     => $tag->id,
+                            'judge_id' => $judge->id,
+                            'tag_id' => $tag->id,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
@@ -552,92 +579,92 @@ class DemoMarketplaceSeeder extends Seeder
 
     private function seedEvaluations(): void
     {
-        $this->command->info('  📊  Seeding evaluations (this may take a while)...');
+        $this->command->info('  Seeding evaluations (this may take a while)...');
 
         $evaluationTemplates = [
             // Finished evaluations (most common)
             [
-                'name_tpl'   => '{model} — Relevance Eval #{n}',
-                'desc_tpl'   => 'Full relevance assessment for {model} on {market} market keywords',
-                'status'     => SearchEvaluation::STATUS_FINISHED,
-                'scale'      => 'graded',
-                'archived'   => false,
-                'pinned'     => false,
-                'kwCount'    => [15, 22],
-                'metrics'    => [
+                'name_tpl' => '{model} — Relevance Eval #{n}',
+                'desc_tpl' => 'Full relevance assessment for {model} on {market} market keywords',
+                'status' => SearchEvaluation::STATUS_FINISHED,
+                'scale' => 'graded',
+                'archived' => false,
+                'pinned' => false,
+                'kwCount' => [15, 22],
+                'metrics' => [
                     ['scorer_type' => 'precision', 'num_results' => 10],
-                    ['scorer_type' => 'ndcg',      'num_results' => 10],
-                    ['scorer_type' => 'ap',         'num_results' => 10],
-                    ['scorer_type' => 'err',        'num_results' => 10],
-                ],
-            ],
-            [
-                'name_tpl'   => '{model} — Binary Quick Check #{n}',
-                'desc_tpl'   => 'Binary relevance spot-check for {model}',
-                'status'     => SearchEvaluation::STATUS_FINISHED,
-                'scale'      => 'binary',
-                'archived'   => false,
-                'pinned'     => false,
-                'kwCount'    => [10, 15],
-                'metrics'    => [
-                    ['scorer_type' => 'precision', 'num_results' => 5],
-                    ['scorer_type' => 'rr',         'num_results' => 5],
-                ],
-            ],
-            [
-                'name_tpl'   => '{model} — Detail Evaluation #{n}',
-                'desc_tpl'   => 'Detailed 5-point scale evaluation for nuanced quality assessment',
-                'status'     => SearchEvaluation::STATUS_FINISHED,
-                'scale'      => 'detail',
-                'archived'   => false,
-                'pinned'     => false,
-                'kwCount'    => [12, 18],
-                'metrics'    => [
                     ['scorer_type' => 'ndcg', 'num_results' => 10],
-                    ['scorer_type' => 'dcg',  'num_results' => 10],
-                    ['scorer_type' => 'cg',   'num_results' => 10],
+                    ['scorer_type' => 'ap', 'num_results' => 10],
+                    ['scorer_type' => 'err', 'num_results' => 10],
+                ],
+            ],
+            [
+                'name_tpl' => '{model} — Binary Quick Check #{n}',
+                'desc_tpl' => 'Binary relevance spot-check for {model}',
+                'status' => SearchEvaluation::STATUS_FINISHED,
+                'scale' => 'binary',
+                'archived' => false,
+                'pinned' => false,
+                'kwCount' => [10, 15],
+                'metrics' => [
+                    ['scorer_type' => 'precision', 'num_results' => 5],
+                    ['scorer_type' => 'rr', 'num_results' => 5],
+                ],
+            ],
+            [
+                'name_tpl' => '{model} — Detail Evaluation #{n}',
+                'desc_tpl' => 'Detailed 5-point scale evaluation for nuanced quality assessment',
+                'status' => SearchEvaluation::STATUS_FINISHED,
+                'scale' => 'detail',
+                'archived' => false,
+                'pinned' => false,
+                'kwCount' => [12, 18],
+                'metrics' => [
+                    ['scorer_type' => 'ndcg', 'num_results' => 10],
+                    ['scorer_type' => 'dcg', 'num_results' => 10],
+                    ['scorer_type' => 'cg', 'num_results' => 10],
                 ],
             ],
             // Active evaluations
             [
-                'name_tpl'   => '{model} — Ongoing A/B Test #{n}',
-                'desc_tpl'   => 'Active A/B relevance evaluation currently collecting human feedback',
-                'status'     => SearchEvaluation::STATUS_ACTIVE,
-                'scale'      => 'graded',
-                'archived'   => false,
-                'pinned'     => true,
-                'kwCount'    => [18, 25],
-                'metrics'    => [
-                    ['scorer_type' => 'ndcg',      'num_results' => 10],
-                    ['scorer_type' => 'precision',  'num_results' => 10],
+                'name_tpl' => '{model} — Ongoing A/B Test #{n}',
+                'desc_tpl' => 'Active A/B relevance evaluation currently collecting human feedback',
+                'status' => SearchEvaluation::STATUS_ACTIVE,
+                'scale' => 'graded',
+                'archived' => false,
+                'pinned' => true,
+                'kwCount' => [18, 25],
+                'metrics' => [
+                    ['scorer_type' => 'ndcg', 'num_results' => 10],
+                    ['scorer_type' => 'precision', 'num_results' => 10],
                 ],
             ],
             // Pending evaluations
             [
-                'name_tpl'   => '{model} — Scheduled Eval #{n}',
-                'desc_tpl'   => 'Scheduled evaluation queued for next evaluation cycle',
-                'status'     => SearchEvaluation::STATUS_PENDING,
-                'scale'      => 'graded',
-                'archived'   => false,
-                'pinned'     => false,
-                'kwCount'    => [15, 20],
-                'metrics'    => [
+                'name_tpl' => '{model} — Scheduled Eval #{n}',
+                'desc_tpl' => 'Scheduled evaluation queued for next evaluation cycle',
+                'status' => SearchEvaluation::STATUS_PENDING,
+                'scale' => 'graded',
+                'archived' => false,
+                'pinned' => false,
+                'kwCount' => [15, 20],
+                'metrics' => [
                     ['scorer_type' => 'ndcg', 'num_results' => 10],
-                    ['scorer_type' => 'ap',   'num_results' => 10],
+                    ['scorer_type' => 'ap', 'num_results' => 10],
                 ],
             ],
             // Archived evaluations
             [
-                'name_tpl'   => '{model} — Archived Baseline #{n}',
-                'desc_tpl'   => 'Archived baseline evaluation from previous quarter',
-                'status'     => SearchEvaluation::STATUS_FINISHED,
-                'scale'      => 'graded',
-                'archived'   => true,
-                'pinned'     => false,
-                'kwCount'    => [12, 18],
-                'metrics'    => [
+                'name_tpl' => '{model} — Archived Baseline #{n}',
+                'desc_tpl' => 'Archived baseline evaluation from previous quarter',
+                'status' => SearchEvaluation::STATUS_FINISHED,
+                'scale' => 'graded',
+                'archived' => true,
+                'pinned' => false,
+                'kwCount' => [12, 18],
+                'metrics' => [
                     ['scorer_type' => 'ndcg', 'num_results' => 10],
-                    ['scorer_type' => 'cg',   'num_results' => 10],
+                    ['scorer_type' => 'cg', 'num_results' => 10],
                 ],
             ],
         ];
@@ -667,12 +694,12 @@ class DemoMarketplaceSeeder extends Seeder
                     $tpl = $templatePool[$i % count($templatePool)];
 
                     $evalName = strtr($tpl['name_tpl'], [
-                        '{model}'  => $model->name,
+                        '{model}' => $model->name,
                         '{market}' => $market['name'],
-                        '{n}'      => $evalN,
+                        '{n}' => $evalN,
                     ]);
                     $evalDesc = strtr($tpl['desc_tpl'], [
-                        '{model}'  => $model->name,
+                        '{model}' => $model->name,
                         '{market}' => $market['name'],
                     ]);
 
@@ -682,36 +709,37 @@ class DemoMarketplaceSeeder extends Seeder
 
                     $status = $tpl['status'];
 
-                    // Created dates spread over the last 12 months
-                    $createdAt  = now()->subDays(rand(1, 365));
+                    // Created after team creation, spread until now
+                    $teamAge = (int) $team->created_at->diffInDays(now());
+                    $createdAt = $team->created_at->copy()->addDays(rand(1, max(1, $teamAge)));
                     $finishedAt = null;
                     if ($status === SearchEvaluation::STATUS_FINISHED) {
                         $finishedAt = $createdAt->copy()->addHours(rand(2, 72));
                     }
 
                     $evaluation = SearchEvaluation::create([
-                        SearchEvaluation::FIELD_USER_ID              => $allUsers[array_rand($allUsers)]->id,
-                        SearchEvaluation::FIELD_MODEL_ID             => $model->id,
-                        SearchEvaluation::FIELD_SCALE_TYPE           => $tpl['scale'],
-                        SearchEvaluation::FIELD_STATUS               => $status,
-                        SearchEvaluation::FIELD_PROGRESS             => $this->calcProgress($status),
-                        SearchEvaluation::FIELD_NAME                 => $evalName,
-                        SearchEvaluation::FIELD_DESCRIPTION          => $evalDesc,
-                        SearchEvaluation::FIELD_SETTINGS             => [
-                            SearchEvaluation::SETTING_REUSE_STRATEGY    => SearchEvaluation::REUSE_STRATEGY_NONE,
-                            SearchEvaluation::SETTING_SHOW_POSITION     => (bool) rand(0, 1),
+                        SearchEvaluation::FIELD_USER_ID => $allUsers[array_rand($allUsers)]->id,
+                        SearchEvaluation::FIELD_MODEL_ID => $model->id,
+                        SearchEvaluation::FIELD_SCALE_TYPE => $tpl['scale'],
+                        SearchEvaluation::FIELD_STATUS => $status,
+                        SearchEvaluation::FIELD_PROGRESS => $this->calcProgress($status),
+                        SearchEvaluation::FIELD_NAME => $evalName,
+                        SearchEvaluation::FIELD_DESCRIPTION => $evalDesc,
+                        SearchEvaluation::FIELD_SETTINGS => [
+                            SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_NONE,
+                            SearchEvaluation::SETTING_SHOW_POSITION => (bool) rand(0, 1),
                             SearchEvaluation::SETTING_FEEDBACK_STRATEGY => rand(1, 2),
-                            SearchEvaluation::SETTING_AUTO_RESTART      => false,
+                            SearchEvaluation::SETTING_AUTO_RESTART => false,
                             SearchEvaluation::SETTING_SCORING_GUIDELINES => $guidelinesService->getDefaultScoringGuidelines()[$tpl['scale']],
                         ],
-                        SearchEvaluation::FIELD_MAX_NUM_RESULTS      => $status !== SearchEvaluation::STATUS_PENDING ? 20 : null,
-                        SearchEvaluation::FIELD_SUCCESSFUL_KEYWORDS  => $status !== SearchEvaluation::STATUS_PENDING ? $kwCount : 0,
-                        SearchEvaluation::FIELD_FAILED_KEYWORDS      => 0,
-                        SearchEvaluation::FIELD_ARCHIVED             => $tpl['archived'],
-                        SearchEvaluation::FIELD_PINNED               => $tpl['pinned'],
-                        SearchEvaluation::FIELD_FINISHED_AT          => $finishedAt,
-                        SearchEvaluation::FIELD_CREATED_AT           => $createdAt,
-                        SearchEvaluation::FIELD_UPDATED_AT           => $finishedAt ?? $createdAt->copy()->addMinutes(rand(30, 300)),
+                        SearchEvaluation::FIELD_MAX_NUM_RESULTS => $status !== SearchEvaluation::STATUS_PENDING ? 20 : null,
+                        SearchEvaluation::FIELD_SUCCESSFUL_KEYWORDS => $status !== SearchEvaluation::STATUS_PENDING ? $kwCount : 0,
+                        SearchEvaluation::FIELD_FAILED_KEYWORDS => 0,
+                        SearchEvaluation::FIELD_ARCHIVED => $tpl['archived'],
+                        SearchEvaluation::FIELD_PINNED => $tpl['pinned'],
+                        SearchEvaluation::FIELD_FINISHED_AT => $finishedAt,
+                        SearchEvaluation::FIELD_CREATED_AT => $createdAt,
+                        SearchEvaluation::FIELD_UPDATED_AT => $finishedAt ?? $createdAt->copy()->addMinutes(rand(30, 300)),
                     ]);
 
                     // Assign tags to evaluation
@@ -719,9 +747,9 @@ class DemoMarketplaceSeeder extends Seeder
                     foreach ($evalTags as $tag) {
                         DB::table('evaluation_tags')->insertOrIgnore([
                             'evaluation_id' => $evaluation->id,
-                            'tag_id'        => $tag->id,
-                            'created_at'    => now(),
-                            'updated_at'    => now(),
+                            'tag_id' => $tag->id,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]);
                     }
 
@@ -735,15 +763,22 @@ class DemoMarketplaceSeeder extends Seeder
                             ? round(rand(35, 85) / 100, 4)
                             : 0;
 
-                        $metric = EvaluationMetric::withoutEvents(fn() => EvaluationMetric::create([
-                            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
-                            EvaluationMetric::FIELD_SCORER_TYPE          => $mDef['scorer_type'],
-                            EvaluationMetric::FIELD_VALUE                => $value,
-                            EvaluationMetric::FIELD_PREVIOUS_VALUE       => $prevValue,
-                            EvaluationMetric::FIELD_NUM_RESULTS          => $mDef['num_results'],
-                            EvaluationMetric::FIELD_SETTINGS             => [],
-                            EvaluationMetric::FIELD_FINISHED_AT          => $finishedAt,
-                        ]));
+                        $metric = EvaluationMetric::withoutEvents(function () use ($evaluation, $mDef, $value, $prevValue, $finishedAt, $createdAt) {
+                            $m = new EvaluationMetric();
+                            $m->forceFill([
+                                EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+                                EvaluationMetric::FIELD_SCORER_TYPE => $mDef['scorer_type'],
+                                EvaluationMetric::FIELD_VALUE => $value,
+                                EvaluationMetric::FIELD_PREVIOUS_VALUE => $prevValue,
+                                EvaluationMetric::FIELD_NUM_RESULTS => $mDef['num_results'],
+                                EvaluationMetric::FIELD_SETTINGS => [],
+                                EvaluationMetric::FIELD_FINISHED_AT => $finishedAt,
+                                'created_at' => $createdAt,
+                                'updated_at' => $finishedAt ?? $createdAt,
+                            ])->save();
+
+                            return $m;
+                        });
 
                         // Historical metric values (last 15 runs)
                         if ($status === SearchEvaluation::STATUS_FINISHED) {
@@ -803,17 +838,17 @@ class DemoMarketplaceSeeder extends Seeder
     ): void {
         $feedbackStrategy = $evaluation->settings[SearchEvaluation::SETTING_FEEDBACK_STRATEGY] ?? 1;
 
-        $demoProducts = $this->getDemoProducts();
+        $demoProducts = $this->demoProducts ??= $this->getDemoProducts();
 
         foreach ($keywords as $keyword) {
             /** @var EvaluationKeyword $kwModel */
             $kwModel = EvaluationKeyword::create([
                 EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
-                EvaluationKeyword::FIELD_KEYWORD              => $keyword,
-                EvaluationKeyword::FIELD_TOTAL_COUNT          => rand(80, 5000),
-                EvaluationKeyword::FIELD_EXECUTION_CODE       => 200,
-                EvaluationKeyword::FIELD_EXECUTION_MESSAGE    => 'OK',
-                EvaluationKeyword::FIELD_FAILED               => false,
+                EvaluationKeyword::FIELD_KEYWORD => $keyword,
+                EvaluationKeyword::FIELD_TOTAL_COUNT => rand(80, 5000),
+                EvaluationKeyword::FIELD_EXECUTION_CODE => 200,
+                EvaluationKeyword::FIELD_EXECUTION_MESSAGE => 'OK',
+                EvaluationKeyword::FIELD_FAILED => false,
             ]);
 
             // 10-20 snapshots per keyword
@@ -826,8 +861,8 @@ class DemoMarketplaceSeeder extends Seeder
             foreach ($metrics as $metric) {
                 KeywordMetric::create([
                     KeywordMetric::FIELD_EVALUATION_KEYWORD_ID => $kwModel->id,
-                    KeywordMetric::FIELD_EVALUATION_METRIC_ID  => $metric->id,
-                    KeywordMetric::FIELD_VALUE                 => $kwValue,
+                    KeywordMetric::FIELD_EVALUATION_METRIC_ID => $metric->id,
+                    KeywordMetric::FIELD_VALUE => $kwValue,
                 ]);
             }
 
@@ -836,17 +871,16 @@ class DemoMarketplaceSeeder extends Seeder
                 // Create snapshot WITHOUT triggering the observer (which creates feedbacks)
                 $snapshot = SearchSnapshot::withoutEvents(fn() => SearchSnapshot::create([
                     SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $kwModel->id,
-                    SearchSnapshot::FIELD_POSITION              => $pos + 1,
-                    SearchSnapshot::FIELD_DOC_ID                => $product['id'],
-                    SearchSnapshot::FIELD_IMAGE                 => $product['image'],
-                    SearchSnapshot::FIELD_NAME                  => $product['name'],
-                    SearchSnapshot::FIELD_DOC                   => [
-                        'id'       => $product['id'],
-                        'name'     => $product['name'],
-                        'price'    => $product['price'],
-                        'brand'    => $product['brand'],
+                    SearchSnapshot::FIELD_POSITION => $pos + 1,
+                    SearchSnapshot::FIELD_DOC_ID => $product['id'],
+                    SearchSnapshot::FIELD_IMAGE => $product['image'],
+                    SearchSnapshot::FIELD_NAME => $product['name'],
+                    SearchSnapshot::FIELD_DOC => [
+                        'name' => $product['name'],
+                        'price' => $product['price'],
+                        'brand' => $product['brand'],
                         'category' => $product['category'],
-                        'sku'      => $product['sku'],
+                        'sku' => $product['sku'],
                     ],
                 ]));
 
@@ -857,7 +891,8 @@ class DemoMarketplaceSeeder extends Seeder
                     $evaluators,
                     $judges,
                     $status,
-                    $scaleType
+                    $scaleType,
+                    $createdAt
                 );
             }
         }
@@ -873,12 +908,13 @@ class DemoMarketplaceSeeder extends Seeder
         array $evaluators,
         array $judges,
         int $status,
-        string $scaleType
+        string $scaleType,
+        Carbon $evalCreatedAt
     ): void {
         $gradeRange = match($scaleType) {
-            'binary'  => [0, 1],
-            'detail'  => [0, 4],
-            default   => [0, 3], // graded
+            'binary' => [0, 1],
+            'detail' => [0, 4],
+            default => [0, 3], // graded
         };
 
         // Create N feedback slots per snapshot (based on feedback strategy, 1-2)
@@ -886,7 +922,10 @@ class DemoMarketplaceSeeder extends Seeder
 
         for ($slot = 0; $slot < $slotCount; $slot++) {
             $isFinished = $status === SearchEvaluation::STATUS_FINISHED;
-            $isActive   = $status === SearchEvaluation::STATUS_ACTIVE;
+
+            // Feedback timestamps relative to evaluation creation
+            $feedbackCreatedAt = $evalCreatedAt->copy()->addHours(rand(1, 72));
+            $feedbackUpdatedAt = $feedbackCreatedAt->copy()->addMinutes(rand(0, 60 * 24));
 
             // Human feedback (50% of slots for evaluators)
             $useHuman = !empty($evaluators) && (rand(0, 1) === 1 || ($isFinished && rand(0, 100) < 80));
@@ -900,13 +939,13 @@ class DemoMarketplaceSeeder extends Seeder
                 $reason    = $graded && rand(0, 1) ? $this->fakeReason($grade, $gradeRange[1]) : null;
 
                 DB::table('user_feedbacks')->insert([
-                    'user_id'            => $evaluator->id,
-                    'judge_id'           => null,
+                    'user_id' => $evaluator->id,
+                    'judge_id' => null,
                     'search_snapshot_id' => $snapshot->id,
-                    'grade'              => $grade,
-                    'reason'             => $reason,
-                    'created_at'         => now()->subDays(rand(0, 90)),
-                    'updated_at'         => now()->subDays(rand(0, 30)),
+                    'grade' => $grade,
+                    'reason' => $reason,
+                    'created_at' => $feedbackCreatedAt,
+                    'updated_at' => $feedbackUpdatedAt,
                 ]);
             } elseif ($useJudge) {
                 $judge  = $judges[array_rand($judges)];
@@ -914,24 +953,24 @@ class DemoMarketplaceSeeder extends Seeder
                 $grade  = $graded ? rand($gradeRange[0], $gradeRange[1]) : null;
 
                 DB::table('user_feedbacks')->insert([
-                    'user_id'            => null,
-                    'judge_id'           => $judge->id,
+                    'user_id' => null,
+                    'judge_id' => $judge->id,
                     'search_snapshot_id' => $snapshot->id,
-                    'grade'              => $grade,
-                    'reason'             => null,
-                    'created_at'         => now()->subDays(rand(0, 60)),
-                    'updated_at'         => now()->subDays(rand(0, 20)),
+                    'grade' => $grade,
+                    'reason' => null,
+                    'created_at' => $feedbackCreatedAt,
+                    'updated_at' => $feedbackUpdatedAt,
                 ]);
             } else {
                 // Ungraded / unassigned slot
                 DB::table('user_feedbacks')->insert([
-                    'user_id'            => null,
-                    'judge_id'           => null,
+                    'user_id' => null,
+                    'judge_id' => null,
                     'search_snapshot_id' => $snapshot->id,
-                    'grade'              => null,
-                    'reason'             => null,
-                    'created_at'         => now()->subDays(rand(0, 120)),
-                    'updated_at'         => now()->subDays(rand(0, 60)),
+                    'grade' => null,
+                    'reason' => null,
+                    'created_at' => $feedbackCreatedAt,
+                    'updated_at' => $feedbackCreatedAt,
                 ]);
             }
         }
@@ -955,9 +994,9 @@ class DemoMarketplaceSeeder extends Seeder
 
             $rows[] = [
                 'evaluation_metric_id' => $metric->id,
-                'value'                => $value,
-                'created_at'           => $ts,
-                'updated_at'           => $ts,
+                'value' => $value,
+                'created_at' => $ts,
+                'updated_at' => $ts,
             ];
         }
 
@@ -988,28 +1027,28 @@ class DemoMarketplaceSeeder extends Seeder
                 $ts      = $baseDate->copy()->addMinutes(rand(0, 60 * 72));
 
                 $rows[] = [
-                    'judge_id'              => $judge->id,
-                    'team_id'               => $teamId,
-                    'search_evaluation_id'  => $evaluation->id,
-                    'provider'              => $judge->provider,
-                    'model'                 => $judge->model_name,
-                    'http_status_code'      => $success ? 200 : $this->pickRandom([400, 429, 500, 503], 1)[0],
-                    'request_url'           => 'https://api.' . $judge->provider . '.com/v1/chat/completions',
-                    'request_body'          => json_encode([
-                        'model'       => $judge->model_name,
-                        'messages'    => [['role' => 'user', 'content' => '[seeded prompt]']],
+                    'judge_id' => $judge->id,
+                    'team_id' => $teamId,
+                    'search_evaluation_id' => $evaluation->id,
+                    'provider' => $judge->provider,
+                    'model' => $judge->model_name,
+                    'http_status_code' => $success ? 200 : $this->pickRandom([400, 429, 500, 503], 1)[0],
+                    'request_url' => 'https://api.' . $judge->provider . '.com/v1/chat/completions',
+                    'request_body' => json_encode([
+                        'model' => $judge->model_name,
+                        'messages' => [['role' => 'user', 'content' => '[seeded prompt]']],
                         'temperature' => 0.0,
                     ]),
-                    'response_body'         => $success ? json_encode(['choices' => [['message' => ['content' => '[seeded response]']]]]) : null,
-                    'error_message'         => $success ? null : 'Rate limit exceeded or server error',
-                    'latency_ms'            => $success ? $latency : null,
-                    'prompt_tokens'         => $success ? $prompt : null,
-                    'completion_tokens'     => $success ? $compl : null,
-                    'total_tokens'          => $success ? ($prompt + $compl) : null,
-                    'batch_size'            => rand(1, 10),
-                    'scale_type'            => $scaleType,
-                    'created_at'            => $ts,
-                    'updated_at'            => $ts,
+                    'response_body' => $success ? json_encode(['choices' => [['message' => ['content' => '[seeded response]']]]]) : null,
+                    'error_message' => $success ? null : 'Rate limit exceeded or server error',
+                    'latency_ms' => $success ? $latency : null,
+                    'prompt_tokens' => $success ? $prompt : null,
+                    'completion_tokens' => $success ? $compl : null,
+                    'total_tokens' => $success ? ($prompt + $compl) : null,
+                    'batch_size' => rand(1, 10),
+                    'scale_type' => $scaleType,
+                    'created_at' => $ts,
+                    'updated_at' => $ts,
                 ];
             }
 
@@ -1024,29 +1063,26 @@ class DemoMarketplaceSeeder extends Seeder
     // Helpers
     // -------------------------------------------------------------------------
 
-    /**
-     * Run callable with all model observers disabled.
-     */
-    private function withoutObservers(callable $callback): void
-    {
-        // We run the callback normally; events that fire synchronously are
-        // harmless in a seeding context (no queue workers = no async side-effects).
-        // For SearchSnapshot we call ::withoutEvents() explicitly where needed.
-        $callback();
-    }
-
     private function calcProgress(int $status): float
     {
         return match($status) {
             SearchEvaluation::STATUS_FINISHED => 100.0,
-            SearchEvaluation::STATUS_ACTIVE   => round(rand(10, 85), 2),
-            default                           => 0.0,
+            SearchEvaluation::STATUS_ACTIVE => rand(1000, 8500) / 100,
+            default => 0.0,
         };
     }
 
     /**
-     * Pick $n random unique elements from $array.
+     * Generate a deterministic admin name by index.
      */
+    private function pickAdminName(int $index): string
+    {
+        $firstNames = ['James', 'Laura', 'Thomas', 'Sarah', 'Michael', 'Julia', 'David', 'Nina'];
+        $lastNames = ['Anderson', 'Clarke', 'Thompson', 'Walker', 'Harris', 'Lewis', 'Hall', 'Young'];
+
+        return $firstNames[($index - 1) % count($firstNames)] . ' ' . $lastNames[($index - 1) % count($lastNames)];
+    }
+
     private function pickRandom(array $array, int $n): array
     {
         if ($n >= count($array)) {
@@ -1113,13 +1149,13 @@ class DemoMarketplaceSeeder extends Seeder
             $brand    = $brands[array_rand($brands)];
             $category = $categories[array_rand($categories)];
             $products[] = [
-                'id'       => 'DEMO-' . str_pad((string)$i, 6, '0', STR_PAD_LEFT),
-                'name'     => $brand . ' ' . $this->fakeProductName($category) . ' Pro ' . chr(65 + ($i % 26)) . rand(100, 999),
-                'image'    => 'https://cdn.demo-marketplace.com/products/' . $i . '.jpg',
-                'price'    => round(rand(49, 9999) + rand(0, 99) / 100, 2),
-                'brand'    => $brand,
+                'id' => 'DEMO-' . str_pad((string)$i, 6, '0', STR_PAD_LEFT),
+                'name' => $brand . ' ' . $this->fakeProductName($category) . ' Pro ' . chr(65 + ($i % 26)) . rand(100, 999),
+                'image' => 'https://cdn.demo-marketplace.com/products/' . $i . '.jpg',
+                'price' => round(rand(49, 9999) + rand(0, 99) / 100, 2),
+                'brand' => $brand,
                 'category' => $category,
-                'sku'      => strtoupper(Str::random(3)) . '-' . rand(10000, 99999),
+                'sku' => strtoupper(Str::random(3)) . '-' . rand(10000, 99999),
             ];
         }
 
@@ -1129,15 +1165,15 @@ class DemoMarketplaceSeeder extends Seeder
     private function fakeProductName(string $category): string
     {
         $names = [
-            'Cooking Equipment'  => ['Combi Oven', 'Salamander Grill', 'Deep Fryer', 'Induction Hob', 'Oven'],
-            'Refrigeration'      => ['Chest Freezer', 'Display Fridge', 'Blast Chiller', 'Cold Room Unit'],
-            'Dishwashing'        => ['Rack Washer', 'Undercounter Washer', 'Flight Dishwasher'],
-            'Food Preparation'   => ['Food Processor', 'Meat Slicer', 'Vacuum Sealer', 'Spiral Mixer'],
+            'Cooking Equipment' => ['Combi Oven', 'Salamander Grill', 'Deep Fryer', 'Induction Hob', 'Oven'],
+            'Refrigeration' => ['Chest Freezer', 'Display Fridge', 'Blast Chiller', 'Cold Room Unit'],
+            'Dishwashing' => ['Rack Washer', 'Undercounter Washer', 'Flight Dishwasher'],
+            'Food Preparation' => ['Food Processor', 'Meat Slicer', 'Vacuum Sealer', 'Spiral Mixer'],
             'Beverage Equipment' => ['Espresso Machine', 'Beer Tap', 'Juice Extractor', 'Coffee Grinder'],
-            'Tableware'          => ['Dinner Set', 'Cutlery Set', 'Wine Glass', 'Serving Dish'],
-            'Disposables'        => ['Takeaway Box', 'Paper Bag', 'Food Container', 'Packaging Roll'],
-            'Furniture'          => ['Dining Chair', 'Folding Table', 'Bar Stool', 'Outdoor Set'],
-            'Hotel Supplies'     => ['Linen Set', 'Towel Bundle', 'Mattress Cover', 'Amenity Kit'],
+            'Tableware' => ['Dinner Set', 'Cutlery Set', 'Wine Glass', 'Serving Dish'],
+            'Disposables' => ['Takeaway Box', 'Paper Bag', 'Food Container', 'Packaging Roll'],
+            'Furniture' => ['Dining Chair', 'Folding Table', 'Bar Stool', 'Outdoor Set'],
+            'Hotel Supplies' => ['Linen Set', 'Towel Bundle', 'Mattress Cover', 'Amenity Kit'],
         ];
 
         $opts = $names[$category] ?? ['Product'];
