@@ -4,13 +4,64 @@ The Administration section is available to **Super Admins** only. It provides pl
 
 Super Admin access is indicated by a **Super Admin** badge next to the user's name in the Users list.
 
+## Dashboard
+
+The Platform Dashboard (`Administration → Dashboard`) provides an at-a-glance overview of the entire platform's activity and health.
+
+### Overview Cards
+
+Four summary cards at the top show all-time platform totals (not affected by the period selector):
+
+- **Users** — total registered users and how many are currently online.
+- **Feedback** — total graded feedbacks with AI judge contribution count.
+- **Evaluations** — total evaluations and how many are currently active.
+- **AI Judges** — active judges and number of distinct LLM providers.
+
+### Period Selector
+
+A dropdown below the overview cards lets you choose the time range for all charts and breakdowns below: **7 days**, **30 days** (default), or **90 days**.
+
+### Activity Charts
+
+Two time-series charts filtered by the selected period:
+
+- **New Users** — bar chart of user registrations per day.
+- **Feedback** — line chart of graded feedbacks per day.
+
+### Evaluations Breakdown
+
+Three widgets filtered by the selected period:
+
+- **Metrics Distribution** — doughnut chart of which metric types are most used (e.g., nDCG@10, P@20).
+- **Evaluations by Scale** — doughnut chart breakdown by grading scale (Binary, Graded, Detail).
+- **Feedback Sources** — doughnut chart of human vs. AI judge feedback ratio.
+
+### Judge Monitoring
+
+All judge monitoring widgets are filtered by the selected period:
+
+- **AI Judge Success Rate by Provider** — stacked bar chart of successful/failed API calls per LLM provider.
+- **Avg Latency** — line chart of average judge API response time per day.
+- **Token Usage** — summary cards for total tokens consumed, average per request, and top provider.
+
+### Top Lists
+
+These lists show all-time data (not affected by the period selector):
+
+- **Most Active Teams** — ranked by number of evaluations, with member count.
+- **Recent Evaluations** — latest evaluations with status and progress indicators.
+
 ## Users
 
 The Users page (`Administration → Users`) gives full visibility and control over all registered users across the platform.
 
-### Search
+### Search & Filters
 
-Use the search box to find users by name or email.
+Use the search box to find users by name or email. Three filter groups are available:
+
+- **Role** — All / Super Admin / Regular.
+- **Verified** — All / Verified (green checkmark icon) / Not Verified (red exclamation icon).
+- **Online** — All / Online (green dot) / Offline (grey dot).
 
 ### Create User
 
@@ -34,8 +85,8 @@ Each user row has a context menu (three-dot icon) with the following actions:
 
 The **Verified** column shows whether a user has verified their email:
 
-- A **blue badge** with a timestamp indicates a verified email.
-- A **red "Not verified"** button allows you to manually verify the user's email with one click (requires confirmation).
+- A **green checkmark** circle icon with a timestamp indicates a verified email.
+- A **red exclamation** circle icon allows you to manually verify the user's email with one click (requires confirmation).
 
 ## Settings
 

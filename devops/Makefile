@@ -37,6 +37,14 @@ vite-prod:
 seed:
 	docker compose run --rm artisan migrate:fresh --seed
 
+migrate:
+	docker compose run --rm artisan migrate
+
+seed-demo:
+	docker compose run --rm artisan migrate:fresh --force
+	docker compose run --rm artisan db:seed --force
+	docker compose run --rm artisan db:seed --class=DemoMarketplaceSeeder --force
+
 docs:
 	docker compose run --rm -p 3001:3001 npm --prefix docs-site run docs:dev
 

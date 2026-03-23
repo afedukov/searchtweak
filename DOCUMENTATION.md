@@ -709,6 +709,22 @@ Custom Fortify `LogoutResponse` that terminates the IdP session on logout for OI
 - `SSO_ENABLED` (`sso.enabled`) — toggle SSO on/off
 - `SSO_ONLY_MODE` (`sso.only_mode`) — hide email/password form, require SSO (fallback via `?fallback=1`)
 
+### 7.10 Superuser Dashboard (`app/Services/Superuser/DashboardService`)
+
+Aggregates platform-wide statistics for the Super Admin dashboard. Methods accepting `$days` are filtered by the selected period (7/30/90 days); methods without `$days` return all-time data. Results for `getTokenUsageStats` and `getJudgeSuccessRateByProvider` are cached for 5 minutes.
+
+- `getOverviewStats()` — all-time: users (total + online), feedback counts (graded + judge), evaluations (total + by status), AI judges (active + providers)
+- `getUserRegistrations(int $days)` — new user registrations by date
+- `getFeedbacksGraded(int $days)` — graded feedbacks by date
+- `getMetricsDistribution(int $days)` — evaluation metric type usage (e.g., nDCG@10, P@20)
+- `getEvaluationsByScale(int $days)` — evaluations grouped by scale type
+- `getFeedbackStats(int $days)` — graded/human/judge feedback counts
+- `getJudgeSuccessRateByProvider(int $days)` — success/failed counts per LLM provider (cached)
+- `getAvgLatencyByDay(int $days)` — average judge API latency by date
+- `getTokenUsageStats(int $days)` — total tokens, avg per request, top provider (cached)
+- `getTopTeams(int $limit)` — all-time: most active teams by evaluation count
+- `getRecentEvaluations(int $limit)` — all-time: latest evaluations with status and progress
+
 ---
 
 ## 8. Actions
@@ -894,6 +910,7 @@ API requests require an `Authorization: Bearer {token}` header. Tokens are manag
 | `/leaderboard` | `Leaderboard` | Evaluator leaderboard |
 | `/teams` | `Teams` | Team management |
 | `/teams/current` | `CurrentTeam` | Team settings |
+| `/admin/dashboard` | `Superuser\Dashboard` | Platform dashboard with stats & charts |
 | `/admin/users` | `Users` | Superuser admin panel |
 | `/admin/settings` | `Settings` | Superuser settings (auth, SSO) |
 | `/user/profile` | `UserProfile` | User profile settings |
@@ -916,6 +933,7 @@ API requests require an `Authorization: Bearer {token}` header. Tokens are manag
 | `Feedbacks` | Admin view of all feedback activity |
 | `Leaderboard` | Rankings with `All | Users | Judges` modes and mixed dataset charting |
 | `Teams` | Team listing and creation |
+| `Superuser\Dashboard` | Platform-wide dashboard: overview cards, activity charts (users, feedback), evaluations breakdown (metrics distribution, by scale, feedback sources), judge monitoring (success rate, latency, token usage), top teams, recent evaluations |
 | `CurrentTeam` | Team settings, members, invitations, baseline |
 | `TeamMemberManager` | Add/remove team members, change roles |
 | `TeamsDropdown` | Team switcher dropdown in navbar |
@@ -1248,6 +1266,7 @@ make bootstrap-up # Safe bootstrap: composer install, key generate, migrate --se
 make bootstrap-fresh # Explicit destructive bootstrap (same as make bootstrap)
 make test       # Clear config cache and run tests
 make seed       # Reset database with fresh migrations and seeders
+make seed-demo  # Reset DB + default seeders + DemoMarketplaceSeeder
 make jobs       # Start Horizon (queue worker)
 make queue-reload # Reload Horizon in running queue container (horizon:terminate)
 make reverb     # Start Reverb (WebSocket server)
@@ -1273,6 +1292,18 @@ The `make seed`, `make bootstrap`, and `make bootstrap-fresh` commands run seede
 3. **JudgeSeeder** — Creates 3 LLM judges (OpenAI gpt-4o, Anthropic Claude Sonnet, Google Gemini Flash)
 
 Default login: `admin@searchtweak.com` / `12345678`
+
+#### Demo Dataset
+
+`make seed-demo` runs a fresh migration, default seeders, and then the **DemoMarketplaceSeeder** which populates the database with a large realistic dataset:
+- 4 teams (DE, FR, IT, ES markets), each with 1 owner + 2-3 admins + 4-6 evaluators
+- 2-3 search endpoints and 3-5 search models per team
+- 3-5 AI judges per team (OpenAI, Anthropic, Google, DeepSeek, Mistral)
+- 3-5 evaluations per model (mix of Pending, Active, Finished, Archived) with keywords, snapshots, feedbacks, and metrics
+- Thousands of judge logs with latency, tokens, and status data
+- Tags assigned to evaluations, models, judges, and users
+
+The DemoMarketplaceSeeder includes a production guard and will refuse to run when `APP_ENV=production`.
 
 ### 21.6 Helper Docker Commands
 
