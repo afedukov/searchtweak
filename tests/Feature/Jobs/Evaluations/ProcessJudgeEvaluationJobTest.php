@@ -167,6 +167,47 @@ class ProcessJudgeEvaluationJobTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_job_releases_claimed_and_redispatches_with_backoff_on_llm_failure(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-02-19 12:00:00'));
+
+        [, $evaluation, $snapshot, $judge] = $this->createEvaluationSetup();
+
+        $handler = new class(Mockery::mock(ClientInterface::class)) extends AbstractJudgeHandler {
+            public function grade(Judge $judge, string $prompt, array $validGrades): array
+            {
+                throw new \RuntimeException('Simulated LLM failure');
+            }
+        };
+
+        $factory = Mockery::mock(JudgeHandlerFactory::class);
+        $factory->shouldReceive('create')->andReturn($handler);
+
+        Bus::fake();
+
+        (new ProcessJudgeEvaluationJob($evaluation->id))->handle($factory);
+
+        // All slots released back to the pool (judge_id = null, grade = null).
+        $snapshotFeedbacks = UserFeedback::query()
+            ->where(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $snapshot->id)
+            ->get();
+        $this->assertSame(3, $snapshotFeedbacks->whereNull(UserFeedback::FIELD_JUDGE_ID)->count());
+        $this->assertSame(3, $snapshotFeedbacks->whereNull(UserFeedback::FIELD_GRADE)->count());
+
+        // Re-dispatched with base backoff delay and incremented retry attempt.
+        Bus::assertDispatched(ProcessJudgeEvaluationJob::class, function (ProcessJudgeEvaluationJob $job) use ($evaluation) {
+            $reflection = new \ReflectionClass($job);
+            $attempt = $reflection->getProperty('llmRetryAttempt')->getValue($job);
+
+            return $job->uniqueId() === (string) $evaluation->id
+                && $attempt === 1
+                && $job->delay instanceof \DateTimeInterface
+                && Carbon::instance($job->delay)->equalTo(now()->addSeconds(30));
+        });
+
+        Carbon::setTestNow();
+    }
+
     public function test_single_judge_claims_only_one_slot_per_snapshot_even_with_large_batch_size(): void
     {
         [, $evaluation, $snapshot, $judge] = $this->createEvaluationSetup();
