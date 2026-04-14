@@ -169,8 +169,13 @@ class ReuseStrategyService
         }
 
         if ($feedback->judge_id !== null) {
-            return $feedback->judge !== null
-                && $feedback->judge->tags->pluck(Tag::FIELD_ID)->diff($evaluationTags)->isEmpty();
+            if ($feedback->judge === null || $feedback->judge->tags->isEmpty()) {
+                return false;
+            }
+            // Mirror Judge::matchesEvaluation: judge must cover ALL evaluation tags.
+            return collect($evaluationTags)
+                ->diff($feedback->judge->tags->pluck(Tag::FIELD_ID))
+                ->isEmpty();
         }
 
         return false;

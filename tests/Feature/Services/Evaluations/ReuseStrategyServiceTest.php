@@ -1241,4 +1241,216 @@ class ReuseStrategyServiceTest extends TestCase
         $this->assertSame(BinaryScale::IRRELEVANT, $feedback->grade);
         $this->assertSame('second', $feedback->reason);
     }
+
+    /**
+     * Mirrors Judge::matchesEvaluation: a judge with a strict subset of evaluation tags
+     * would be rejected at runtime, so its historical grades must not be reused either.
+     */
+    public function test_reuse_rejects_judge_with_strict_subset_of_evaluation_tags(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $tagA = \App\Models\Tag::factory()->create(['team_id' => $team->id]);
+        $tagB = \App\Models\Tag::factory()->create(['team_id' => $team->id]);
+
+        // Judge has only [A] but evaluation requires [A, B].
+        $judgePartial = Judge::factory()->create([
+            Judge::FIELD_USER_ID => $user->id,
+            Judge::FIELD_TEAM_ID => $team->id,
+        ]);
+        $judgePartial->tags()->attach($tagA->id);
+
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+        ]);
+        $oldKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'headphones',
+        ]);
+        $oldSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-hp',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_JUDGE_ID => $judgePartial->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $newEval->tags()->attach([$tagA->id, $tagB->id]);
+
+        $newKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'headphones',
+        ]);
+        $newSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-hp',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+
+        $this->service->apply($newEval);
+
+        $feedback = UserFeedback::query()
+            ->where(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $newSnapshot->id)
+            ->first();
+
+        $this->assertNotNull($feedback);
+        $this->assertNull($feedback->judge_id, 'Judge with only a subset of evaluation tags must not be reused.');
+        $this->assertNull($feedback->grade);
+    }
+
+    /**
+     * A judge carrying extra tags beyond the evaluation's tags still covers all required tags
+     * and must be eligible for reuse — same as at runtime.
+     */
+    public function test_reuse_accepts_judge_with_superset_of_evaluation_tags(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $tagA = \App\Models\Tag::factory()->create(['team_id' => $team->id]);
+        $tagB = \App\Models\Tag::factory()->create(['team_id' => $team->id]);
+        $tagC = \App\Models\Tag::factory()->create(['team_id' => $team->id]);
+
+        // Judge has [A, B, C]; evaluation requires [A, B].
+        $judgeSuper = Judge::factory()->create([
+            Judge::FIELD_USER_ID => $user->id,
+            Judge::FIELD_TEAM_ID => $team->id,
+        ]);
+        $judgeSuper->tags()->attach([$tagA->id, $tagB->id, $tagC->id]);
+
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+        ]);
+        $oldKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'speaker',
+        ]);
+        $oldSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-spk',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_JUDGE_ID => $judgeSuper->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+            UserFeedback::FIELD_REASON => 'Superset judge',
+        ]);
+
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $newEval->tags()->attach([$tagA->id, $tagB->id]);
+
+        $newKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'speaker',
+        ]);
+        $newSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-spk',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+
+        $this->service->apply($newEval);
+
+        $feedback = UserFeedback::query()
+            ->where(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $newSnapshot->id)
+            ->first();
+
+        $this->assertNotNull($feedback);
+        $this->assertSame($judgeSuper->id, $feedback->judge_id);
+        $this->assertSame(BinaryScale::RELEVANT, $feedback->grade);
+    }
+
+    /**
+     * An untagged judge is rejected at runtime for any tagged evaluation (Judge.php:240-242).
+     * Reuse must not bypass that rule.
+     */
+    public function test_reuse_rejects_untagged_judge_for_tagged_evaluation(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $tagA = \App\Models\Tag::factory()->create(['team_id' => $team->id]);
+
+        $judgeNoTags = Judge::factory()->create([
+            Judge::FIELD_USER_ID => $user->id,
+            Judge::FIELD_TEAM_ID => $team->id,
+        ]);
+
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+        ]);
+        $oldKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'monitor',
+        ]);
+        $oldSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-mon',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+            UserFeedback::FIELD_USER_ID => null,
+            UserFeedback::FIELD_JUDGE_ID => $judgeNoTags->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $newEval->tags()->attach($tagA->id);
+
+        $newKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'monitor',
+        ]);
+        $newSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-mon',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+
+        $this->service->apply($newEval);
+
+        $feedback = UserFeedback::query()
+            ->where(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $newSnapshot->id)
+            ->first();
+
+        $this->assertNotNull($feedback);
+        $this->assertNull($feedback->judge_id, 'Untagged judge must not be reused for a tagged evaluation.');
+        $this->assertNull($feedback->grade);
+    }
 }
