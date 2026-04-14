@@ -11,7 +11,7 @@ use App\Services\Evaluations\UserFeedbackService;
 use App\Services\Judges\JudgeHandlerFactory;
 use App\Services\Scorers\Scales\ScaleFactory;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
+class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -30,11 +30,20 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
      */
     private const int MAX_RUN_SECONDS = 250;
 
+    /**
+     * Transient LLM failure retry parameters. Delay is $BASE_BACKOFF_SECONDS * 2^retry, capped.
+     */
+    private const int MAX_LLM_RETRY_ATTEMPTS = 5;
+    private const int BASE_BACKOFF_SECONDS = 30;
+    private const int MAX_BACKOFF_SECONDS = 600;
+
     public int $timeout = 300;
     public int $tries = 3;
 
-    public function __construct(private readonly int $evaluationId)
-    {
+    public function __construct(
+        private readonly int $evaluationId,
+        private readonly int $llmRetryAttempt = 0,
+    ) {
         $this->onQueue('judges');
     }
 
@@ -112,6 +121,7 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
 
             // Round-robin: each judge processes one batch per cycle
             $processedInCycle = 0;
+            $llmFailureOccurred = false;
             foreach ($judges as $judge) {
                 // Re-check evaluation status
                 $evaluation->refresh();
@@ -120,15 +130,15 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 }
 
                 try {
-                    $processed = $this->processJudgeBatch(
+                    $processedInCycle += $this->processJudgeBatch(
                         $evaluation,
                         $judge,
                         $handlerFactory,
                         $validGrades,
                         $snapshotIds,
                     );
-                    $processedInCycle += $processed;
                 } catch (\Throwable $e) {
+                    $llmFailureOccurred = true;
                     Log::error(sprintf(
                         'ProcessJudgeEvaluationJob: judge %d (%s) failed for evaluation %d: %s',
                         $judge->id,
@@ -139,11 +149,23 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 }
             }
 
-            // No progress this cycle — check for human-locked feedbacks before stopping
+            // No progress this cycle
             if ($processedInCycle === 0) {
                 if ($this->redispatchIfHumanLockedFeedbacksExist($snapshotIds)) {
                     return;
                 }
+
+                // Transient LLM failure: re-dispatch with exponential backoff.
+                // (Zero progress without exceptions means work is exhausted — just return.)
+                if ($llmFailureOccurred && $this->llmRetryAttempt < self::MAX_LLM_RETRY_ATTEMPTS) {
+                    $delaySeconds = min(
+                        self::BASE_BACKOFF_SECONDS * (2 ** $this->llmRetryAttempt),
+                        self::MAX_BACKOFF_SECONDS,
+                    );
+                    self::dispatch($this->evaluationId, $this->llmRetryAttempt + 1)
+                        ->delay(now()->addSeconds($delaySeconds));
+                }
+
                 return;
             }
         }
@@ -235,7 +257,7 @@ class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUnique
                 ->grade($judge, $prompt, $validGrades);
         } catch (\Throwable $e) {
             $this->releaseClaimed($claimed);
-            return 0;
+            throw $e;
         }
 
         // Apply grades

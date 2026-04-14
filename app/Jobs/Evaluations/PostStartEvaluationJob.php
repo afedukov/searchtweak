@@ -8,16 +8,18 @@ use App\Models\Judge;
 use App\Models\SearchEvaluation;
 use App\Services\Evaluations\ReuseStrategyService;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class PostStartEvaluationJob implements ShouldQueue, ShouldBeUnique
+class PostStartEvaluationJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
 
     /**
      * Create a new job instance.
