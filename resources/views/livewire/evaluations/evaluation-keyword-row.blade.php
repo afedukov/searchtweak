@@ -1,42 +1,45 @@
-<tbody x-data="{
-	expand: $persist(false).as('keyword-expanded-@js($keyword->id)'),
-	keywordCopied: false,
-	copyKeyword() {
-		const value = {{ Js::from($keyword->keyword) }};
-		const onSuccess = () => {
-			this.keywordCopied = true;
-			setTimeout(() => this.keywordCopied = false, 1500);
-		};
-		if (navigator.clipboard && window.isSecureContext) {
-			navigator.clipboard.writeText(value).then(onSuccess);
-			return;
-		}
-		const ta = document.createElement('textarea');
-		ta.value = value;
-		ta.style.position = 'fixed';
-		ta.style.opacity = '0';
-		document.body.appendChild(ta);
-		ta.select();
-		document.execCommand('copy');
-		document.body.removeChild(ta);
-		onSuccess();
-	}
-}">
+<tbody>
 	<tr
-			:class="expand ? 'bg-gray-50 dark:bg-gray-700' : 'bg-white dark:bg-gray-800'"
-			class="cursor-pointer border-b last:border-0 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-			@click.prevent="expand = !expand"
+			wire:key="keyword-row-main-{{ $keyword->id }}"
+			wire:click="toggleExpanded"
+			@class([
+				'cursor-pointer border-b last:border-0 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600',
+				'bg-gray-50 dark:bg-gray-700' => $expanded,
+				'bg-white dark:bg-gray-800' => !$expanded,
+			])
 	>
 		<td class="px-6 py-4 text-center">
-			<!-- Collapse/Expand Row Button -->
+			<!-- Collapse/Expand Row Indicator -->
 			<div class="flex items-center cursor-pointer">
-				<svg class="w-3 h-3 shrink-0" :class="expand ? 'rotate-180': 'rotate-90'" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+				<svg @class(['w-3 h-3 shrink-0', 'rotate-180' => $expanded, 'rotate-90' => !$expanded]) aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
 					<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5 5 1 1 5"/>
 				</svg>
 			</div>
 		</td>
 		<th scope="row" class="px-6 py-4 min-w-32 sm:min-w-64 font-semibold text-gray-900 dark:text-white">
-			<div class="relative inline-flex items-center">
+			<div class="relative inline-flex items-center" x-data="{
+				keywordCopied: false,
+				copyKeyword() {
+					const value = {{ Js::from($keyword->keyword) }};
+					const onSuccess = () => {
+						this.keywordCopied = true;
+						setTimeout(() => this.keywordCopied = false, 1500);
+					};
+					if (navigator.clipboard && window.isSecureContext) {
+						navigator.clipboard.writeText(value).then(onSuccess);
+						return;
+					}
+					const ta = document.createElement('textarea');
+					ta.value = value;
+					ta.style.position = 'fixed';
+					ta.style.opacity = '0';
+					document.body.appendChild(ta);
+					ta.select();
+					document.execCommand('copy');
+					document.body.removeChild(ta);
+					onSuccess();
+				}
+			}">
 				{{ $keyword->keyword }}
 				<button
 					type="button"
@@ -77,9 +80,11 @@
 			</div>
 		</td>
 	</tr>
-	<tr x-show="expand" x-cloak>
-		<td colspan="3" class="p-0 m-0">
-			<x-evaluations.keyword-expanded :evaluation="$evaluation" :keyword="$keyword" />
-		</td>
-	</tr>
+	@if ($expanded)
+		<tr wire:key="keyword-row-expanded-{{ $keyword->id }}">
+			<td colspan="3" class="p-0 m-0">
+				<x-evaluations.keyword-expanded :evaluation="$evaluation" :keyword="$keyword" />
+			</td>
+		</tr>
+	@endif
 </tbody>

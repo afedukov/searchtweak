@@ -24,7 +24,7 @@ class EvaluationKeywordMetric extends Component
 
     public function render(): View
     {
-        $value = $this->metric->keywordMetrics->firstWhere(KeywordMetric::FIELD_EVALUATION_KEYWORD_ID, $this->keyword->id)?->value ?? null;
+        $value = $this->keyword->keywordMetrics->firstWhere(KeywordMetric::FIELD_EVALUATION_METRIC_ID, $this->metric->id)?->value ?? null;
 
         return view('livewire.evaluations.evaluation-keyword-metric', [
             'scorer' => $this->metric->getScorer(),

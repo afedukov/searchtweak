@@ -6,6 +6,7 @@ use App\DTO\OrderBy;
 use App\Livewire\Traits\Evaluations\BaselineEvaluationTrait;
 use App\Livewire\Traits\Evaluations\EditEvaluationModalTrait;
 use App\Livewire\Traits\Evaluations\ExportEvaluationTrait;
+use App\Livewire\Widgets\EvaluationMetricWidget;
 use App\Livewire\Widgets\EvaluationWidget;
 use App\Models\EvaluationKeyword;
 use App\Models\KeywordMetric;
@@ -51,7 +52,7 @@ class Evaluation extends Component
             ->load([
                 'user',
                 'model.team',
-                'metrics.keywordMetrics',
+                'metrics',
                 'model.tags',
                 'tags',
             ]);
@@ -68,6 +69,13 @@ class Evaluation extends Component
             ->where(UserWidget::FIELD_SETTINGS . '->id', $this->evaluation->id)
             ->exists();
 
+        $attachedMetricIds = Auth::user()->widgets()
+            ->where(UserWidget::FIELD_WIDGET_CLASS, EvaluationMetricWidget::class)
+            ->pluck(UserWidget::FIELD_SETTINGS)
+            ->map(fn ($settings) => (int) ($settings['id'] ?? 0))
+            ->filter()
+            ->all();
+
         $query = $this->evaluation
             ->keywordsUnordered()
             ->when($this->query, fn (Builder $query) =>
@@ -83,6 +91,7 @@ class Evaluation extends Component
 
         return view('livewire.pages.evaluation', [
             'attached' => $attached,
+            'attachedMetricIds' => $attachedMetricIds,
             'keywords' => $keywords,
             'baselineValues' => $this->getBaselineValues($keywords->items()),
         ])->title($this->evaluation->name);
@@ -101,10 +110,13 @@ class Evaluation extends Component
 
         $baselineValues = [];
 
-        $this->baseline->load('keywords.keywordMetrics.metric');
+        $keywordTexts = array_map(fn (EvaluationKeyword $k) => $k->keyword, $keywords);
 
         $baselineKeywords = $this->baseline
-            ->keywords
+            ->keywords()
+            ->whereIn(EvaluationKeyword::FIELD_KEYWORD, $keywordTexts)
+            ->with('keywordMetrics.metric')
+            ->get()
             ->keyBy(EvaluationKeyword::FIELD_KEYWORD);
 
         foreach ($keywords as $keyword) {
