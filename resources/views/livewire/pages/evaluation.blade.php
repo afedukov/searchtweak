@@ -48,7 +48,7 @@
 
 				<!-- Metrics -->
 				@foreach ($evaluation->metrics as $metric)
-					<livewire:evaluations.metric-card :metric="$metric" :keywords-count="$keywords->total()" key="metric-card-{{ $metric->id }}" />
+					<livewire:evaluations.metric-card :metric="$metric" :keywords-count="$keywords->total()" :attached="in_array($metric->id, $attachedMetricIds)" key="metric-card-{{ $metric->id }}" />
 				@endforeach
 
 			</div>

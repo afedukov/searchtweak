@@ -18,11 +18,18 @@ class EvaluationKeywordRow extends Component
      */
     public array $baselineValues = [];
 
+    public bool $expanded = false;
+
     protected function getListeners(): array
     {
         return [
             sprintf('echo-private:search-evaluation.%s,.evaluation.status.changed', $this->evaluation->id) => '$refresh',
         ];
+    }
+
+    public function toggleExpanded(): void
+    {
+        $this->expanded = !$this->expanded;
     }
 
     public function render(): View

@@ -5,8 +5,6 @@ namespace App\Livewire\Evaluations;
 use App\Livewire\Traits\ControlWidgetTrait;
 use App\Livewire\Widgets\EvaluationMetricWidget;
 use App\Models\EvaluationMetric;
-use App\Models\UserWidget;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Component;
 
@@ -17,11 +15,15 @@ use Livewire\Component;
  */
 class MetricCard extends Component
 {
-    use ControlWidgetTrait;
+    use ControlWidgetTrait {
+        attach as protected baseAttach;
+    }
 
     public EvaluationMetric $metric;
 
     public int $keywordsCount = 1;
+
+    public bool $attached = false;
 
     public function getWidgetClass(): string
     {
@@ -33,20 +35,21 @@ class MetricCard extends Component
         return $this->metric->id;
     }
 
+    public function attach(): void
+    {
+        $this->baseAttach();
+        $this->attached = !$this->attached;
+    }
+
     public function render(): View
     {
         $scorer = $this->metric->getScorer();
-
-        $attached = Auth::user()->widgets()
-            ->where(UserWidget::FIELD_WIDGET_CLASS, EvaluationMetricWidget::class)
-            ->where(UserWidget::FIELD_SETTINGS . '->id', $this->metric->id)
-            ->exists();
 
         return view('livewire.evaluations.metric-card', [
             'name' => $scorer->getDisplayName($this->metric->num_results, $this->keywordsCount),
             'description' => $scorer->getBriefDescription($this->keywordsCount),
             'scaleType' => $scorer->getScale()->getType(),
-            'attached' => $attached,
+            'attached' => $this->attached,
         ]);
     }
 }

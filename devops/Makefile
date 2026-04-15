@@ -45,6 +45,9 @@ seed-demo:
 	docker compose run --rm artisan db:seed --force
 	docker compose run --rm artisan db:seed --class=DemoMarketplaceSeeder --force
 
+seed-heavy:
+	docker compose run --rm artisan app:seed-heavy-evaluation --model=2 --keywords=300 --snapshots=40 --feedbacks=3 --scale=graded
+
 docs:
 	docker compose run --rm -p 3001:3001 npm --prefix docs-site run docs:dev
 
