@@ -74,14 +74,30 @@ curl --request GET \
       }
     ],
     "keywords": [
-      "kühlschrank",
-      "mini fridge"
+      {
+        "keyword": "kühlschrank",
+        "metrics": [
+          { "scorer_type": "precision", "num_results": 10, "value": 0.80 },
+          { "scorer_type": "ndcg", "num_results": 10, "value": null }
+        ]
+      },
+      {
+        "keyword": "mini fridge",
+        "metrics": [
+          { "scorer_type": "precision", "num_results": 10, "value": 0.64 },
+          { "scorer_type": "ndcg", "num_results": 10, "value": null }
+        ]
+      }
     ],
     "created_at": "2026-02-20T09:10:00+00:00",
     "finished_at": null
   }
 ]
 ```
+
+::: tip Per-keyword metrics
+`keywords[].metrics` has the same shape as the top-level `metrics` ([details](/api/get-evaluation-details#per-keyword-metrics)). With a large number of evaluations and keywords the response can become heavy; if you don't need the breakdown, rely on the aggregated `metrics` only.
+:::
 
 ## Error Responses
 
