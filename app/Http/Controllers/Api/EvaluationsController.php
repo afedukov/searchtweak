@@ -37,7 +37,7 @@ class EvaluationsController
         $team = Auth::guard('api')->user();
 
         $evaluations = SearchEvaluation::team($team->id)
-            ->with('metrics')
+            ->with(['metrics', 'keywords.keywordMetrics'])
             ->when($request->has('model_id'), fn (Builder $query) =>
                 $query->where(SearchEvaluation::FIELD_MODEL_ID, $request->get('model_id'))
             )
@@ -63,7 +63,7 @@ class EvaluationsController
     public function show(int $id): EvaluationResource
     {
         $evaluation = $this->getEvaluation($id)
-            ->load('metrics');
+            ->load(['metrics', 'keywords.keywordMetrics']);
 
         return new EvaluationResource($evaluation);
     }
@@ -234,7 +234,7 @@ class EvaluationsController
         app(SyncMetricsService::class)->sync($evaluation, $request->get('metrics'));
         app(SyncTagsService::class)->syncTags($evaluation, $request->get('tags') ?? []);
 
-        return new EvaluationResource($evaluation->load('metrics'));
+        return new EvaluationResource($evaluation->load(['metrics', 'keywords.keywordMetrics']));
     }
 
     /**

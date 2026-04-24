@@ -57,6 +57,11 @@ curl --request GET \
       "scorer_type": "precision",
       "num_results": 10,
       "value": 0.72
+    },
+    {
+      "scorer_type": "ndcg",
+      "num_results": 10,
+      "value": 0.81
     }
   ],
   "tags": [
@@ -66,13 +71,29 @@ curl --request GET \
     }
   ],
   "keywords": [
-    "kühlschrank",
-    "mini fridge"
+    {
+      "keyword": "kühlschrank",
+      "metrics": [
+        { "scorer_type": "precision", "num_results": 10, "value": 0.80 },
+        { "scorer_type": "ndcg", "num_results": 10, "value": 0.85 }
+      ]
+    },
+    {
+      "keyword": "mini fridge",
+      "metrics": [
+        { "scorer_type": "precision", "num_results": 10, "value": 0.64 },
+        { "scorer_type": "ndcg", "num_results": 10, "value": null }
+      ]
+    }
   ],
   "created_at": "2026-02-20T09:10:00+00:00",
   "finished_at": null
 }
 ```
+
+### Per-keyword metrics
+
+`keywords[].metrics` follows the same contract as the top-level `metrics`: the `(scorer_type, num_results)` pairs match and appear in the same order for every keyword. `value` is the metric calculated for that single keyword (not an aggregate across all of them). If the value for a `(keyword, metric)` pair has not been computed yet (for example, the evaluation is still `pending` or no feedback has arrived), `value` is `null`.
 
 ## Error Responses
 

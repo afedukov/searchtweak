@@ -5,6 +5,7 @@ namespace Tests\Feature\Http\Controllers\Api;
 use App\Models\EvaluationKeyword;
 use App\Models\EvaluationMetric;
 use App\Models\Judge;
+use App\Models\KeywordMetric;
 use App\Models\SearchEndpoint;
 use App\Models\SearchEvaluation;
 use App\Models\SearchModel;
@@ -18,6 +19,7 @@ use App\Services\Scorers\Scales\GradedScale;
 use Laravel\Sanctum\Sanctum;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class EvaluationsControllerTest extends TestCase
@@ -102,7 +104,7 @@ class EvaluationsControllerTest extends TestCase
             ],
         ]);
 
-        EvaluationMetric::factory()->create([
+        $metric = EvaluationMetric::factory()->create([
             EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
             EvaluationMetric::FIELD_SCORER_TYPE => 'precision',
             EvaluationMetric::FIELD_NUM_RESULTS => 5,
@@ -112,6 +114,12 @@ class EvaluationsControllerTest extends TestCase
         $keyword = EvaluationKeyword::factory()->create([
             EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
             EvaluationKeyword::FIELD_KEYWORD => 'kettle',
+        ]);
+
+        KeywordMetric::create([
+            KeywordMetric::FIELD_EVALUATION_KEYWORD_ID => $keyword->id,
+            KeywordMetric::FIELD_EVALUATION_METRIC_ID => $metric->id,
+            KeywordMetric::FIELD_VALUE => 0.75,
         ]);
 
         $tag = Tag::factory()->create([
@@ -136,7 +144,7 @@ class EvaluationsControllerTest extends TestCase
                 'settings',
                 'metrics' => [['scorer_type', 'num_results', 'value']],
                 'tags' => [['id', 'name']],
-                'keywords',
+                'keywords' => [['keyword', 'metrics' => [['scorer_type', 'num_results', 'value']]]],
                 'created_at',
                 'finished_at',
             ])
@@ -155,7 +163,10 @@ class EvaluationsControllerTest extends TestCase
             ->assertJsonPath('metrics.0.value', null)
             ->assertJsonPath('tags.0.id', $tag->id)
             ->assertJsonPath('tags.0.name', 'API')
-            ->assertJsonPath('keywords.0', $keyword->keyword);
+            ->assertJsonPath('keywords.0.keyword', $keyword->keyword)
+            ->assertJsonPath('keywords.0.metrics.0.scorer_type', 'precision')
+            ->assertJsonPath('keywords.0.metrics.0.num_results', 5)
+            ->assertJsonPath('keywords.0.metrics.0.value', 0.75);
     }
 
     public function test_store_creates_evaluation(): void
@@ -202,7 +213,7 @@ class EvaluationsControllerTest extends TestCase
                 'settings',
                 'metrics' => [['scorer_type', 'num_results', 'value']],
                 'tags' => [['id', 'name']],
-                'keywords',
+                'keywords' => [['keyword', 'metrics']],
                 'created_at',
                 'finished_at',
             ])
@@ -226,8 +237,16 @@ class EvaluationsControllerTest extends TestCase
             ->assertJsonPath('metrics.1.value', null)
             ->assertJsonPath('tags.0.id', $tag->id)
             ->assertJsonPath('tags.0.name', 'API')
-            ->assertJsonPath('keywords.0', 'keyword1')
-            ->assertJsonPath('keywords.1', 'keyword2');
+            ->assertJsonPath('keywords.0.keyword', 'keyword1')
+            ->assertJsonPath('keywords.0.metrics.0.scorer_type', 'precision')
+            ->assertJsonPath('keywords.0.metrics.0.num_results', 5)
+            ->assertJsonPath('keywords.0.metrics.0.value', null)
+            ->assertJsonPath('keywords.0.metrics.1.scorer_type', 'ap')
+            ->assertJsonPath('keywords.0.metrics.1.num_results', 10)
+            ->assertJsonPath('keywords.0.metrics.1.value', null)
+            ->assertJsonPath('keywords.1.keyword', 'keyword2')
+            ->assertJsonPath('keywords.1.metrics.0.value', null)
+            ->assertJsonPath('keywords.1.metrics.1.value', null);
 
         $this->assertDatabaseHas('search_evaluations', [
             'name' => 'New Evaluation',
@@ -466,5 +485,132 @@ class EvaluationsControllerTest extends TestCase
                 'position' => 1,
                 'doc' => 'doc-1',
             ]);
+    }
+
+    public function test_show_includes_per_keyword_metrics(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $evaluation = SearchEvaluation::factory()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+        ]);
+
+        $precision = EvaluationMetric::factory()->create([
+            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationMetric::FIELD_SCORER_TYPE => 'precision',
+            EvaluationMetric::FIELD_NUM_RESULTS => 10,
+            EvaluationMetric::FIELD_VALUE => 0.85,
+        ]);
+
+        $ndcg = EvaluationMetric::factory()->create([
+            EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationMetric::FIELD_SCORER_TYPE => 'ndcg',
+            EvaluationMetric::FIELD_NUM_RESULTS => 10,
+            EvaluationMetric::FIELD_VALUE => 0.92,
+        ]);
+
+        $kw1 = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'freidora',
+        ]);
+
+        $kw2 = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'microondas',
+        ]);
+
+        // kw1: both values present
+        KeywordMetric::create([
+            KeywordMetric::FIELD_EVALUATION_KEYWORD_ID => $kw1->id,
+            KeywordMetric::FIELD_EVALUATION_METRIC_ID => $precision->id,
+            KeywordMetric::FIELD_VALUE => 0.954,
+        ]);
+        KeywordMetric::create([
+            KeywordMetric::FIELD_EVALUATION_KEYWORD_ID => $kw1->id,
+            KeywordMetric::FIELD_EVALUATION_METRIC_ID => $ndcg->id,
+            KeywordMetric::FIELD_VALUE => 0.971,
+        ]);
+
+        // kw2: only precision; ndcg missing → expected null in response
+        KeywordMetric::create([
+            KeywordMetric::FIELD_EVALUATION_KEYWORD_ID => $kw2->id,
+            KeywordMetric::FIELD_EVALUATION_METRIC_ID => $precision->id,
+            KeywordMetric::FIELD_VALUE => 0.5,
+        ]);
+
+        $this->authenticate($team);
+
+        $response = $this->getJson("/api/v1/evaluations/{$evaluation->id}");
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'keywords')
+            ->assertJsonPath('keywords.0.keyword', 'freidora')
+            ->assertJsonCount(2, 'keywords.0.metrics')
+            ->assertJsonPath('keywords.0.metrics.0.scorer_type', 'precision')
+            ->assertJsonPath('keywords.0.metrics.0.num_results', 10)
+            ->assertJsonPath('keywords.0.metrics.0.value', 0.95)
+            ->assertJsonPath('keywords.0.metrics.1.scorer_type', 'ndcg')
+            ->assertJsonPath('keywords.0.metrics.1.num_results', 10)
+            ->assertJsonPath('keywords.0.metrics.1.value', 0.97)
+            ->assertJsonPath('keywords.1.keyword', 'microondas')
+            ->assertJsonCount(2, 'keywords.1.metrics')
+            ->assertJsonPath('keywords.1.metrics.0.scorer_type', 'precision')
+            ->assertJsonPath('keywords.1.metrics.0.value', 0.5)
+            ->assertJsonPath('keywords.1.metrics.1.scorer_type', 'ndcg')
+            ->assertJsonPath('keywords.1.metrics.1.value', null);
+    }
+
+    public function test_show_does_not_have_n_plus_one_for_keyword_metrics(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $evaluation = SearchEvaluation::factory()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+        ]);
+
+        $metrics = collect(['precision', 'ap', 'ndcg'])->map(fn (string $type) =>
+            EvaluationMetric::factory()->create([
+                EvaluationMetric::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+                EvaluationMetric::FIELD_SCORER_TYPE => $type,
+                EvaluationMetric::FIELD_NUM_RESULTS => 10,
+            ])
+        );
+
+        for ($i = 0; $i < 8; $i++) {
+            $keyword = EvaluationKeyword::factory()->create([
+                EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
+                EvaluationKeyword::FIELD_KEYWORD => "kw-{$i}",
+            ]);
+
+            foreach ($metrics as $metric) {
+                KeywordMetric::create([
+                    KeywordMetric::FIELD_EVALUATION_KEYWORD_ID => $keyword->id,
+                    KeywordMetric::FIELD_EVALUATION_METRIC_ID => $metric->id,
+                    KeywordMetric::FIELD_VALUE => 0.5,
+                ]);
+            }
+        }
+
+        $this->authenticate($team);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $response = $this->getJson("/api/v1/evaluations/{$evaluation->id}");
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $response->assertOk()
+            ->assertJsonCount(8, 'keywords');
+
+        $this->assertLessThan(8, count($queries), sprintf(
+            'Expected query count to not scale with keyword count, got %d:%s%s',
+            count($queries),
+            PHP_EOL,
+            collect($queries)->pluck('query')->implode(PHP_EOL),
+        ));
     }
 }

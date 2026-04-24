@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Models\EvaluationKeyword;
 use App\Models\SearchEvaluation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,7 +31,9 @@ class EvaluationResource extends JsonResource
             'settings' => $evaluation->settings,
             'metrics' => MetricResource::collection($evaluation->metrics),
             'tags' => TagResource::collection($evaluation->tags),
-            'keywords' => $evaluation->keywords->pluck(EvaluationKeyword::FIELD_KEYWORD)->all(),
+            'keywords' => $evaluation->keywords
+                ->map(fn ($keyword) => new KeywordResource($keyword, $evaluation->metrics))
+                ->all(),
             'created_at' => $evaluation->created_at->toIso8601String(),
             'finished_at' => $evaluation->finished_at?->toIso8601String(),
         ];
