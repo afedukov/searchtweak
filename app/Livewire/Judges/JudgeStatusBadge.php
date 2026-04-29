@@ -57,7 +57,6 @@ class JudgeStatusBadge extends Component
             ->where(UserFeedback::FIELD_JUDGE_ID, $judgeId)
             ->whereNull(UserFeedback::FIELD_GRADE)
             ->whereHas('snapshot.keyword.evaluation', fn ($query) => $query->active())
-            ->whereHas('snapshot.keyword.evaluation.model', fn ($query) => $query->where('team_id', $this->teamId))
             ->exists();
     }
 
@@ -72,7 +71,6 @@ class JudgeStatusBadge extends Component
     private function hasError(): bool
     {
         $lastLog = JudgeLog::query()
-            ->where(JudgeLog::FIELD_TEAM_ID, $this->teamId)
             ->where(JudgeLog::FIELD_JUDGE_ID, $this->judgeId)
             ->latest(JudgeLog::FIELD_ID)
             ->first();
