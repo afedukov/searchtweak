@@ -3,6 +3,7 @@
 namespace Tests\Feature\Services\Evaluations;
 
 use App\Jobs\Evaluations\ProcessJudgeEvaluationJob;
+use App\Jobs\Evaluations\RecalculateMetricsJob;
 use App\Models\EvaluationKeyword;
 use App\Models\EvaluationMetric;
 use App\Models\Judge;
@@ -13,11 +14,14 @@ use App\Models\SearchSnapshot;
 use App\Models\User;
 use App\Models\UserFeedback;
 use App\Services\Evaluations\ReuseStrategyService;
+use App\Services\Evaluations\UserFeedbackService;
 use App\Services\Judges\AbstractJudgeHandler;
 use App\Services\Judges\JudgeHandlerFactory;
 use App\Services\Scorers\Scales\BinaryScale;
 use GuzzleHttp\ClientInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Mockery;
 use Tests\TestCase;
 
@@ -1453,4 +1457,280 @@ class ReuseStrategyServiceTest extends TestCase
         $this->assertNull($feedback->judge_id, 'Untagged judge must not be reused for a tagged evaluation.');
         $this->assertNull($feedback->grade);
     }
+
+    /**
+     * Cross-team isolation: a feedback from another team's finished evaluation
+     * must NOT enter the reuse pool, even if keyword + doc_id match.
+     */
+    public function test_does_not_reuse_feedback_from_other_team(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        // Build a parallel team with its own user/endpoint/model and a finished evaluation
+        // carrying graded feedback for the same keyword + doc_id.
+        $otherUser = User::factory()->withPersonalTeam()->create();
+        $otherTeam = $otherUser->currentTeam;
+        $otherEndpoint = SearchEndpoint::factory()->create([
+            SearchEndpoint::FIELD_USER_ID => $otherUser->id,
+            SearchEndpoint::FIELD_TEAM_ID => $otherTeam->id,
+        ]);
+        $otherModel = SearchModel::factory()->create([
+            SearchModel::FIELD_USER_ID => $otherUser->id,
+            SearchModel::FIELD_TEAM_ID => $otherTeam->id,
+            SearchModel::FIELD_ENDPOINT_ID => $otherEndpoint->id,
+        ]);
+
+        $otherEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $otherUser->id,
+            SearchEvaluation::FIELD_MODEL_ID => $otherModel->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $otherKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $otherEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'shared-keyword',
+        ]);
+        $otherSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $otherKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'shared-doc',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $otherSnapshot->id,
+            UserFeedback::FIELD_USER_ID => $otherUser->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        // Current team's evaluation expecting the same query/doc — must NOT pick up the other team's grade.
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $newKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'shared-keyword',
+        ]);
+        $newSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'shared-doc',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        $feedback = UserFeedback::query()
+            ->where(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $newSnapshot->id)
+            ->first();
+
+        $this->service->apply($newEval);
+
+        $feedback->refresh();
+        $this->assertNull($feedback->user_id, 'Other team\'s feedback must not leak across team boundary.');
+        $this->assertNull($feedback->judge_id);
+        $this->assertNull($feedback->grade);
+    }
+
+    /**
+     * RecalculateMetricsJob is dispatched only for keywords whose feedbacks
+     * were actually updated — keywords with no reuse hits must NOT trigger it.
+     */
+    public function test_dispatches_recalculate_metrics_only_for_updated_keywords(): void
+    {
+        Bus::fake();
+
+        [$user, $team, $model] = $this->createSetup();
+
+        // Source: graded feedback exists only for keyword 'matched', not for 'unmatched'.
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $oldKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'matched',
+        ]);
+        $oldSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-1',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        $grader = User::factory()->create();
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+            UserFeedback::FIELD_USER_ID => $grader->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        // New eval with two keywords; only 'matched' should trigger recalculation.
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $matchedKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'matched',
+        ]);
+        SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $matchedKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-1',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        $unmatchedKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'unmatched',
+        ]);
+        SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $unmatchedKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-1',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+
+        $this->service->apply($newEval);
+
+        Bus::assertDispatchedTimes(RecalculateMetricsJob::class, 1);
+        Bus::assertDispatched(
+            RecalculateMetricsJob::class,
+            fn (RecalculateMetricsJob $job) => (int) $job->uniqueId() === $matchedKeyword->id,
+        );
+    }
+
+    /**
+     * When at least one feedback is actually reused, the team's
+     * ungraded-snapshots-count cache must be flushed so evaluators see updated counters.
+     */
+    public function test_flushes_ungraded_snapshots_cache_when_updates_happen(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $cacheTag = UserFeedbackService::getUngradedSnapshotsCountCacheTag($team->id);
+        $sentinelKey = 'reuse-test-sentinel';
+        Cache::tags($cacheTag)->put($sentinelKey, 'present', 300);
+        $this->assertSame('present', Cache::tags($cacheTag)->get($sentinelKey));
+
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $oldKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'cache-key',
+        ]);
+        $oldSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-cache',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        $grader = User::factory()->create();
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+            UserFeedback::FIELD_USER_ID => $grader->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $newKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'cache-key',
+        ]);
+        SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-cache',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+
+        $this->service->apply($newEval);
+
+        $this->assertNull(
+            Cache::tags($cacheTag)->get($sentinelKey),
+            'Ungraded-snapshots cache for the team must be flushed after reuse updates.',
+        );
+    }
+
+    /**
+     * Keyword text matching must be exact — strings differing only by case
+     * must not collide. Locks in current behavior so a future SQL-based
+     * rewrite cannot silently introduce case-insensitive matching.
+     */
+    public function test_keyword_text_matching_is_exact_and_case_sensitive(): void
+    {
+        [$user, $team, $model] = $this->createSetup();
+
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $oldKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'LAPTOP',
+        ]);
+        $oldSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-case',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        $grader = User::factory()->create();
+        UserFeedback::factory()->create([
+            UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+            UserFeedback::FIELD_USER_ID => $grader->id,
+            UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+        ]);
+
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+        $newKeyword = EvaluationKeyword::factory()->create([
+            EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+            EvaluationKeyword::FIELD_KEYWORD => 'laptop',
+        ]);
+        $newSnapshot = SearchSnapshot::factory()->create([
+            SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+            SearchSnapshot::FIELD_DOC_ID => 'doc-case',
+            SearchSnapshot::FIELD_POSITION => 1,
+        ]);
+        $feedback = UserFeedback::query()
+            ->where(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $newSnapshot->id)
+            ->first();
+
+        $this->service->apply($newEval);
+
+        $feedback->refresh();
+        $this->assertNull($feedback->user_id, '"laptop" must not match grades stored under "LAPTOP".');
+        $this->assertNull($feedback->grade);
+    }
+
 }

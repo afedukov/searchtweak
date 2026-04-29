@@ -12,7 +12,7 @@ use App\Services\Judges\JudgeHandlerFactory;
 use App\Services\Scorers\Scales\ScaleFactory;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ProcessJudgeEvaluationJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
+class ProcessJudgeEvaluationJob implements ShouldBeUniqueUntilProcessing, ShouldQueueAfterCommit
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
