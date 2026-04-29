@@ -1733,4 +1733,85 @@ class ReuseStrategyServiceTest extends TestCase
         $this->assertNull($feedback->grade);
     }
 
+    /**
+     * Reuse processes the current eval's keywords in fixed-size chunks
+     * (KEYWORD_CHUNK_SIZE = 10) to bound peak memory. This test crosses the
+     * chunk boundary with 15 keywords (1 full chunk + 1 partial) to make sure
+     * a future regression cannot silently break chunking — every keyword must
+     * still end up reused and metric-recalc-dispatched.
+     */
+    public function test_reuse_processes_correctly_across_chunks(): void
+    {
+        Bus::fake();
+
+        [$user, $team, $model] = $this->createSetup();
+
+        $oldEval = SearchEvaluation::factory()->finished()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+
+        $newEval = SearchEvaluation::factory()->active()->create([
+            SearchEvaluation::FIELD_USER_ID => $user->id,
+            SearchEvaluation::FIELD_MODEL_ID => $model->id,
+            SearchEvaluation::FIELD_SCALE_TYPE => BinaryScale::SCALE_TYPE,
+            SearchEvaluation::FIELD_SETTINGS => [
+                SearchEvaluation::SETTING_REUSE_STRATEGY => SearchEvaluation::REUSE_STRATEGY_QUERY_DOC,
+                SearchEvaluation::SETTING_FEEDBACK_STRATEGY => 1,
+            ],
+        ]);
+
+        $grader = User::factory()->create();
+        $newSnapshots = [];
+        $keywordCount = 15;
+
+        for ($i = 1; $i <= $keywordCount; $i++) {
+            $keywordText = sprintf('chunk-keyword-%02d', $i);
+            $docId = sprintf('chunk-doc-%02d', $i);
+
+            $oldKeyword = EvaluationKeyword::factory()->create([
+                EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $oldEval->id,
+                EvaluationKeyword::FIELD_KEYWORD => $keywordText,
+            ]);
+            $oldSnapshot = SearchSnapshot::factory()->create([
+                SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $oldKeyword->id,
+                SearchSnapshot::FIELD_DOC_ID => $docId,
+                SearchSnapshot::FIELD_POSITION => 1,
+            ]);
+            UserFeedback::factory()->create([
+                UserFeedback::FIELD_SEARCH_SNAPSHOT_ID => $oldSnapshot->id,
+                UserFeedback::FIELD_USER_ID => $grader->id,
+                UserFeedback::FIELD_GRADE => BinaryScale::RELEVANT,
+            ]);
+
+            $newKeyword = EvaluationKeyword::factory()->create([
+                EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $newEval->id,
+                EvaluationKeyword::FIELD_KEYWORD => $keywordText,
+            ]);
+            $newSnapshots[] = SearchSnapshot::factory()->create([
+                SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID => $newKeyword->id,
+                SearchSnapshot::FIELD_DOC_ID => $docId,
+                SearchSnapshot::FIELD_POSITION => 1,
+            ]);
+        }
+
+        $this->service->apply($newEval);
+
+        // Every chunk's keyword should have been processed: each new feedback
+        // is now graded and one RecalculateMetricsJob per keyword was dispatched.
+        foreach ($newSnapshots as $newSnapshot) {
+            $feedback = UserFeedback::query()
+                ->where(UserFeedback::FIELD_SEARCH_SNAPSHOT_ID, $newSnapshot->id)
+                ->first();
+            $this->assertNotNull($feedback);
+            $this->assertSame($grader->id, $feedback->user_id);
+            $this->assertSame(BinaryScale::RELEVANT, $feedback->grade);
+        }
+
+        Bus::assertDispatchedTimes(RecalculateMetricsJob::class, $keywordCount);
+    }
 }
