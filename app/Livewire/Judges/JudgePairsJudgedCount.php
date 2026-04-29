@@ -23,7 +23,6 @@ class JudgePairsJudgedCount extends Component
         $count = UserFeedback::query()
             ->where(UserFeedback::FIELD_JUDGE_ID, $this->judgeId)
             ->whereNotNull(UserFeedback::FIELD_GRADE)
-            ->whereHas('snapshot.keyword.evaluation.model', fn ($query) => $query->where('team_id', $this->teamId))
             ->count();
 
         return view('livewire.judges.judge-pairs-judged-count', [

@@ -3,6 +3,7 @@
 namespace App\Jobs\Evaluations;
 
 use App\Actions\Evaluations\StartSearchEvaluation;
+use App\Jobs\Concerns\ReleasesEvaluationBlock;
 use App\Models\SearchEvaluation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class StartEvaluationJob implements ShouldQueue, ShouldBeUnique
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, ReleasesEvaluationBlock, SerializesModels;
 
     /**
      * Create a new job instance.

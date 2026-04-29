@@ -3,6 +3,7 @@
 namespace App\Jobs\Evaluations;
 
 use App\Actions\Evaluations\PauseSearchEvaluation;
+use App\Jobs\Concerns\ReleasesEvaluationBlock;
 use App\Models\SearchEvaluation;
 use Exception;
 use Illuminate\Bus\Queueable;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 class PauseEvaluationJob implements ShouldQueue, ShouldBeUnique
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, ReleasesEvaluationBlock, SerializesModels;
 
     /**
      * Create a new job instance.

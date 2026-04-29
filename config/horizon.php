@@ -217,6 +217,19 @@ return [
             'timeout' => 300,
             'nice' => 0,
         ],
+        'supervisor-4' => [
+            'connection' => 'redis',
+            'queue' => ['evaluations-heavy'],
+            'balance' => 'simple',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 512,
+            'tries' => 1,
+            'timeout' => 550,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -238,6 +251,11 @@ return [
                 'minProcesses' => (int) env('HORIZON_SUPERVISOR_3_MIN', 2),
                 'maxProcesses' => (int) env('HORIZON_SUPERVISOR_3_MAX', 2),
             ],
+            'supervisor-4' => [
+                'balance' => 'simple',
+                'minProcesses' => 1,
+                'maxProcesses' => 2,
+            ],
         ],
 
         'local' => [
@@ -255,6 +273,11 @@ return [
                 'balance' => 'simple',
                 'minProcesses' => (int) env('HORIZON_SUPERVISOR_3_MIN', 2),
                 'maxProcesses' => (int) env('HORIZON_SUPERVISOR_3_MAX', 2),
+            ],
+            'supervisor-4' => [
+                'balance' => 'simple',
+                'minProcesses' => 1,
+                'maxProcesses' => 2,
             ],
         ],
     ],
