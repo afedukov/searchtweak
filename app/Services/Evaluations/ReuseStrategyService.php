@@ -15,6 +15,13 @@ use Illuminate\Support\Facades\DB;
 
 class ReuseStrategyService
 {
+    /**
+     * Number of current-eval keywords processed per pool-build round. Bounds peak
+     * memory: each round only loads its own keywords' snapshots/feedbacks and only
+     * pulls the team-history pool slice for that keyword subset.
+     */
+    private const int KEYWORD_CHUNK_SIZE = 10;
+
     public function apply(SearchEvaluation $evaluation): void
     {
         $strategy = $evaluation->getReuseStrategy();
@@ -22,88 +29,102 @@ class ReuseStrategyService
             throw new \InvalidArgumentException('Invalid reuse strategy');
         }
 
-        $evaluation->load('model', 'tags', 'keywords.snapshots.feedbacks');
+        $evaluation->load('model', 'tags');
 
         $teamId = $evaluation->model->team_id;
-
-        $keywords = $evaluation->keywords
-            ->pluck(EvaluationKeyword::FIELD_KEYWORD)
-            ->all();
-
         $evaluationTags = $evaluation->tags->modelKeys();
 
-        $pool = $this->buildPool($evaluation, $teamId, $keywords, $strategy, $evaluationTags);
+        $anyUpdated = false;
 
-        foreach ($evaluation->keywords as $keyword) {
-            $updated = false;
+        $evaluation->keywords()
+            ->orderBy(EvaluationKeyword::FIELD_ID)
+            ->chunkById(self::KEYWORD_CHUNK_SIZE, function (Collection $keywordChunk) use ($evaluation, $teamId, $strategy, $evaluationTags, &$anyUpdated) {
+                $keywordChunk->load('snapshots.feedbacks');
 
-            foreach ($keyword->snapshots as $snapshot) {
-                $userIds = $snapshot->feedbacks
-                    ->whereNotNull(UserFeedback::FIELD_GRADE)
-                    ->whereNotNull(UserFeedback::FIELD_USER_ID)
-                    ->pluck(UserFeedback::FIELD_USER_ID)
-                    ->all();
-                $judgeIds = $snapshot->feedbacks
-                    ->whereNotNull(UserFeedback::FIELD_GRADE)
-                    ->whereNotNull(UserFeedback::FIELD_JUDGE_ID)
-                    ->pluck(UserFeedback::FIELD_JUDGE_ID)
-                    ->all();
+                $chunkKeywordTexts = $keywordChunk->pluck(EvaluationKeyword::FIELD_KEYWORD)->all();
+                $pool = $this->buildPool($evaluation, $teamId, $chunkKeywordTexts, $strategy, $evaluationTags);
 
-                $feedbackPool = [];
-
-                if ($strategy === SearchEvaluation::REUSE_STRATEGY_QUERY_DOC) {
-                    $feedbackPool = $pool[$keyword->keyword][$snapshot->doc_id] ?? [];
-                }
-
-                if ($strategy === SearchEvaluation::REUSE_STRATEGY_QUERY_DOC_POSITION) {
-                    $feedbackPool = $pool[$keyword->keyword][$snapshot->doc_id][$snapshot->position] ?? [];
-                }
-
-                foreach ($snapshot->feedbacks as $feedback) {
-                    if ($feedback->grade !== null || $feedback->user_id !== null || $feedback->judge_id !== null) {
-                        continue;
+                foreach ($keywordChunk as $keyword) {
+                    if ($this->applyKeywordReuse($keyword, $pool, $strategy)) {
+                        $anyUpdated = true;
                     }
-
-                    $feedbackPool = array_values(array_filter($feedbackPool, function (array $f) use ($userIds, $judgeIds) {
-                        $userId = $f[UserFeedback::FIELD_USER_ID] ?? null;
-                        $judgeId = $f[UserFeedback::FIELD_JUDGE_ID] ?? null;
-
-                        if ($userId !== null) {
-                            return !in_array($userId, $userIds, true);
-                        }
-
-                        if ($judgeId !== null) {
-                            return !in_array($judgeId, $judgeIds, true);
-                        }
-
-                        return false;
-                    }));
-
-                    $reuseFeedback = array_pop($feedbackPool);
-                    if ($reuseFeedback === null) {
-                        break;
-                    }
-
-                    $feedback->user_id = $reuseFeedback[UserFeedback::FIELD_USER_ID] ?? null;
-                    $feedback->judge_id = $reuseFeedback[UserFeedback::FIELD_JUDGE_ID] ?? null;
-                    $feedback->reason = $reuseFeedback[UserFeedback::FIELD_REASON] ?? null;
-                    $feedback->grade = $reuseFeedback[UserFeedback::FIELD_GRADE];
-                    $feedback->saveQuietly();
-
-                    $updated = true;
-
-                    $userIds[] = $feedback->user_id;
-                    $judgeIds[] = $feedback->judge_id;
                 }
+            });
+
+        if ($anyUpdated) {
+            UserFeedbackService::flushUngradedSnapshotsCountCache($teamId);
+        }
+    }
+
+    private function applyKeywordReuse(EvaluationKeyword $keyword, array $pool, int $strategy): bool
+    {
+        $updated = false;
+
+        foreach ($keyword->snapshots as $snapshot) {
+            $userIds = $snapshot->feedbacks
+                ->whereNotNull(UserFeedback::FIELD_GRADE)
+                ->whereNotNull(UserFeedback::FIELD_USER_ID)
+                ->pluck(UserFeedback::FIELD_USER_ID)
+                ->all();
+            $judgeIds = $snapshot->feedbacks
+                ->whereNotNull(UserFeedback::FIELD_GRADE)
+                ->whereNotNull(UserFeedback::FIELD_JUDGE_ID)
+                ->pluck(UserFeedback::FIELD_JUDGE_ID)
+                ->all();
+
+            $feedbackPool = [];
+
+            if ($strategy === SearchEvaluation::REUSE_STRATEGY_QUERY_DOC) {
+                $feedbackPool = $pool[$keyword->keyword][$snapshot->doc_id] ?? [];
             }
 
-            if ($updated) {
-                RecalculateMetricsJob::dispatch($keyword->id);
+            if ($strategy === SearchEvaluation::REUSE_STRATEGY_QUERY_DOC_POSITION) {
+                $feedbackPool = $pool[$keyword->keyword][$snapshot->doc_id][$snapshot->position] ?? [];
+            }
 
-                // Flush ungraded snapshots count cache for the whole team
-                UserFeedbackService::flushUngradedSnapshotsCountCache($teamId);
+            foreach ($snapshot->feedbacks as $feedback) {
+                if ($feedback->grade !== null || $feedback->user_id !== null || $feedback->judge_id !== null) {
+                    continue;
+                }
+
+                $feedbackPool = array_values(array_filter($feedbackPool, function (array $f) use ($userIds, $judgeIds) {
+                    $userId = $f[UserFeedback::FIELD_USER_ID] ?? null;
+                    $judgeId = $f[UserFeedback::FIELD_JUDGE_ID] ?? null;
+
+                    if ($userId !== null) {
+                        return !in_array($userId, $userIds, true);
+                    }
+
+                    if ($judgeId !== null) {
+                        return !in_array($judgeId, $judgeIds, true);
+                    }
+
+                    return false;
+                }));
+
+                $reuseFeedback = array_pop($feedbackPool);
+                if ($reuseFeedback === null) {
+                    break;
+                }
+
+                $feedback->user_id = $reuseFeedback[UserFeedback::FIELD_USER_ID] ?? null;
+                $feedback->judge_id = $reuseFeedback[UserFeedback::FIELD_JUDGE_ID] ?? null;
+                $feedback->reason = $reuseFeedback[UserFeedback::FIELD_REASON] ?? null;
+                $feedback->grade = $reuseFeedback[UserFeedback::FIELD_GRADE];
+                $feedback->saveQuietly();
+
+                $updated = true;
+
+                $userIds[] = $feedback->user_id;
+                $judgeIds[] = $feedback->judge_id;
             }
         }
+
+        if ($updated) {
+            RecalculateMetricsJob::dispatch($keyword->id);
+        }
+
+        return $updated;
     }
 
     /**
