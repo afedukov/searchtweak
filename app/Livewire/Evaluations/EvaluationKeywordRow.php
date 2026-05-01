@@ -24,7 +24,14 @@ class EvaluationKeywordRow extends Component
     {
         return [
             sprintf('echo-private:search-evaluation.%s,.evaluation.status.changed', $this->evaluation->id) => '$refresh',
+            sprintf('echo-private:search-evaluation.%s,.evaluation.keywords.changed', $this->evaluation->id) => 'refreshKeyword',
         ];
+    }
+
+    public function refreshKeyword(): void
+    {
+        $this->keyword = $this->keyword->refresh();
+        $this->evaluation = $this->evaluation->refresh()->load('metrics');
     }
 
     public function toggleExpanded(): void

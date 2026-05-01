@@ -31,6 +31,28 @@
 	<span class="font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
 		{{ $evaluation->created_at->diffForHumans() }}
 	</span>
+	@if ($this->canRerunFailed())
+		<button
+				data-popover-target="evaluation-rerun-failed-{{ $evaluation->id }}"
+				type="button"
+				class="h-7 p-1.5 text-xs font-medium text-center inline-flex items-center text-gray-600 bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 dark:hover:text-white"
+				wire:loading.attr="disabled"
+				@click="
+					$refs.spinner{{ $evaluation->id }}.classList.remove('hidden');
+					$el.classList.add('hidden');
+					$wire.rerunFailedKeywords('{{ $evaluation->id }}')"
+		>
+			<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+				<path d="M105.1 202.6c7.7-21.8 19.5-42.8 35.4-61.7c55-65.1 152.7-73.7 218-18.7l15 12.6l0-41.4c0-17.7 14.3-32 32-32s32 14.3 32 32l0 109.1c0 .2 0 .3 0 .5c0 17.7-14.3 32-32 32l-109.1 0c-17.7 0-32-14.3-32-32s14.3-32 32-32l46.3 0-27.1-22.8c-38.3-32.2-95.6-27.5-128 10.8c-9.3 11-16.1 23.1-20.7 35.7c-5.9 16.6-24.2 25.4-40.8 19.5s-25.4-24.2-19.5-40.8zm300.9 106.8c16.6 5.9 25.4 24.2 19.5 40.8c-7.7 21.8-19.5 42.8-35.4 61.7c-55 65.1-152.7 73.7-218 18.7l-15-12.6l0 41.4c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-109.1c0-.2 0-.3 0-.5c0-17.7 14.3-32 32-32l109.1 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-46.3 0 27.1 22.8c38.3 32.2 95.6 27.5 128-10.8c9.3-11 16.1-23.1 20.7-35.7c5.9-16.6 24.2-25.4 40.8-19.5z"/>
+			</svg>
+			<span class="sr-only">Rerun failed keywords</span>
+		</button>
+		<x-tooltip id="evaluation-rerun-failed-{{ $evaluation->id }}" with-arrow>
+			<span class="whitespace-nowrap">
+				Rerun failed keywords
+			</span>
+		</x-tooltip>
+	@endif
 	<div role="status" x-ref="spinner{{ $evaluation->id }}" @class(['h-7', 'hidden' => !$evaluation->changes_blocked])>
 		<svg aria-hidden="true" class="w-7 h-7 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
 			<path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>

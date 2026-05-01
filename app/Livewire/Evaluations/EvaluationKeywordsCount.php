@@ -14,6 +14,7 @@ class EvaluationKeywordsCount extends Component
     {
         return [
             sprintf('echo-private:search-evaluation.%s,.evaluation.status.changed', $this->evaluation->id) => '$refresh',
+            sprintf('echo-private:search-evaluation.%s,.evaluation.keyword-counts.changed', $this->evaluation->id) => '$refresh',
         ];
     }
 

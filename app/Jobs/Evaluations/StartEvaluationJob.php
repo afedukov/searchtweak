@@ -47,7 +47,7 @@ class StartEvaluationJob implements ShouldQueue, ShouldBeUnique
         } catch (\Throwable $e) {
             Log::error($e->getMessage());
 
-            $evaluation->allowChanges();
+            $evaluation->allowChangesAndNotify();
         }
     }
 

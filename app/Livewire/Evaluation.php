@@ -19,7 +19,7 @@ use Illuminate\View\View;
 use Laravel\Jetstream\RedirectsActions;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Toaster;
+use Masmerise\Toaster\Toaster;
 
 class Evaluation extends Component
 {
@@ -42,6 +42,7 @@ class Evaluation extends Component
     protected function getListeners(): array
     {
         return [
+            sprintf('echo-private:search-evaluation.%d,.SearchEvaluationUpdated', $this->evaluation->id) => 'refreshEvaluation',
             sprintf('echo-private:team.%d,.baseline.evaluation.changed', Auth::user()->current_team_id) => '$refresh',
         ];
     }
@@ -58,6 +59,19 @@ class Evaluation extends Component
             ]);
 
         $this->orderBy = new OrderBy();
+    }
+
+    public function refreshEvaluation(): void
+    {
+        $this->evaluation
+            ->refresh()
+            ->load([
+                'user',
+                'model.team',
+                'metrics',
+                'model.tags',
+                'tags',
+            ]);
     }
 
     public function render(): View

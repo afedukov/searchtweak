@@ -2,10 +2,10 @@
 
 namespace App\Jobs\Evaluations;
 
-use App\Actions\Evaluations\PauseSearchEvaluation;
+use App\Actions\Evaluations\RerunFailedEvaluationKeywords;
+use App\Exceptions\CannotRerunFailedKeywordsException;
 use App\Jobs\Concerns\ReleasesEvaluationBlock;
 use App\Models\SearchEvaluation;
-use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,29 +14,20 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class PauseEvaluationJob implements ShouldQueue, ShouldBeUnique
+class RerunFailedKeywordsJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, ReleasesEvaluationBlock, SerializesModels;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(private readonly int $evaluationId)
     {
     }
 
-    /**
-     * Get the unique ID for the job.
-     */
     public function uniqueId(): string
     {
-        return $this->evaluationId;
+        return (string) $this->evaluationId;
     }
 
-    /**
-     * Execute the job.
-     */
-    public function handle(PauseSearchEvaluation $action): void
+    public function handle(RerunFailedEvaluationKeywords $action): void
     {
         $evaluation = SearchEvaluation::find($this->evaluationId);
         if ($evaluation === null) {
@@ -44,17 +35,21 @@ class PauseEvaluationJob implements ShouldQueue, ShouldBeUnique
         }
 
         try {
-            $action->pause($evaluation);
-        } catch (Exception $e) {
-            Log::error($e->getMessage());
-        } finally {
+            $action->rerun($evaluation);
+        } catch (CannotRerunFailedKeywordsException $e) {
+            Log::warning($e->getMessage());
+
             $evaluation->allowChangesAndNotify();
+        } catch (\Throwable $e) {
+            Log::error($e->getMessage());
+
+            $evaluation->allowChangesAndNotify();
+
+            throw $e;
         }
     }
 
     /**
-     * Get the tags that should be assigned to the job.
-     *
      * @return array<int, string>
      */
     public function tags(): array

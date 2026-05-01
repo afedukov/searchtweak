@@ -14,7 +14,25 @@ Key actions:
 
 - `Start`: creates/runs keyword snapshot jobs.
 - `Stop/Pause`: pauses active execution.
+- `Rerun failed keywords`: retries only keywords that failed during execution.
 - `Finish`: closes evaluation and finalizes state.
+
+## Failed Keywords
+
+If one or more keywords fail while the evaluation is running, SearchTweak tracks
+them separately from successful keywords.
+
+For evaluations that have already started and are still `Pending` or `Active`,
+you can rerun failed keywords from the evaluation control block. The rerun:
+
+- resets only failed keywords
+- deletes their old snapshots and keyword-level metric values
+- keeps successful keywords and their existing feedback untouched
+- retries keyword execution for the failed keywords only
+- keeps a paused `Pending` evaluation paused
+
+After the rerun finishes, the successful/failed keyword counters are refreshed.
+If some keywords still fail, the rerun control remains available.
 
 ## Required Configuration
 

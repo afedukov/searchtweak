@@ -15,7 +15,13 @@ class EvaluationKeywordCountBadge extends Component
     {
         return [
             sprintf('echo-private:search-evaluation.%d,.evaluation.feedback.changed', $this->keyword->search_evaluation_id) => '$refresh',
+            sprintf('echo-private:search-evaluation.%d,.evaluation.keywords.changed', $this->keyword->search_evaluation_id) => 'refreshKeyword',
         ];
+    }
+
+    public function refreshKeyword(): void
+    {
+        $this->keyword = $this->keyword->refresh();
     }
 
     public function render(): View

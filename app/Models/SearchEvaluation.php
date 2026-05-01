@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Events\EvaluationArchivedChangedEvent;
+use App\Events\EvaluationChangesBlockChangedEvent;
+use App\Events\EvaluationKeywordCountsChangedEvent;
 use App\Events\EvaluationProgressChangedEvent;
 use App\Events\EvaluationScaleTypeChangedEvent;
 use App\Events\EvaluationStatusChangedEvent;
@@ -194,6 +196,10 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
                 EvaluationProgressChangedEvent::dispatch($evaluation);
             }
 
+            if ($evaluation->isDirty(self::FIELD_SUCCESSFUL_KEYWORDS) || $evaluation->isDirty(self::FIELD_FAILED_KEYWORDS)) {
+                EvaluationKeywordCountsChangedEvent::dispatch($evaluation);
+            }
+
             if ($evaluation->isDirty(self::FIELD_ARCHIVED)) {
                 UpdatePreviousValuesJob::dispatch($evaluation->model_id, $evaluation->id);
                 EvaluationArchivedChangedEvent::dispatch($evaluation);
@@ -297,11 +303,24 @@ class SearchEvaluation extends TeamBroadcastableModel implements TaggableInterfa
     public function blockChanges(): void
     {
         Cache::put(self::getBlockChangesCacheKey($this->id), true, now()->addMinutes(15));
+
+        EvaluationChangesBlockChangedEvent::dispatch($this, true);
     }
 
     public function allowChanges(): void
     {
         Cache::forget(self::getBlockChangesCacheKey($this->id));
+
+        EvaluationChangesBlockChangedEvent::dispatch($this, false);
+    }
+
+    public function allowChangesAndNotify(): void
+    {
+        $this->allowChanges();
+
+        $this->broadcastUpdated(array_merge([
+            new PrivateChannel($this->getBroadcastChannelName()),
+        ], $this->additionalBroadcastUpdatedChannels()));
     }
 
     public function getChangesBlockedAttribute(): bool

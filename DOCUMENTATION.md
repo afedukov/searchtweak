@@ -170,6 +170,8 @@ An **evaluation run** that executes keywords against a model and collects releva
 - Links to a `SearchModel`
 - Has a **status lifecycle**: Pending → Active → Finished
 - Tracks progress (percentage of graded feedback)
+- Tracks successful and failed keyword executions
+- Supports rerunning failed keywords for started Pending or Active evaluations
 - Supports **scale types**: Binary, Graded, Detail
 - Contains settings: feedback strategy, reuse strategy, auto-restart, scoring guidelines, transformers
 - Can be archived, pinned, or set as baseline
@@ -738,6 +740,7 @@ Actions encapsulate business logic and are located in `app/Actions/`. They follo
 | `CreateSearchEvaluation` | Creates a new evaluation for a model |
 | `StartSearchEvaluation` | Starts an evaluation — dispatches keyword processing jobs as a batch |
 | `PauseSearchEvaluation` | Pauses an active evaluation |
+| `RerunFailedEvaluationKeywords` | Resets and retries only failed keywords for a started Pending or Active evaluation |
 | `FinishSearchEvaluation` | Finishes an evaluation — stops accepting feedback, finalizes metrics |
 | `DeleteSearchEvaluation` | Deletes an evaluation and its associated data |
 | `UpdateSearchEvaluation` | Updates evaluation properties |
@@ -796,25 +799,37 @@ All evaluation jobs are in `app/Jobs/Evaluations/` and implement `ShouldQueue` a
 - Up to 3 attempts (2 retries)
 - Part of a `Bus::batch()` for parallel keyword processing
 
-### 9.3 `RecalculateMetricsJob`
+### 9.3 `RerunFailedKeywordsJob`
+- Dispatches rerun logic for failed keywords only
+- Resets failed keyword execution fields, snapshots, and keyword metrics
+- Dispatches a `ProcessKeywordJob` batch for the reset keywords
+- Releases the evaluation changes block and notifies Livewire components on completion or failure
+
+### 9.4 `PostRerunFailedKeywordsJob`
+- Runs after the failed-keyword rerun batch completes
+- Recomputes successful/failed keyword counters, progress, and aggregate metrics
+- Dispatches judge processing for Active evaluations when matching active judges exist
+- Leaves Pending evaluations in Pending status
+
+### 9.5 `RecalculateMetricsJob`
 - Triggered after feedback is submitted
 - Recalculates metric values for a keyword using all configured scorers
 - Creates/updates `KeywordMetric` and `MetricValue` records
 
-### 9.4 `FinishEvaluationJob`
+### 9.6 `FinishEvaluationJob`
 - Finalizes evaluation — sets status to Finished
 - Dispatched when all keywords in a batch are processed
 
-### 9.5 `UpdatePreviousValuesJob`
+### 9.7 `UpdatePreviousValuesJob`
 - Updates `previous_value` for metrics when evaluations change status or archive state
 - Ensures metric change indicators reflect the correct previous evaluation
 
-### 9.6 `PostStartEvaluationJob`
+### 9.8 `PostStartEvaluationJob`
 - Runs after keyword processing starts
 - Applies configured reuse strategy
 - Dispatches judge processing when matching active judges exist
 
-### 9.7 `ProcessJudgeEvaluationJob`
+### 9.9 `ProcessJudgeEvaluationJob`
 - Executes AI-judge grading on the dedicated `judges` queue
 - Processes judges in round-robin cycles
 - Uses DB-level locking to claim feedback slots
@@ -1036,6 +1051,18 @@ The `TeamBroadcastableModel` base class automatically broadcasts model CRUD even
       ├─► Batch Completion
       │     ├─► FinishEvaluationJob (or Auto-Restart)
       │     └─► RecalculateMetricsJob
+      │
+2a. Admin Reruns Failed Keywords
+      │
+      ├─► RerunFailedKeywordsJob
+      │     ├─► Resets failed keywords only
+      │     ├─► Deletes failed keyword snapshots and keyword metrics
+      │     └─► Dispatches ProcessKeywordJob batch for failed keywords
+      │
+      └─► PostRerunFailedKeywordsJob
+            ├─► Recomputes successful/failed keyword counters
+            ├─► Recomputes progress and aggregate metrics
+            └─► Dispatches judge processing for Active evaluations
       │
 3. Evaluators Grade Results
       │

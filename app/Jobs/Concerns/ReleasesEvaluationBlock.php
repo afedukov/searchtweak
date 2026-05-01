@@ -18,6 +18,6 @@ trait ReleasesEvaluationBlock
 {
     public function failed(\Throwable $e): void
     {
-        SearchEvaluation::find($this->evaluationId)?->allowChanges();
+        SearchEvaluation::find($this->evaluationId)?->allowChangesAndNotify();
     }
 }
