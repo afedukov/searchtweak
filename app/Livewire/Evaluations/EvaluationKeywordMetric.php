@@ -19,7 +19,14 @@ class EvaluationKeywordMetric extends Component
     {
         return [
             sprintf('echo-private:search-evaluation.%d,.evaluation.feedback.changed', $this->keyword->search_evaluation_id) => '$refresh',
+            sprintf('echo-private:search-evaluation.%d,.evaluation.keywords.changed', $this->keyword->search_evaluation_id) => 'refreshKeywordMetric',
         ];
+    }
+
+    public function refreshKeywordMetric(): void
+    {
+        $this->keyword = $this->keyword->refresh()->load('keywordMetrics');
+        $this->metric = $this->metric->refresh();
     }
 
     public function render(): View

@@ -36,6 +36,7 @@ class ProcessJudgeEvaluationJob implements ShouldBeUniqueUntilProcessing, Should
     private const int MAX_LLM_RETRY_ATTEMPTS = 5;
     private const int BASE_BACKOFF_SECONDS = 30;
     private const int MAX_BACKOFF_SECONDS = 600;
+    private const int LOCK_RETRY_SECONDS = 30;
 
     public int $timeout = 300;
     public int $tries = 3;
@@ -57,6 +58,8 @@ class ProcessJudgeEvaluationJob implements ShouldBeUniqueUntilProcessing, Should
         $lock = Cache::lock("judge-eval-{$this->evaluationId}", $this->timeout);
 
         if (!$lock->get()) {
+            $this->release(self::LOCK_RETRY_SECONDS);
+
             return;
         }
 

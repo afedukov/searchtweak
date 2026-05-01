@@ -3,6 +3,7 @@
 namespace App\Jobs\Evaluations;
 
 use App\Models\EvaluationKeyword;
+use App\Models\KeywordMetric;
 use App\Models\SearchSnapshot;
 use App\Services\Models\ExecuteModelService;
 use Illuminate\Bus\Batchable;
@@ -12,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
 class ProcessKeywordJob implements ShouldQueue, ShouldBeUnique
 {
@@ -26,7 +28,10 @@ class ProcessKeywordJob implements ShouldQueue, ShouldBeUnique
     /**
      * Create a new job instance.
      */
-    public function __construct(private readonly int $keywordId)
+    public function __construct(
+        private readonly int $keywordId,
+        private readonly bool $resetBeforeProcessing = false,
+    )
     {
     }
 
@@ -48,6 +53,10 @@ class ProcessKeywordJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
+        if ($this->resetBeforeProcessing && $keyword->failed) {
+            $keyword = $this->resetKeywordForRerun($keyword);
+        }
+
         if ($keyword->execution_code !== null) {
             return;
         }
@@ -66,6 +75,27 @@ class ProcessKeywordJob implements ShouldQueue, ShouldBeUnique
             ->setLimit($keyword->evaluation->getNumResults());
 
         $this->executeKeyword($keyword);
+    }
+
+    private function resetKeywordForRerun(EvaluationKeyword $keyword): EvaluationKeyword
+    {
+        DB::transaction(function () use ($keyword) {
+            SearchSnapshot::query()
+                ->where(SearchSnapshot::FIELD_EVALUATION_KEYWORD_ID, $keyword->id)
+                ->delete();
+
+            KeywordMetric::query()
+                ->where(KeywordMetric::FIELD_EVALUATION_KEYWORD_ID, $keyword->id)
+                ->delete();
+
+            $keyword->total_count = EvaluationKeyword::TOTAL_COUNT_UNKNOWN;
+            $keyword->execution_code = null;
+            $keyword->execution_message = null;
+            $keyword->failed = false;
+            $keyword->save();
+        });
+
+        return $keyword->refresh();
     }
 
     private function executeKeyword(EvaluationKeyword $keyword): void

@@ -136,6 +136,14 @@ class SearchEvaluationPolicy
     }
 
     /**
+     * Determine whether the user can rerun failed keywords for the search evaluation.
+     */
+    public function rerunFailed(User $user, SearchEvaluation $searchEvaluation): bool
+    {
+        return $this->canManageEvaluation($user, $searchEvaluation);
+    }
+
+    /**
      * Determine whether the user can finish the search evaluation.
      */
     public function finish(User $user, SearchEvaluation $searchEvaluation): bool

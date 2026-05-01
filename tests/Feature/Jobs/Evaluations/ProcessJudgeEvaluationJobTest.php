@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use GuzzleHttp\ClientInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Mockery;
 use Tests\TestCase;
 
@@ -206,6 +207,27 @@ class ProcessJudgeEvaluationJobTest extends TestCase
         });
 
         Carbon::setTestNow();
+    }
+
+    public function test_job_releases_itself_when_evaluation_lock_is_already_held(): void
+    {
+        [, $evaluation] = $this->createEvaluationSetup();
+
+        $lock = Cache::lock("judge-eval-{$evaluation->id}", 300);
+        $this->assertTrue($lock->get());
+
+        try {
+            $factory = Mockery::mock(JudgeHandlerFactory::class);
+            $factory->shouldNotReceive('create');
+
+            $job = (new ProcessJudgeEvaluationJob($evaluation->id))->withFakeQueueInteractions();
+
+            $job->handle($factory);
+
+            $job->assertReleased(30);
+        } finally {
+            $lock->release();
+        }
     }
 
     public function test_single_judge_claims_only_one_slot_per_snapshot_even_with_large_batch_size(): void

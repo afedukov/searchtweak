@@ -70,7 +70,7 @@ class PostStartEvaluationJob implements ShouldQueue, ShouldBeUniqueUntilProcessi
             // skipped and no automatic recovery.
             throw $e;
         } finally {
-            $evaluation->allowChanges();
+            $evaluation->allowChangesAndNotify();
         }
     }
 
