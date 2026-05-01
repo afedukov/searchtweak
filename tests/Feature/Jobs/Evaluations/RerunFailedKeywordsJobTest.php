@@ -3,11 +3,13 @@
 namespace Tests\Feature\Jobs\Evaluations;
 
 use App\Actions\Evaluations\RerunFailedEvaluationKeywords;
+use App\Events\EvaluationChangesBlockChangedEvent;
 use App\Jobs\Evaluations\RerunFailedKeywordsJob;
 use App\Models\EvaluationKeyword;
 use App\Models\SearchEvaluation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class RerunFailedKeywordsJobTest extends TestCase
@@ -33,6 +35,8 @@ class RerunFailedKeywordsJobTest extends TestCase
             EvaluationKeyword::FIELD_SEARCH_EVALUATION_ID => $evaluation->id,
         ]);
         $evaluation->blockChanges();
+
+        Event::fake([EvaluationChangesBlockChangedEvent::class]);
 
         Bus::shouldReceive('batch')
             ->once()
